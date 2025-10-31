@@ -8,6 +8,14 @@ void main() {
     repo = _TestRepo();
   });
 
+  tearDown(() async {
+    try {
+      await repo.dispose();
+    } on StateError {
+      // Repo already disposed in the test.
+    }
+  });
+
   group("Repo reactiveness", () {
     test('Initial state is loading', () {
       expect(repo.state.isLoading, isTrue);
@@ -30,6 +38,30 @@ void main() {
       repo.setError(error);
       expect(repo.state.hasError, isTrue);
       expect(repo.state.asError.error, equals(error));
+    });
+
+    test('Error state stores stack trace', () {
+      final error = Exception('Test error with stack trace');
+      final stackTrace = StackTrace.current;
+      repo.setError(error, stackTrace);
+
+      final state = repo.state.asError;
+      expect(state.error, equals(error));
+      expect(state.stackTrace, same(stackTrace));
+    });
+
+    test('Dispose closes the stream', () async {
+      await repo.dispose();
+      expect(
+        () => repo.setData(123),
+        throwsA(
+          isA<StateError>().having(
+            (err) => err.message,
+            'message',
+            'Cannot add new events after calling close',
+          ),
+        ),
+      );
     });
 
     group("Stream emissions", () {

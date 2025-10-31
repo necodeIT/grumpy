@@ -77,27 +77,27 @@ abstract class Module<Config extends Object> with LifecycleMixin, LogMixin {
     _di.pushNewScope(scopeName: runtimeType.toString(), dispose: dispose);
 
     bindExternalDeps(<T extends Object>(builder) {
-      _di.registerFactory<T>(() => builder<T>(_di.get<Config>(), _di.get));
+      _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get));
     });
 
     bindServices(<T extends Service>(Builder<Service, Config> builder) {
-      _di.registerFactory<T>(() => builder<T>(_di.get<Config>(), _di.get));
+      _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get) as T);
     });
 
     bindDatasources(<T extends Datasource>(
       Builder<Datasource, Config> builder,
     ) {
-      _di.registerFactory<T>(() => builder<T>(_di.get<Config>(), _di.get));
+      _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get) as T);
     });
 
     bindRepos(<T extends Repo>(Builder<Repo, Config> builder) {
       _di.registerLazySingletonAsync<T>(
         () async {
-          final repo = builder<T>(_di.get<Config>(), _di.get);
+          final repo = builder(_di.get<Config>(), _di.get);
 
           await repo.initialize();
           await repo.activate();
-          return repo;
+          return repo as T;
         },
         dispose: (repo) async {
           await repo.deactivate();
@@ -122,12 +122,12 @@ abstract class Module<Config extends Object> with LifecycleMixin, LogMixin {
 }
 
 /// A function that binds a [Builder] for a specific [Base] type with a given [Config].
-typedef Bind<Base extends Object, Config> =
-    void Function<T extends Base>(Builder<Base, Config> builder);
+typedef Bind<Base extends Object, Config extends Object> =
+    void Function<T extends Base>(Builder<T, Config> builder);
 
 /// A function that builds an instance of type [T] using the provided [Config] and [Resolver].
-typedef Builder<Base extends Object, Config> =
-    T Function<T extends Base>(Config config, Resolver resolver);
+typedef Builder<T, Config extends Object> =
+    T Function(Config cfg, Resolver resolve);
 
 /// A function that resolves an instance of type [T].
 typedef Resolver = T Function<T extends Object>();
