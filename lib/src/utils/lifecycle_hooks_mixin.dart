@@ -87,3 +87,53 @@ mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
     _disposeHooks.clear();
   }
 }
+
+/// Mixin providing hooks for Repo lifecycle events.
+
+mixin RepoLifecycleHooksMixin<T> on RepoLifecycleMixin<T> {
+  final List<FutureOr<void> Function(T data)> _onDataHooks = [];
+  final List<FutureOr<void> Function(Object error, StackTrace? stackTrace)>
+  _onErrorHooks = [];
+  final List<FutureOr<void> Function()> _onLoadingHooks = [];
+
+  /// Registers a hook to be called when new data is emitted.
+  void onData(FutureOr<void> Function(T data) hook) {
+    _onDataHooks.add(hook);
+  }
+
+  /// Registers a hook to be called when an error occurs.
+  void onError(
+    FutureOr<void> Function(Object error, StackTrace? stackTrace) hook,
+  ) {
+    _onErrorHooks.add(hook);
+  }
+
+  /// Registers a hook to be called when loading state is emitted.
+  void onLoading(FutureOr<void> Function() hook) {
+    _onLoadingHooks.add(hook);
+  }
+
+  @override
+  void onEmitData(T data) {
+    super.onEmitData(data);
+    for (final hook in _onDataHooks) {
+      hook(data);
+    }
+  }
+
+  @override
+  void onEmitError(Object error, StackTrace? stackTrace) {
+    super.onEmitError(error, stackTrace);
+    for (final hook in _onErrorHooks) {
+      hook(error, stackTrace);
+    }
+  }
+
+  @override
+  void onEmitLoading() {
+    super.onEmitLoading();
+    for (final hook in _onLoadingHooks) {
+      hook();
+    }
+  }
+}

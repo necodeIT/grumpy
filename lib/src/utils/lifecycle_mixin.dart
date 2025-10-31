@@ -54,3 +54,35 @@ abstract mixin class LifecycleMixin implements Disposable {
     _isDisposed = true;
   }
 }
+
+/// Mixin that adds lifecycle callbacks to a [Repo].
+mixin RepoLifecycleMixin<T> on Repo<T> {
+  /// Called when a new data value is emitted.
+  void onEmitData(T data) {}
+
+  /// Called when an error occurs.
+  void onEmitError(Object error, StackTrace? stackTrace) {}
+
+  /// Called when the loading state changes.
+  void onEmitLoading() {}
+
+  @override
+  void data(value) {
+    super.data(value);
+
+    onEmitData(value);
+  }
+
+  @override
+  void error(Object error, [StackTrace? stackTrace]) {
+    super.error(error, stackTrace);
+
+    onEmitError(error, stackTrace);
+  }
+
+  @override
+  void loading() {
+    super.loading();
+    onEmitLoading();
+  }
+}
