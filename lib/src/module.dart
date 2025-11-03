@@ -26,7 +26,7 @@ abstract class Module<Config extends Object> with LifecycleMixin, LogMixin {
   /// Override this getter to import other modules.
   ///
   /// Each imported module will be initialized and disposed of
-  /// along with this module.
+  /// along with this module - unless they were already mounted by another module.
   List<Module<Config>> get imports => const [];
 
   String? _firstImportScope;

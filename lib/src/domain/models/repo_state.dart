@@ -59,6 +59,22 @@ abstract class RepoState<T> implements Model {
       throw RepoStateError(this, 'Not a loading state in RepoState.');
     }
   }
+
+  /// Pattern matches on the type of this state and invokes the corresponding callback.
+  ///
+  /// **Example:**
+  /// ```dart
+  /// final message = state.when(
+  ///   data: (dataState) => 'Data loaded: ${dataState.value}',
+  ///   loading: (loadingState) => 'Loading for ${loadingState.elapsed.inSeconds} seconds',
+  ///   error: (errorState) => 'Error occurred: ${errorState.error}',
+  /// );
+  /// ```
+  R when<R>({
+    required R Function(RepoDataState<T> data) data,
+    required R Function(RepoLoadingState<T> loading) loading,
+    required R Function(RepoErrorState<T> error) error,
+  });
 }
 
 /// Represents a data state in a [Repo] indicating successful data retrieval.
@@ -72,6 +88,15 @@ class RepoDataState<T> extends RepoState<T> {
   @override
   String toString() {
     return 'RepoDataState(value: $value)';
+  }
+
+  @override
+  R when<R>({
+    required R Function(RepoDataState<T> data) data,
+    required R Function(RepoLoadingState<T> loading) loading,
+    required R Function(RepoErrorState<T> error) error,
+  }) {
+    return data(this);
   }
 }
 
@@ -90,6 +115,15 @@ class RepoLoadingState<T> extends RepoState<T> {
   String toString() {
     return 'RepoLoadingState(timeStamp: $timeStamp)';
   }
+
+  @override
+  R when<R>({
+    required R Function(RepoDataState<T> data) data,
+    required R Function(RepoLoadingState<T> loading) loading,
+    required R Function(RepoErrorState<T> error) error,
+  }) {
+    return loading(this);
+  }
 }
 
 /// Represents an error state in a [Repo].
@@ -107,15 +141,34 @@ class RepoErrorState<T> extends RepoState<T> {
   String toString() {
     return 'RepoErrorState(error: $error, stackTrace: $stackTrace)';
   }
+
+  @override
+  R when<R>({
+    required R Function(RepoDataState<T> data) data,
+    required R Function(RepoLoadingState<T> loading) loading,
+    required R Function(RepoErrorState<T> error) error,
+  }) {
+    return error(this);
+  }
 }
 
+/// An error indicating an invalid state in a [RepoState].
+///
+/// Thrown when attempting to access data or error information
+/// that is not available in the current state.
 class RepoStateError extends StateError {
+  /// The [RepoState] that caused this error.
   final RepoState state;
 
+  /// Creates a [RepoStateError] for the given [state] with an optional [message].
   RepoStateError(this.state, super.message);
 }
 
+/// An error indicating that no data is available in a [RepoState].
+///
+/// Thrown when attempting to access data from a state that does not contain data.
 class NoRepoDataError extends RepoStateError {
+  /// Creates a [NoRepoDataError] for the given [state].
   NoRepoDataError(RepoState state)
     : super(state, 'No data available in RepoState. Current state: $state');
 }

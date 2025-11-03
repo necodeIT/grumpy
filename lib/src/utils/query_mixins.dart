@@ -88,11 +88,18 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
     Object? cacheKey,
     Duration? ttl,
   }) async {
-    assert(name.isNotEmpty, 'QueryMixin: Query name must not be empty.');
-    assert(
-      _installed,
-      'QueryMixin: installMemoryCacheHooks() must be called in the Repo constructor.',
-    );
+    if (!_installed) {
+      throw StateError(
+        'QueryMixin not installed. Call installMemoryCacheHooks in the Repo constructor.',
+      );
+    }
+    if (name.isEmpty) {
+      throw ArgumentError.value(
+        name,
+        'name',
+        'QueryMixin: Query name must not be empty.',
+      );
+    }
 
     log('Executing query: $name');
 
