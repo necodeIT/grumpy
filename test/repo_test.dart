@@ -145,7 +145,9 @@ class NoOpTelemetryService extends TelemetryService {
 }
 
 class _TestRepo extends Repo<int> {
-  _TestRepo() : super();
+  _TestRepo() {
+    initialize();
+  }
 
   void setData(int value) => data(value);
   void setLoading() => loading();

@@ -76,6 +76,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 
   /// Installs the necessary lifecycle hooks for the [UseRepoMixin].
   /// Should be called in the constructor of the class using this mixin.
+  @mustCallInConstructor
   void installUseRepoHooks() {
     if (_installed) return;
     _installed = true;

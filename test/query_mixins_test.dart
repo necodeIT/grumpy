@@ -224,6 +224,8 @@ class _TestQueryRepo extends Repo<List<_TestItem>>
        _invalidateOnLoading = invalidateOnLoading,
        _cacheNullResults = cacheNullResults {
     installMemoryCacheHooks();
+
+    initialize();
   }
 
   final bool? _invalidateOnNewData;

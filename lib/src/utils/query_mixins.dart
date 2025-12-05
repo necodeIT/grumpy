@@ -5,6 +5,7 @@ import 'package:get_it/get_it.dart';
 import 'package:memory_cache/memory_cache.dart';
 import 'package:meta/meta.dart';
 import 'package:modular_foundation/modular_foundation.dart';
+import 'package:modular_foundation/src/domain/models/annotations.dart';
 
 /// Adds query execution with telemetry and in-memory caching to a [Repo].
 mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
@@ -37,6 +38,7 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
   /// - (optionally) clear the cache on data/loading/error,
   /// - clear everything on dispose.
   @nonVirtual
+  @mustCallInConstructor
   void installMemoryCacheHooks() {
     if (_installed) return;
 
@@ -195,7 +197,7 @@ mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
         return r.map(extractResult).toList();
       },
       cacheKey: query.toLowerCase(),
-      ttl: const Duration(minutes: 2), // typical shorter TTL for search
+      ttl: const Duration(minutes: 2),
     );
 
     return result ?? <T>[];

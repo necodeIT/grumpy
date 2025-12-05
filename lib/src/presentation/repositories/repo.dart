@@ -15,7 +15,6 @@ abstract class Repo<T>
 
   /// Creates a new instance of [Repo].
   Repo() {
-    initialize();
     onDispose(_stream.close);
   }
 

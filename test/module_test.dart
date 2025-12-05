@@ -65,7 +65,9 @@ void main() {
 }
 
 class _TestModule extends Module<_TestConfig> {
-  _TestModule(this._importModule);
+  _TestModule(this._importModule) {
+    initialize();
+  }
 
   final _ImportModule _importModule;
 
@@ -153,11 +155,13 @@ class _FakeDatasource extends Datasource {
 }
 
 class _FakeRepo extends Repo<int> {
-  _FakeRepo(this.config) : super() {
+  _FakeRepo(this.config) {
     onInitialize(() => initializeHookRan = true);
     onActivate(() => activateCount++);
     onDeactivate(() => deactivateCount++);
     onDispose(() => disposed = true);
+
+    initialize();
   }
 
   final _TestConfig config;
