@@ -18,7 +18,7 @@ abstract class Repo<T>
     onDisposed(_stream.close);
   }
 
-  /// Shorthand to get a registered instance from GetIt.
+  /// Shorthand for [GetIt.get].
   @nonVirtual
   Clazz get<Clazz extends Object>() => GetIt.I<Clazz>();
 

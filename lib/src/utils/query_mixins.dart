@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:fuzzy_bolt/fuzzy_bolt.dart';
-import 'package:get_it/get_it.dart';
 import 'package:memory_cache/memory_cache.dart';
 import 'package:meta/meta.dart';
 import 'package:modular_foundation/modular_foundation.dart';
@@ -120,7 +119,7 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
       }
     }
 
-    final telemetry = GetIt.I.get<TelemetryService>();
+    final telemetry = get<TelemetryService>();
 
     QueryResult? result;
     try {

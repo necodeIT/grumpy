@@ -59,8 +59,8 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
 
     final stateVersion = _stateVersion;
 
-    final telemetry = GetIt.I.get<TelemetryService>();
-    final analytics = GetIt.I.get<AnalyticsService>();
+    final telemetry = get<TelemetryService>();
+    final analytics = get<AnalyticsService>();
 
     try {
       log('Starting mutation $name');
@@ -121,8 +121,8 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
     final snapshot = state;
     _applyOptimistics(optimisticPolicy);
     final stateVersion = _stateVersion;
-    final telemetry = GetIt.I.get<TelemetryService>();
-    final analytics = GetIt.I.get<AnalyticsService>();
+    final telemetry = get<TelemetryService>();
+    final analytics = get<AnalyticsService>();
 
     try {
       log('Starting action $name');
