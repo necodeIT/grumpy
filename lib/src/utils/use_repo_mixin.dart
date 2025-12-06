@@ -100,13 +100,13 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       }
     });
 
-    onDispose(() async {
+    onDisposed(() async {
       for (final sub in _subs) {
         await sub.cancel();
       }
     });
-    onDispose(_watchedRepos.clear);
-    onDispose(_subs.clear);
+    onDisposed(_watchedRepos.clear);
+    onDisposed(_subs.clear);
   }
 
   /// Watches a [Repo] of type [R] managing data of type [S] and

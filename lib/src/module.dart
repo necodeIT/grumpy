@@ -12,7 +12,8 @@ import 'dart:async';
 import 'package:modular_foundation/src/infra/infra.dart';
 
 /// A modular unit of functionality within an application.
-abstract class Module<Config extends Object> with LifecycleMixin, LogMixin {
+abstract class Module<Config extends Object>
+    with LifecycleMixin, LogMixin, Disposable {
   GetIt get _di => GetIt.I;
 
   @override

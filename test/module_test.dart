@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get_it/get_it.dart';
 import 'package:modular_foundation/modular_foundation.dart';
 import 'package:test/test.dart';
@@ -159,7 +161,7 @@ class _FakeRepo extends Repo<int> {
     onInitialize(() => initializeHookRan = true);
     onActivate(() => activateCount++);
     onDeactivate(() => deactivateCount++);
-    onDispose(() => disposed = true);
+    onDisposed(() => disposed = true);
 
     initialize();
   }

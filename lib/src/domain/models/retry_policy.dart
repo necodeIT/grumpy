@@ -9,15 +9,16 @@ part 'retry_policy.freezed.dart';
 abstract class RetryPolicy with _$RetryPolicy implements Model {
   const RetryPolicy._();
 
-  /// Creates a [RetryPolicy] with the specified [timeout] and [maxAttempts].
+  /// Creates a [RetryPolicy] with the specified [delay] and [maxAttempts].
+  @Assert('maxAttempts > 0', 'maxAttempts must be greater than 0')
   const factory RetryPolicy({
     /// The duration to wait before each retry attempt.
-    required Duration timeout,
+    required Duration delay,
 
     /// The maximum number of retry attempts before giving up.
     required int maxAttempts,
   }) = _RetryPolicy;
 
   /// A [RetryPolicy] that does not perform any retries.
-  static const noRetry = RetryPolicy(timeout: Duration.zero, maxAttempts: 1);
+  static const noRetry = RetryPolicy(delay: Duration.zero, maxAttempts: 1);
 }

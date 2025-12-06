@@ -4,7 +4,7 @@ import 'package:modular_foundation/modular_foundation.dart';
 
 /// A service is responsible for IO operations, such as making network requests
 /// or reading/writing files.
-abstract class Service with LogMixin implements Disposable {
+abstract class Service with LogMixin, Disposable {
   @nonVirtual
   @override
   String get group => 'Service';

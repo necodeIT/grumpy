@@ -32,7 +32,7 @@ mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
   }
 
   /// Registers a hook to be called in [dispose].
-  void onDispose(FutureOr<void> Function() hook) {
+  void onDisposed(FutureOr<void> Function() hook) {
     _disposeHooks.add(hook);
   }
 

@@ -4,7 +4,7 @@ import 'package:modular_foundation/modular_foundation.dart';
 
 /// A datasource is responsible for providing data from a specific source,
 /// such as a database, API, or local storage.
-abstract class Datasource with LogMixin implements Disposable {
+abstract class Datasource with LogMixin, Disposable {
   @nonVirtual
   @override
   String get group => 'Datasource';

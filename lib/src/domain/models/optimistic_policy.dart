@@ -34,7 +34,6 @@ abstract class OptimisticPolicy<T> with _$OptimisticPolicy<T> implements Model {
   /// An [OptimisticPolicy] that always reverts on error and swallows the error.
   factory OptimisticPolicy.alwaysRevert({
     required T Function(T) optimisticValue,
-    required T snapshotValue,
   }) {
     return OptimisticPolicy(
       optimisticValue: optimisticValue,
@@ -46,7 +45,6 @@ abstract class OptimisticPolicy<T> with _$OptimisticPolicy<T> implements Model {
   /// An [OptimisticPolicy] that never reverts on error and swallows the error.
   factory OptimisticPolicy.neverRevert({
     required T Function(T) optimisticValue,
-    required T snapshotValue,
   }) {
     return OptimisticPolicy(
       optimisticValue: optimisticValue,
@@ -58,7 +56,6 @@ abstract class OptimisticPolicy<T> with _$OptimisticPolicy<T> implements Model {
   /// An [OptimisticPolicy] that always reverts on error and propagates the error.
   factory OptimisticPolicy.propagateError({
     required T Function(T) optimisticValue,
-    required T snapshotValue,
   }) {
     return OptimisticPolicy(
       optimisticValue: optimisticValue,

@@ -5,7 +5,6 @@ import 'package:get_it/get_it.dart';
 import 'package:memory_cache/memory_cache.dart';
 import 'package:meta/meta.dart';
 import 'package:modular_foundation/modular_foundation.dart';
-import 'package:modular_foundation/src/domain/models/annotations.dart';
 
 /// Adds query execution with telemetry and in-memory caching to a [Repo].
 mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
@@ -64,7 +63,7 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
       }
     });
 
-    onDispose(() {
+    onDisposed(() {
       cache.invalidate();
       log('Cache cleared on dispose.');
     });

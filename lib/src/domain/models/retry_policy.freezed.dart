@@ -15,7 +15,7 @@ T _$identity<T>(T value) => value;
 mixin _$RetryPolicy {
 
 /// The duration to wait before each retry attempt.
- Duration get timeout;/// The maximum number of retry attempts before giving up.
+ Duration get delay;/// The maximum number of retry attempts before giving up.
  int get maxAttempts;
 /// Create a copy of RetryPolicy
 /// with the given fields replaced by the non-null parameter values.
@@ -27,16 +27,16 @@ $RetryPolicyCopyWith<RetryPolicy> get copyWith => _$RetryPolicyCopyWithImpl<Retr
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is RetryPolicy&&(identical(other.timeout, timeout) || other.timeout == timeout)&&(identical(other.maxAttempts, maxAttempts) || other.maxAttempts == maxAttempts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is RetryPolicy&&(identical(other.delay, delay) || other.delay == delay)&&(identical(other.maxAttempts, maxAttempts) || other.maxAttempts == maxAttempts));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,timeout,maxAttempts);
+int get hashCode => Object.hash(runtimeType,delay,maxAttempts);
 
 @override
 String toString() {
-  return 'RetryPolicy(timeout: $timeout, maxAttempts: $maxAttempts)';
+  return 'RetryPolicy(delay: $delay, maxAttempts: $maxAttempts)';
 }
 
 
@@ -47,7 +47,7 @@ abstract mixin class $RetryPolicyCopyWith<$Res>  {
   factory $RetryPolicyCopyWith(RetryPolicy value, $Res Function(RetryPolicy) _then) = _$RetryPolicyCopyWithImpl;
 @useResult
 $Res call({
- Duration timeout, int maxAttempts
+ Duration delay, int maxAttempts
 });
 
 
@@ -64,9 +64,9 @@ class _$RetryPolicyCopyWithImpl<$Res>
 
 /// Create a copy of RetryPolicy
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? timeout = null,Object? maxAttempts = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? delay = null,Object? maxAttempts = null,}) {
   return _then(_self.copyWith(
-timeout: null == timeout ? _self.timeout : timeout // ignore: cast_nullable_to_non_nullable
+delay: null == delay ? _self.delay : delay // ignore: cast_nullable_to_non_nullable
 as Duration,maxAttempts: null == maxAttempts ? _self.maxAttempts : maxAttempts // ignore: cast_nullable_to_non_nullable
 as int,
   ));
@@ -153,10 +153,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Duration timeout,  int maxAttempts)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Duration delay,  int maxAttempts)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _RetryPolicy() when $default != null:
-return $default(_that.timeout,_that.maxAttempts);case _:
+return $default(_that.delay,_that.maxAttempts);case _:
   return orElse();
 
 }
@@ -174,10 +174,10 @@ return $default(_that.timeout,_that.maxAttempts);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Duration timeout,  int maxAttempts)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Duration delay,  int maxAttempts)  $default,) {final _that = this;
 switch (_that) {
 case _RetryPolicy():
-return $default(_that.timeout,_that.maxAttempts);case _:
+return $default(_that.delay,_that.maxAttempts);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -194,10 +194,10 @@ return $default(_that.timeout,_that.maxAttempts);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Duration timeout,  int maxAttempts)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Duration delay,  int maxAttempts)?  $default,) {final _that = this;
 switch (_that) {
 case _RetryPolicy() when $default != null:
-return $default(_that.timeout,_that.maxAttempts);case _:
+return $default(_that.delay,_that.maxAttempts);case _:
   return null;
 
 }
@@ -209,11 +209,11 @@ return $default(_that.timeout,_that.maxAttempts);case _:
 
 
 class _RetryPolicy extends RetryPolicy {
-  const _RetryPolicy({required this.timeout, required this.maxAttempts}): super._();
+  const _RetryPolicy({required this.delay, required this.maxAttempts}): assert(maxAttempts > 0, 'maxAttempts must be greater than 0'),super._();
   
 
 /// The duration to wait before each retry attempt.
-@override final  Duration timeout;
+@override final  Duration delay;
 /// The maximum number of retry attempts before giving up.
 @override final  int maxAttempts;
 
@@ -227,16 +227,16 @@ _$RetryPolicyCopyWith<_RetryPolicy> get copyWith => __$RetryPolicyCopyWithImpl<_
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RetryPolicy&&(identical(other.timeout, timeout) || other.timeout == timeout)&&(identical(other.maxAttempts, maxAttempts) || other.maxAttempts == maxAttempts));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _RetryPolicy&&(identical(other.delay, delay) || other.delay == delay)&&(identical(other.maxAttempts, maxAttempts) || other.maxAttempts == maxAttempts));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,timeout,maxAttempts);
+int get hashCode => Object.hash(runtimeType,delay,maxAttempts);
 
 @override
 String toString() {
-  return 'RetryPolicy(timeout: $timeout, maxAttempts: $maxAttempts)';
+  return 'RetryPolicy(delay: $delay, maxAttempts: $maxAttempts)';
 }
 
 
@@ -247,7 +247,7 @@ abstract mixin class _$RetryPolicyCopyWith<$Res> implements $RetryPolicyCopyWith
   factory _$RetryPolicyCopyWith(_RetryPolicy value, $Res Function(_RetryPolicy) _then) = __$RetryPolicyCopyWithImpl;
 @override @useResult
 $Res call({
- Duration timeout, int maxAttempts
+ Duration delay, int maxAttempts
 });
 
 
@@ -264,9 +264,9 @@ class __$RetryPolicyCopyWithImpl<$Res>
 
 /// Create a copy of RetryPolicy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? timeout = null,Object? maxAttempts = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? delay = null,Object? maxAttempts = null,}) {
   return _then(_RetryPolicy(
-timeout: null == timeout ? _self.timeout : timeout // ignore: cast_nullable_to_non_nullable
+delay: null == delay ? _self.delay : delay // ignore: cast_nullable_to_non_nullable
 as Duration,maxAttempts: null == maxAttempts ? _self.maxAttempts : maxAttempts // ignore: cast_nullable_to_non_nullable
 as int,
   ));

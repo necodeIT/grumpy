@@ -43,7 +43,6 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
     eventName ??= 'mutation_$name';
 
     final snapshot = state;
-    final stateVersion = ++_stateVersion;
 
     if (!_installed) {
       throw StateError(
@@ -58,39 +57,33 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
 
     _applyOptimistics(optimisticPolicy);
 
+    final stateVersion = _stateVersion;
+
     final telemetry = GetIt.I.get<TelemetryService>();
     final analytics = GetIt.I.get<AnalyticsService>();
 
     try {
+      log('Starting mutation $name');
       await analytics.trackEvent(eventName, properties: attributes);
 
       final result = await telemetry.runSpan(name, () async {
-        for (var i = 0; i < retryPolicy.maxAttempts; i++) {
-          try {
-            final result = await telemetry.runSpan(
-              'try_$i',
-              () async => mutation(state.requireData),
-            );
-
-            return result;
-          } catch (e) {
-            if (i == retryPolicy.maxAttempts - 1) {
-              rethrow;
-            } else {
-              await Future.delayed(retryPolicy.timeout);
-              continue;
-            }
-          }
-        }
-
-        throw StateError('Unreachable code in mutation retry logic');
+        return await _runWithRetries<T>(
+          () => mutation(snapshot.requireData),
+          telemetry,
+          retryPolicy,
+          name,
+        );
       });
 
       data(result);
+      log('Completed mutation $name');
       return result;
     } catch (e, st) {
       log('Error during mutation $name', e, st);
       _revertOptimistic(optimisticPolicy, snapshot, e, stateVersion);
+
+      if (optimisticPolicy?.propagateError == true) rethrow;
+
       return null;
     }
   }
@@ -125,31 +118,54 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
         'Mutation hooks are not installed. Please call installMutationHooks() in the constructor.',
       );
     }
+    final snapshot = state;
     _applyOptimistics(optimisticPolicy);
+    final stateVersion = _stateVersion;
     final telemetry = GetIt.I.get<TelemetryService>();
     final analytics = GetIt.I.get<AnalyticsService>();
 
     try {
+      log('Starting action $name');
       await analytics.trackEvent(eventName, properties: attributes);
       await telemetry.runSpan(name, () async {
-        for (var i = 0; i < retryPolicy.maxAttempts; i++) {
-          try {
-            await telemetry.runSpan('try_$i', () async => action());
-            return;
-          } catch (e) {
-            if (i == retryPolicy.maxAttempts - 1) {
-              rethrow;
-            } else {
-              await Future.delayed(retryPolicy.timeout);
-              continue;
-            }
-          }
-        }
+        await _runWithRetries(action, telemetry, retryPolicy, name);
       });
+      log('Completed action $name');
     } catch (e, st) {
       log('Error during action $name', e, st);
-      _revertOptimistic(optimisticPolicy, state, e, _stateVersion);
+      _revertOptimistic(optimisticPolicy, snapshot, e, stateVersion);
+      if (optimisticPolicy?.propagateError == true) rethrow;
     }
+  }
+
+  Future<Ret> _runWithRetries<Ret>(
+    FutureOr<Ret> Function() operation,
+    TelemetryService telemetry,
+    RetryPolicy retryPolicy,
+    String spanName,
+  ) async {
+    for (var i = 0; i < retryPolicy.maxAttempts; i++) {
+      try {
+        return await telemetry.runSpan('try_$i', () async => operation());
+      } catch (e) {
+        if (i == retryPolicy.maxAttempts - 1) {
+          log(
+            'Operation in span $spanName failed on final attempt ${i + 1}/${retryPolicy.maxAttempts}',
+            e,
+          );
+          rethrow;
+        } else {
+          log(
+            'Operation in span $spanName failed on attempt ${i + 1}/${retryPolicy.maxAttempts}, retrying after ${retryPolicy.delay}',
+            e,
+          );
+          await Future.delayed(retryPolicy.delay);
+          continue;
+        }
+      }
+    }
+
+    throw StateError('Unreachable code in action retry logic');
   }
 
   void _applyOptimistics(OptimisticPolicy<RepoState<T>>? policy) {

@@ -1,3 +1,4 @@
+import 'package:get_it/get_it.dart' hide Disposable;
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:modular_foundation/modular_foundation.dart';
@@ -9,14 +10,17 @@ import 'package:rxdart/rxdart.dart';
 ///
 /// See [RepoState] for more details on the possible states.
 abstract class Repo<T>
-    with LogMixin, LifecycleMixin, LifecycleHooksMixin
-    implements Disposable {
+    with LogMixin, LifecycleMixin, LifecycleHooksMixin, Disposable {
   final _stream = BehaviorSubject.seeded(RepoState<T>.loading());
 
   /// Creates a new instance of [Repo].
   Repo() {
-    onDispose(_stream.close);
+    onDisposed(_stream.close);
   }
+
+  /// Shorthand to get a registered instance from GetIt.
+  @nonVirtual
+  Clazz get<Clazz extends Object>() => GetIt.I<Clazz>();
 
   @nonVirtual
   @override
