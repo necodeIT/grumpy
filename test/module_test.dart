@@ -66,7 +66,7 @@ void main() {
   });
 }
 
-class _TestModule extends Module<_TestConfig> {
+class _TestModule extends Module<_TestConfig, int> {
   _TestModule(this._importModule) {
     initialize();
   }
@@ -74,7 +74,7 @@ class _TestModule extends Module<_TestConfig> {
   final _ImportModule _importModule;
 
   @override
-  List<Module<_TestConfig>> get imports => [_importModule];
+  List<Module<_TestConfig, int>> get imports => [_importModule];
 
   @override
   void bindExternalDeps(Bind<Object, _TestConfig> bind) {
@@ -104,9 +104,12 @@ class _TestModule extends Module<_TestConfig> {
 
   @override
   Future<void> dependenciesChanged() async {}
+
+  @override
+  List<Route<int>> get routes => [];
 }
 
-class _ImportModule extends Module<_TestConfig> {
+class _ImportModule extends Module<_TestConfig, int> {
   int initializeCount = 0;
   int disposeCount = 0;
 
@@ -130,6 +133,9 @@ class _ImportModule extends Module<_TestConfig> {
 
   @override
   Future<void> dependenciesChanged() async {}
+
+  @override
+  List<Route<int>> get routes => [];
 }
 
 class _ExternalDependency extends Object {

@@ -12,7 +12,7 @@ import 'dart:async';
 import 'package:modular_foundation/src/infra/infra.dart';
 
 /// A modular unit of functionality within an application.
-abstract class Module<Config extends Object>
+abstract class Module<Config extends Object, RouteType>
     with LifecycleMixin, LogMixin, Disposable {
   GetIt get _di => GetIt.I;
 
@@ -28,7 +28,7 @@ abstract class Module<Config extends Object>
   ///
   /// Each imported module will be initialized and disposed of
   /// along with this module - unless they were already mounted by another module.
-  List<Module<Config>> get imports => const [];
+  List<Module<Config, RouteType>> get imports => const [];
 
   String? _firstImportScope;
 
@@ -53,7 +53,7 @@ abstract class Module<Config extends Object>
   /// Called after [bindDatasources] during module initialization.
   void bindRepos(Bind<Repo, Config> bind) {}
 
-  Future<void> _mount(Module<Config> module) async {
+  Future<void> _mount(Module<Config, RouteType> module) async {
     if (_di.hasScope(module.runtimeType.toString())) {
       log('${module.runtimeType} is already mounted. Skipping.');
       return;
@@ -120,6 +120,9 @@ abstract class Module<Config extends Object>
       await _di.popScopesTill(_firstImportScope!);
     }
   }
+
+  /// The routes provided by this module.
+  List<Route<RouteType>> get routes;
 }
 
 /// A function that binds a [Builder] for a specific [Base] type with a given [Config].
@@ -137,7 +140,8 @@ typedef Resolver = T Function<T extends Object>();
 ///
 /// As the root module, it is responsible for providing the application-wide
 /// configuration ([Config]) as well as setting up core services like telemetry and analytics.
-abstract class RootModule<Config extends Object> extends Module<Config> {
+abstract class RootModule<Config extends Object, RouteType>
+    extends Module<Config, RouteType> {
   /// The configuration to use throughout the application.
   final Config cfg;
 
@@ -170,4 +174,7 @@ abstract class RootModule<Config extends Object> extends Module<Config> {
 
     return super.initialize();
   }
+
+  /// The root route of this module.
+  Route<RouteType> get root => Route.root(routes);
 }
