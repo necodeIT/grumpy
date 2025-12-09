@@ -1,3 +1,5 @@
+// this is the base class for guards.
+// ignore: guards_must_extend_guard
 /// A guard is responsible for determining whether a route can be activated.
 abstract class Guard {
   /// The path to redirect to if the guard denies activation.

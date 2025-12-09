@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:get_it/get_it.dart';
 import 'package:meta/meta.dart';
+import 'package:modular_foundation/annotations.dart';
 import 'package:modular_foundation/modular_foundation.dart';
 
 /// A mixin that provides functionality to watch and use multiple [Repo] instances.

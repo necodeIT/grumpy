@@ -4,6 +4,8 @@ import 'package:meta/meta.dart';
 import 'package:modular_foundation/modular_foundation.dart';
 import 'package:rxdart/rxdart.dart';
 
+// this is the base class for repositories.
+// ignore: repositories_must_extend_repo
 /// A repository that manages the state of data of type [T].
 /// It's purpose is to expose the data in a presentable way by providing
 /// filter, sorting, and CRUD operations that can be easily bound by consumers.

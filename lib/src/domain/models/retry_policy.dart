@@ -6,7 +6,7 @@ part 'retry_policy.freezed.dart';
 /// Defines the retry behavior for operations that may fail.
 
 @freezed
-abstract class RetryPolicy with _$RetryPolicy implements Model {
+abstract class RetryPolicy extends Model with _$RetryPolicy {
   const RetryPolicy._();
 
   /// Creates a [RetryPolicy] with the specified [delay] and [maxAttempts].

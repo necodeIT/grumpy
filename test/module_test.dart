@@ -106,7 +106,7 @@ class _TestModule extends Module<_TestConfig, int> {
   Future<void> dependenciesChanged() async {}
 
   @override
-  List<Route<int>> get routes => [];
+  List<Route<int, _TestConfig>> get routes => [];
 }
 
 class _ImportModule extends Module<_TestConfig, int> {
@@ -135,7 +135,7 @@ class _ImportModule extends Module<_TestConfig, int> {
   Future<void> dependenciesChanged() async {}
 
   @override
-  List<Route<int>> get routes => [];
+  List<Route<int, _TestConfig>> get routes => [];
 }
 
 class _ExternalDependency extends Object {

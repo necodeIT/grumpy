@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fuzzy_bolt/fuzzy_bolt.dart';
 import 'package:memory_cache/memory_cache.dart';
 import 'package:meta/meta.dart';
+import 'package:modular_foundation/annotations.dart';
 import 'package:modular_foundation/modular_foundation.dart';
 
 /// Adds query execution with telemetry and in-memory caching to a [Repo].
@@ -211,5 +212,5 @@ mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
   List<String Function(T item)> get fuzzySelectors;
 
   /// Configuration for fuzzy search behavior.
-  FuzzySearchConfig get fuzzySearchConfig => FuzzySearchConfig();
+  FuzzySearchConfig get fuzzySearchConfig => const FuzzySearchConfig();
 }

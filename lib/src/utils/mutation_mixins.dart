@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:modular_foundation/annotations.dart';
 import 'package:modular_foundation/modular_foundation.dart';
 
 /// A mixin that provides mutation capabilities to a [Repo].

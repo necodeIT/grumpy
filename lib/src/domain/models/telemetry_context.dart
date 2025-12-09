@@ -38,7 +38,7 @@ part 'telemetry_context.freezed.dart';
 /// This prevents nested spans from different telemetry backends from
 /// accidentally attaching to each other.
 @freezed
-abstract class TelemetryContext<T> with _$TelemetryContext<T> implements Model {
+abstract class TelemetryContext<T> extends Model with _$TelemetryContext<T> {
   /// Creates a new [TelemetryContext].
   const factory TelemetryContext({
     /// The backend-specific span object (e.g., a Sentry or OTel span).

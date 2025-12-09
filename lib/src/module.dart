@@ -122,7 +122,7 @@ abstract class Module<Config extends Object, RouteType>
   }
 
   /// The routes provided by this module.
-  List<Route<RouteType>> get routes;
+  List<Route<RouteType, Config>> get routes;
 }
 
 /// A function that binds a [Builder] for a specific [Base] type with a given [Config].
@@ -176,5 +176,5 @@ abstract class RootModule<Config extends Object, RouteType>
   }
 
   /// The root route of this module.
-  Route<RouteType> get root => Route.root(routes);
+  Route<RouteType, Config> get root => Route.root(routes);
 }

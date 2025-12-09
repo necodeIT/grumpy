@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 void main() {
   group('RepoState', () {
     test('data exposes value and throws on invalid conversions', () {
-      final state = RepoState.data(42);
+      final state = const RepoState.data(42);
       expect(state.hasData, isTrue);
       expect(state.isLoading, isFalse);
       expect(state.hasError, isFalse);

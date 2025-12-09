@@ -10,7 +10,7 @@ import 'package:modular_foundation/modular_foundation.dart';
 ///
 /// The type parameter [T] usually corresponds to the concrete presentation type
 /// produced by the route (e.g. a `Widget` in Flutter).
-class Route<T> {
+class Route<T, Config extends Object> extends Model {
   /// The path segment used to match this route.
   ///
   /// This is interpreted relative to the parent route. For top-level routes
@@ -27,7 +27,7 @@ class Route<T> {
   ///
   /// Use [children] to build nested routing hierarchies, where each child
   /// can define its own guards and sub-routes.
-  final List<Route> children;
+  final List<Route<T, Config>> children;
 
   /// Creates a [Route] with the given [path], optional [children] and [guards].
   const Route({
@@ -38,55 +38,31 @@ class Route<T> {
 
   /// Creates a root [Route] with the given [children].
   @internal
-  factory Route.root(List<Route<T>> children) =>
-      Route<T>(path: '/', children: children);
+  factory Route.root(List<Route<T, Config>> children) =>
+      Route<T, Config>(path: '/', children: children);
 
-  /// Creates a [ModuleRoute].
-  const factory Route.module({
-    required String path,
-    required Module module,
-    List<Guard> guards,
-  }) = ModuleRoute<T>;
-
-  /// Creates a [ViewRoute].
-  const factory Route.view({
-    required String path,
-    required View<T> view,
-    List<Guard> guards,
-    List<Route> children,
-  }) = ViewRoute<T>;
+  /// Expands this route to include all nested child routes.
+  Route<T, Config> expand() => this;
 }
 
 /// A route that activates a [Module] when matched.
 ///
 /// Use [ModuleRoute] for feature- or domain-level entry points that should
 /// mount a dedicated [Module] (and its dependency graph) on navigation.
-class ModuleRoute<T> extends Route<T> {
+class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
   /// The module that will be mounted when this route is activated.
-  final Module module;
+  final Module<Config, T> module;
 
   /// Creates a [ModuleRoute] for the given [path] and [module].
   ///
   /// Optional [guards] can be used to protect access to the module.
   const ModuleRoute({required super.path, required this.module, super.guards});
-}
 
-/// A route that directly renders a [View] when matched.
-///
-/// Use [ViewRoute] for leaf routes that don't require their own [Module]
-/// and can be satisfied by a single [View].
-class ViewRoute<T> extends Route<T> {
-  /// The view responsible for building the presentation for this route.
-  final View<T> view;
-
-  /// Creates a [ViewRoute] for the given [path] and [view].
-  ///
-  /// - [guards] are evaluated before [view] is built.
-  /// - [children] allow this view to act as a parent in a nested route tree.
-  const ViewRoute({
-    required super.path,
-    required this.view,
-    super.guards,
-    super.children,
-  });
+  /// Expands the [module]'s routes as children of this route.
+  @override
+  Route<T, Config> expand() => Route<T, Config>(
+    path: path,
+    guards: guards,
+    children: module.routes.map((r) => r.expand()).toList(),
+  );
 }

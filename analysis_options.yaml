@@ -21,3 +21,7 @@ linter:
     prefer_for_elements_to_map_fromIterable: true
     null_check_on_nullable_type_parameter: true
     enable_null_safety: true
+    avoid_print: true
+    prefer_final_locals: true
+    prefer_const_constructors: true
+    document_ignores: true

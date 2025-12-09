@@ -1,7 +1,7 @@
 import 'package:modular_foundation/modular_foundation.dart';
 
 /// Represents the data state of a [Repo].
-abstract class RepoState<T> implements Model {
+abstract class RepoState<T> extends Model {
   /// Creates a new instance of [RepoState].
   const RepoState();
 
@@ -152,6 +152,8 @@ class RepoErrorState<T> extends RepoState<T> {
   }
 }
 
+// this is an error class.
+// ignore: models_must_extend_model
 /// An error indicating an invalid state in a [RepoState].
 ///
 /// Thrown when attempting to access data or error information
@@ -164,6 +166,8 @@ class RepoStateError extends StateError {
   RepoStateError(this.state, super.message);
 }
 
+// this is an error class.
+// ignore: models_must_extend_model
 /// An error indicating that no data is available in a [RepoState].
 ///
 /// Thrown when attempting to access data from a state that does not contain data.
