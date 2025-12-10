@@ -11,6 +11,8 @@ part 'optimistic_policy.freezed.dart';
 /// allowing for a responsive user experience while handling potential failures.
 @freezed
 abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
+  const OptimisticPolicy._();
+
   /// Creates an [OptimisticPolicy] with the given parameters.
   const factory OptimisticPolicy({
     /// The function to generate the optimistic value based on the current value.

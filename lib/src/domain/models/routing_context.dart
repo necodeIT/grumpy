@@ -40,4 +40,9 @@ class RoutingContext extends Model {
 
   /// Checks if a parameter with the given [key] exists in either path or query parameters.
   bool has(String key) => hasPathParam(key) || hasQueryParam(key);
+
+  @override
+  String toString() {
+    return 'RoutingContext(fullPath: $fullPath, pathParams: $pathParams, queryParams: $queryParams)';
+  }
 }

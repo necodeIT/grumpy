@@ -43,6 +43,11 @@ class Route<T, Config extends Object> extends Model {
 
   /// Expands this route to include all nested child routes.
   Route<T, Config> expand() => this;
+
+  @override
+  String toString() {
+    return 'Route(path: $path, guards: $guards, children: $children)';
+  }
 }
 
 /// A route that activates a [Module] when matched.
@@ -65,4 +70,9 @@ class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
     guards: guards,
     children: module.routes.map((r) => r.expand()).toList(),
   );
+
+  @override
+  String toString() {
+    return 'ModuleRoute(path: $path, module: $module, guards: $guards)';
+  }
 }

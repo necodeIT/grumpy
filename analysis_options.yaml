@@ -3,6 +3,9 @@ include: package:lints/recommended.yaml
 analyzer:
   plugins:
     - custom_lint
+  exclude:
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
 
 custom_lint:
   debug: true

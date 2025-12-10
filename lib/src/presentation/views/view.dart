@@ -43,4 +43,9 @@ class ViewRoute<T, Config extends Object> extends Route<T, Config> {
     super.guards,
     super.children,
   });
+
+  @override
+  String toString() {
+    return 'ViewRoute(path: $path, view: $view, guards: $guards, children: $children)';
+  }
 }

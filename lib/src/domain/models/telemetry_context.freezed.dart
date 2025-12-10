@@ -39,10 +39,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(span),const DeepCollectionEquality().hash(attributes),ownerType);
 
-@override
-String toString() {
-  return 'TelemetryContext<$T>(span: $span, attributes: $attributes, ownerType: $ownerType)';
-}
 
 
 }
@@ -214,8 +210,8 @@ return $default(_that.span,_that.attributes,_that.ownerType);case _:
 /// @nodoc
 
 
-class _TelemetryContext<T> implements TelemetryContext<T> {
-  const _TelemetryContext({required this.span, required final  Map<Symbol, dynamic> attributes, required this.ownerType}): _attributes = attributes;
+class _TelemetryContext<T> extends TelemetryContext<T> {
+  const _TelemetryContext({required this.span, required final  Map<Symbol, dynamic> attributes, required this.ownerType}): _attributes = attributes,super._();
   
 
 /// The backend-specific span object (e.g., a Sentry or OTel span).
@@ -255,10 +251,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(span),const DeepCollectionEquality().hash(_attributes),ownerType);
 
-@override
-String toString() {
-  return 'TelemetryContext<$T>(span: $span, attributes: $attributes, ownerType: $ownerType)';
-}
 
 
 }

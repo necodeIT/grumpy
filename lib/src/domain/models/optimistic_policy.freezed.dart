@@ -43,10 +43,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert,propagateError);
 
-@override
-String toString() {
-  return 'OptimisticPolicy<$T>(optimisticValue: $optimisticValue, shouldRevert: $shouldRevert, propagateError: $propagateError)';
-}
 
 
 }
@@ -218,8 +214,8 @@ return $default(_that.optimisticValue,_that.shouldRevert,_that.propagateError);c
 /// @nodoc
 
 
-class _OptimisticPolicy<T> implements OptimisticPolicy<T> {
-  const _OptimisticPolicy({required this.optimisticValue, required this.shouldRevert, required this.propagateError});
+class _OptimisticPolicy<T> extends OptimisticPolicy<T> {
+  const _OptimisticPolicy({required this.optimisticValue, required this.shouldRevert, required this.propagateError}): super._();
   
 
 /// The function to generate the optimistic value based on the current value.
@@ -254,10 +250,6 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert,propagateError);
 
-@override
-String toString() {
-  return 'OptimisticPolicy<$T>(optimisticValue: $optimisticValue, shouldRevert: $shouldRevert, propagateError: $propagateError)';
-}
 
 
 }
