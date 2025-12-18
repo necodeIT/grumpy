@@ -23,9 +23,7 @@ mixin _$OptimisticPolicy<T> {
 /// If it returns `false`, the optimistic update is retained despite the error
 /// when [propagateError] is `false`. If [propagateError] is `true`, the error is still thrown
 /// but the optimistic update is not reverted.
- bool Function(Object? error) get shouldRevert;/// If `true`, the error that caused the revert will be propagated after reverting.
-/// If `false`, the error will be swallowed.
- bool get propagateError;
+ bool Function(Object? error) get shouldRevert;
 /// Create a copy of OptimisticPolicy
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -36,12 +34,12 @@ $OptimisticPolicyCopyWith<T, OptimisticPolicy<T>> get copyWith => _$OptimisticPo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is OptimisticPolicy<T>&&(identical(other.optimisticValue, optimisticValue) || other.optimisticValue == optimisticValue)&&(identical(other.shouldRevert, shouldRevert) || other.shouldRevert == shouldRevert)&&(identical(other.propagateError, propagateError) || other.propagateError == propagateError));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OptimisticPolicy<T>&&(identical(other.optimisticValue, optimisticValue) || other.optimisticValue == optimisticValue)&&(identical(other.shouldRevert, shouldRevert) || other.shouldRevert == shouldRevert));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert,propagateError);
+int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert);
 
 
 
@@ -52,7 +50,7 @@ abstract mixin class $OptimisticPolicyCopyWith<T,$Res>  {
   factory $OptimisticPolicyCopyWith(OptimisticPolicy<T> value, $Res Function(OptimisticPolicy<T>) _then) = _$OptimisticPolicyCopyWithImpl;
 @useResult
 $Res call({
- T Function(T) optimisticValue, bool Function(Object? error) shouldRevert, bool propagateError
+ T Function(T) optimisticValue, bool Function(Object? error) shouldRevert
 });
 
 
@@ -69,12 +67,11 @@ class _$OptimisticPolicyCopyWithImpl<T,$Res>
 
 /// Create a copy of OptimisticPolicy
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? optimisticValue = null,Object? shouldRevert = null,Object? propagateError = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? optimisticValue = null,Object? shouldRevert = null,}) {
   return _then(_self.copyWith(
 optimisticValue: null == optimisticValue ? _self.optimisticValue : optimisticValue // ignore: cast_nullable_to_non_nullable
 as T Function(T),shouldRevert: null == shouldRevert ? _self.shouldRevert : shouldRevert // ignore: cast_nullable_to_non_nullable
-as bool Function(Object? error),propagateError: null == propagateError ? _self.propagateError : propagateError // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool Function(Object? error),
   ));
 }
 
@@ -159,10 +156,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( T Function(T) optimisticValue,  bool Function(Object? error) shouldRevert,  bool propagateError)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( T Function(T) optimisticValue,  bool Function(Object? error) shouldRevert)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _OptimisticPolicy() when $default != null:
-return $default(_that.optimisticValue,_that.shouldRevert,_that.propagateError);case _:
+return $default(_that.optimisticValue,_that.shouldRevert);case _:
   return orElse();
 
 }
@@ -180,10 +177,10 @@ return $default(_that.optimisticValue,_that.shouldRevert,_that.propagateError);c
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( T Function(T) optimisticValue,  bool Function(Object? error) shouldRevert,  bool propagateError)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( T Function(T) optimisticValue,  bool Function(Object? error) shouldRevert)  $default,) {final _that = this;
 switch (_that) {
 case _OptimisticPolicy():
-return $default(_that.optimisticValue,_that.shouldRevert,_that.propagateError);case _:
+return $default(_that.optimisticValue,_that.shouldRevert);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -200,10 +197,10 @@ return $default(_that.optimisticValue,_that.shouldRevert,_that.propagateError);c
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( T Function(T) optimisticValue,  bool Function(Object? error) shouldRevert,  bool propagateError)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( T Function(T) optimisticValue,  bool Function(Object? error) shouldRevert)?  $default,) {final _that = this;
 switch (_that) {
 case _OptimisticPolicy() when $default != null:
-return $default(_that.optimisticValue,_that.shouldRevert,_that.propagateError);case _:
+return $default(_that.optimisticValue,_that.shouldRevert);case _:
   return null;
 
 }
@@ -215,7 +212,7 @@ return $default(_that.optimisticValue,_that.shouldRevert,_that.propagateError);c
 
 
 class _OptimisticPolicy<T> extends OptimisticPolicy<T> {
-  const _OptimisticPolicy({required this.optimisticValue, required this.shouldRevert, required this.propagateError}): super._();
+  const _OptimisticPolicy({required this.optimisticValue, required this.shouldRevert}): super._();
   
 
 /// The function to generate the optimistic value based on the current value.
@@ -229,9 +226,6 @@ class _OptimisticPolicy<T> extends OptimisticPolicy<T> {
 /// when [propagateError] is `false`. If [propagateError] is `true`, the error is still thrown
 /// but the optimistic update is not reverted.
 @override final  bool Function(Object? error) shouldRevert;
-/// If `true`, the error that caused the revert will be propagated after reverting.
-/// If `false`, the error will be swallowed.
-@override final  bool propagateError;
 
 /// Create a copy of OptimisticPolicy
 /// with the given fields replaced by the non-null parameter values.
@@ -243,12 +237,12 @@ _$OptimisticPolicyCopyWith<T, _OptimisticPolicy<T>> get copyWith => __$Optimisti
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OptimisticPolicy<T>&&(identical(other.optimisticValue, optimisticValue) || other.optimisticValue == optimisticValue)&&(identical(other.shouldRevert, shouldRevert) || other.shouldRevert == shouldRevert)&&(identical(other.propagateError, propagateError) || other.propagateError == propagateError));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _OptimisticPolicy<T>&&(identical(other.optimisticValue, optimisticValue) || other.optimisticValue == optimisticValue)&&(identical(other.shouldRevert, shouldRevert) || other.shouldRevert == shouldRevert));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert,propagateError);
+int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert);
 
 
 
@@ -259,7 +253,7 @@ abstract mixin class _$OptimisticPolicyCopyWith<T,$Res> implements $OptimisticPo
   factory _$OptimisticPolicyCopyWith(_OptimisticPolicy<T> value, $Res Function(_OptimisticPolicy<T>) _then) = __$OptimisticPolicyCopyWithImpl;
 @override @useResult
 $Res call({
- T Function(T) optimisticValue, bool Function(Object? error) shouldRevert, bool propagateError
+ T Function(T) optimisticValue, bool Function(Object? error) shouldRevert
 });
 
 
@@ -276,12 +270,11 @@ class __$OptimisticPolicyCopyWithImpl<T,$Res>
 
 /// Create a copy of OptimisticPolicy
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? optimisticValue = null,Object? shouldRevert = null,Object? propagateError = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? optimisticValue = null,Object? shouldRevert = null,}) {
   return _then(_OptimisticPolicy<T>(
 optimisticValue: null == optimisticValue ? _self.optimisticValue : optimisticValue // ignore: cast_nullable_to_non_nullable
 as T Function(T),shouldRevert: null == shouldRevert ? _self.shouldRevert : shouldRevert // ignore: cast_nullable_to_non_nullable
-as bool Function(Object? error),propagateError: null == propagateError ? _self.propagateError : propagateError // ignore: cast_nullable_to_non_nullable
-as bool,
+as bool Function(Object? error),
   ));
 }
 

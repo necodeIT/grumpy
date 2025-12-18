@@ -27,10 +27,6 @@ abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
     /// when [propagateError] is `false`. If [propagateError] is `true`, the error is still thrown
     /// but the optimistic update is not reverted.
     required bool Function(Object? error) shouldRevert,
-
-    /// If `true`, the error that caused the revert will be propagated after reverting.
-    /// If `false`, the error will be swallowed.
-    required bool propagateError,
   }) = _OptimisticPolicy;
 
   /// An [OptimisticPolicy] that always reverts on error and swallows the error.
@@ -39,8 +35,7 @@ abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
   }) {
     return OptimisticPolicy(
       optimisticValue: optimisticValue,
-      shouldRevert: _alwaysRevert,
-      propagateError: false,
+      shouldRevert: (_) => true,
     );
   }
 
@@ -51,20 +46,6 @@ abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
     return OptimisticPolicy(
       optimisticValue: optimisticValue,
       shouldRevert: (_) => false,
-      propagateError: false,
     );
   }
-
-  /// An [OptimisticPolicy] that always reverts on error and propagates the error.
-  factory OptimisticPolicy.propagateError({
-    required T Function(T) optimisticValue,
-  }) {
-    return OptimisticPolicy(
-      optimisticValue: optimisticValue,
-      shouldRevert: _alwaysRevert,
-      propagateError: true,
-    );
-  }
-
-  static bool _alwaysRevert(Object? error) => true;
 }

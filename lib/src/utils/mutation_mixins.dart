@@ -82,8 +82,6 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
       log('Error during mutation $name', e, st);
       _revertOptimistic(optimisticPolicy, snapshot, e, stateVersion);
 
-      if (optimisticPolicy?.propagateError == true) rethrow;
-
       return null;
     }
   }
@@ -134,7 +132,6 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
     } catch (e, st) {
       log('Error during action $name', e, st);
       _revertOptimistic(optimisticPolicy, snapshot, e, stateVersion);
-      if (optimisticPolicy?.propagateError == true) rethrow;
     }
   }
 

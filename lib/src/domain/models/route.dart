@@ -5,7 +5,7 @@ import 'package:modular_foundation/modular_foundation.dart';
 ///
 /// A [Route] describes:
 /// - the matching [path]
-/// - optional [guards] that must succeed before activation
+/// - optional [middleware] that must succeed before activation
 /// - optional [children] that are resolved relative to this route's [path]
 ///
 /// The type parameter [T] usually corresponds to the concrete presentation type
@@ -19,9 +19,9 @@ class Route<T, Config extends Object> extends Model {
 
   /// Guards that must all pass before this route can be activated.
   ///
-  /// If any [Guard.canActivate] returns `false`, the route is considered
-  /// not accessible and the navigation should be aborted or redirected if [Guard.redirectTo] is set.
-  final List<Guard> guards;
+  /// If any [Middleware.canActivate] returns `false`, the route is considered
+  /// not accessible and the navigation should be aborted or redirected if [Middleware.redirectTo] is set.
+  final List<Middleware> middleware;
 
   /// Child routes that are matched relative to this route's [path].
   ///
@@ -29,11 +29,11 @@ class Route<T, Config extends Object> extends Model {
   /// can define its own guards and sub-routes.
   final List<Route<T, Config>> children;
 
-  /// Creates a [Route] with the given [path], optional [children] and [guards].
+  /// Creates a [Route] with the given [path], optional [children] and [middleware].
   const Route({
     required this.path,
     this.children = const [],
-    this.guards = const [],
+    this.middleware = const [],
   });
 
   /// Creates a root [Route] with the given [children].
@@ -41,12 +41,9 @@ class Route<T, Config extends Object> extends Model {
   factory Route.root(List<Route<T, Config>> children) =>
       Route<T, Config>(path: '/', children: children);
 
-  /// Expands this route to include all nested child routes.
-  Route<T, Config> expand() => this;
-
   @override
   String toString() {
-    return 'Route(path: $path, guards: $guards, children: $children)';
+    return 'Route(path: $path, middleware: $middleware, children: $children)';
   }
 }
 
@@ -60,19 +57,15 @@ class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
 
   /// Creates a [ModuleRoute] for the given [path] and [module].
   ///
-  /// Optional [guards] can be used to protect access to the module.
-  const ModuleRoute({required super.path, required this.module, super.guards});
-
-  /// Expands the [module]'s routes as children of this route.
-  @override
-  Route<T, Config> expand() => Route<T, Config>(
-    path: path,
-    guards: guards,
-    children: module.routes.map((r) => r.expand()).toList(),
-  );
+  /// Optional [middleware] can be used to protect access to the module.
+  const ModuleRoute({
+    required super.path,
+    required this.module,
+    super.middleware,
+  });
 
   @override
   String toString() {
-    return 'ModuleRoute(path: $path, module: $module, guards: $guards)';
+    return 'ModuleRoute(path: $path, module: $module, middleware: $middleware)';
   }
 }

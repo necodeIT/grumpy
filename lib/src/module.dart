@@ -14,7 +14,7 @@ import 'package:modular_foundation/src/infra/infra.dart';
 /// A modular unit of functionality within an application.
 abstract class Module<Config extends Object, RouteType>
     with LifecycleMixin, LogMixin, Disposable {
-  GetIt get _di => GetIt.I;
+  GetIt get _di => GetIt.instance;
 
   @override
   String? get group => "Module";
@@ -169,6 +169,9 @@ abstract class RootModule<Config extends Object, RouteType>
   @override
   FutureOr<void> initialize() {
     _di.registerSingleton<Config>(cfg);
+    _di.registerSingleton<RoutingService<RouteType, Config>>(
+      RoutingKitRoutingService(this),
+    );
     _di.registerFactory<TelemetryService>(() => createTelemetryService(cfg));
     _di.registerFactory<AnalyticsService>(() => createAnalyticsService(cfg));
 
@@ -177,4 +180,14 @@ abstract class RootModule<Config extends Object, RouteType>
 
   /// The root route of this module.
   Route<RouteType, Config> get root => Route.root(routes);
+
+  @nonVirtual
+  @override
+  // if the root module is disposed, something is very wrong.
+  // ignore: must_call_super
+  FutureOr<void> dispose() {
+    throw StateError(
+      'RootModule should not be disposed. It lives throughout the application lifecycle.',
+    );
+  }
 }

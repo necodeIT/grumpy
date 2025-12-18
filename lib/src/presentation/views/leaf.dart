@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:modular_foundation/modular_foundation.dart';
 
 // this is the base class for views.
-// ignore: views_must_extend_view
+// ignore: views_must_extend_view, views_must_have_view_suffix
 /// The presentation of a route of type [T].
-abstract class View<T> {
-  /// Creates a [View].
-  const View();
+abstract class Leaf<T> {
+  /// Creates a [Leaf].
+  const Leaf();
 
   /// Builds a preview presentation of [T] while the route is being validated.
   ///
@@ -17,35 +17,35 @@ abstract class View<T> {
   /// Note: It is unsafe to perform navigation actions or to use
   /// any module-dependent resources in this method, as the module
   /// may not have been fully initialized yet when this method is called.
-  T preview(RoutingContext ctx);
+  T preview(RouteContext ctx);
 
   /// Builds the final presentation of [T] once the route has been validated.
-  FutureOr<T> build(RoutingContext ctx);
+  FutureOr<T> build(RouteContext ctx);
 }
 
 // this is an extension of Route and not a view.
 // ignore: views_must_extend_view, views_must_have_view_suffix
-/// A route that directly renders a [View] when matched.
+/// A route that directly renders a [Leaf] when matched.
 ///
-/// Use [ViewRoute] for leaf routes that don't require their own [Module]
-/// and can be satisfied by a single [View].
-class ViewRoute<T, Config extends Object> extends Route<T, Config> {
+/// Use [LeafRoute] for leaf routes that don't require their own [Module]
+/// and can be satisfied by a single [Leaf].
+class LeafRoute<T, Config extends Object> extends Route<T, Config> {
   /// The view responsible for building the presentation for this route.
-  final View<T> view;
+  final Leaf<T> view;
 
-  /// Creates a [ViewRoute] for the given [path] and [view].
+  /// Creates a [LeafRoute] for the given [path] and [view].
   ///
   /// - [guards] are evaluated before [view] is built.
   /// - [children] allow this view to act as a parent in a nested route tree.
-  const ViewRoute({
+  const LeafRoute({
     required super.path,
     required this.view,
-    super.guards,
+    super.middleware,
     super.children,
   });
 
   @override
   String toString() {
-    return 'ViewRoute(path: $path, view: $view, guards: $guards, children: $children)';
+    return 'ViewRoute(path: $path, view: $view, middleware: $middleware, children: $children)';
   }
 }

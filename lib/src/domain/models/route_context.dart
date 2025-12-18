@@ -3,7 +3,7 @@ import 'package:modular_foundation/modular_foundation.dart';
 
 /// Contextual information about the current routing state.
 @immutable
-class RoutingContext extends Model {
+class RouteContext extends Model {
   /// The full path of the current route.
   final String fullPath;
 
@@ -13,12 +13,23 @@ class RoutingContext extends Model {
   /// The query parameters extracted from the route.
   final Map<String, String> queryParams;
 
+  /// The query parameters extracted from the route, allowing multiple values per key.
+  final Map<String, List<String>> queryParamsAll;
+
+  /// The fragment identifier from the URL, if any.
+  final String fragment;
+
   /// Contextual information about the current routing state.
-  const RoutingContext({
+  const RouteContext({
     required this.fullPath,
     this.pathParams = const {},
     this.queryParams = const {},
+    this.queryParamsAll = const {},
+    this.fragment = '',
   });
+
+  /// Parses the [fullPath] into a [Uri] object.
+  Uri get uri => Uri.parse(fullPath);
 
   /// Retrieves a path parameter by its [key].
   String? getPathParam(String key) => pathParams[key];
@@ -43,6 +54,6 @@ class RoutingContext extends Model {
 
   @override
   String toString() {
-    return 'RoutingContext(fullPath: $fullPath, pathParams: $pathParams, queryParams: $queryParams)';
+    return 'RoutingContext(fullPath: $fullPath, pathParams: $pathParams, queryParams: $queryParams , fragment: $fragment, queryParamsAll: $queryParamsAll)';
   }
 }

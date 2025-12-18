@@ -1,6 +1,8 @@
 import 'package:modular_foundation/modular_foundation.dart';
 
 /// A service responsible for managing application routing.
+/// Note: This router is only responsible for marking routes as active and
+/// parsing paths. It does not handle any UI-related logic.
 ///
 /// [T] represents the type of the presentation (e.g., Widget).
 /// [Config] represents the configuration type used in modules.
@@ -8,15 +10,32 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   /// Returns the root route of the application with all its nested routes expanded.
   Route<T, Config> get root;
 
-  /// Resolves the list of modules required for the specified [path].
-  List<Module<Config, T>> resolveRouteDependencies(String path);
-
-  /// Navigates to the specified [path] and acquires the presentation of type [T].
-  Future<T?> navigate(String path);
+  /// Navigates to the specified [path] and invokes the [callback] with the built presentation.
+  /// If [skipPreview] is true, the preview phase is skipped and [callback] is called only after the final build phase.
+  Future<void> navigate(
+    String path, {
+    bool skipPreview = false,
+    required Function(T) callback,
+  });
 
   /// Checks if the specified [path] is currently active.
-  bool isActive(String path);
+  ///
+  /// If [exact] is true (default), checks for an exact match; otherwise, checks for a partial match.
+  /// An exact match means the current route's full path matches [path] exactly. A partial match
+  /// means the current route's full path starts with [path].
+  ///
+  /// If [ignoreParams] is true, query parameters and fragments are ignored during the match.
+  /// Default is false.
+  bool isActive(String path, {bool exact = true, bool ignoreParams = false});
 
   /// Returns the current routing context.
-  RoutingContext currentContext();
+  RouteContext currentContext();
+
+  /// Adds a listener that is called on routing changes.
+  ///
+  /// The [listener] receives the new active [Route] as a parameter.
+  void addListener(void Function(Route<T, Config> route) listener);
+
+  /// Removes a previously added routing listener.
+  void removeListener(void Function(Route<T, Config> route) listener);
 }
