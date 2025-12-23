@@ -28,3 +28,4 @@ linter:
     prefer_final_locals: true
     prefer_const_constructors: true
     document_ignores: true
+    prefer_single_quotes: true

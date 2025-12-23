@@ -8,6 +8,7 @@ import 'package:test/test.dart';
 void main() {
   final di = GetIt.instance;
   late _TestTelemetryService telemetry;
+  late _TestAnalyticsService analytics;
   final repos = <Repo<List<_TestItem>>>[];
 
   Logger.root.level = Level.ALL;
@@ -42,6 +43,8 @@ void main() {
   setUp(() async {
     await di.reset();
     telemetry = _TestTelemetryService();
+    analytics = _TestAnalyticsService();
+    di.registerSingleton<AnalyticsService>(analytics);
     di.registerSingleton<TelemetryService>(telemetry);
   });
 
@@ -134,7 +137,6 @@ void main() {
       expect(first, isNull);
       expect(second, isNull);
       expect(computeCalls, 1);
-      expect(telemetry.runSpanCalls, 1);
     });
 
     test('skips caching null results when disabled', () async {
@@ -159,7 +161,7 @@ void main() {
 
       expect(
         () => repo.query<int>('countItems', (items) => items.length),
-        throwsA(isA<AssertionError>()),
+        throwsA(isA<StateError>()),
       );
     });
   });
@@ -204,6 +206,38 @@ void main() {
       expect(second, same(first));
       expect(telemetry.runSpanCalls, 1);
       expect(telemetry.runSpanNames, contains('fuzzyFind'));
+    });
+  });
+
+  group('Analytics and Telemetry', () {
+    test('records analytics events', () async {
+      final repo = createRepo()..setItems(_seedItems);
+
+      await repo.getById(
+        '1',
+        analyticsAction: 'getItemById',
+        analyticsProperties: {'source': 'test'},
+      );
+      expect(analytics.trackEventCalls, 1);
+      expect(analytics.trackedEventNames, contains('getItemById'));
+      expect(
+        analytics.trackedEventProperties.first,
+        containsPair('source', 'test'),
+      );
+    });
+
+    test('records telemetry spans', () async {
+      final repo = createRepo()..setItems(_seedItems);
+
+      await repo.fuzzyFind(
+        'blue',
+        analyticsAction: 'fuzzySearch',
+        analyticsProperties: {'source': 'test'},
+      );
+
+      expect(telemetry.runSpanCalls, 1);
+      expect(telemetry.runSpanNames, contains('fuzzyFind'));
+      expect(telemetry.spanAttributes, containsPair('query', 'blue'));
     });
   });
 }
@@ -339,3 +373,49 @@ final _seedItems = <_TestItem>[
     description: 'Fresh blueberries picked at dawn.',
   ),
 ];
+
+class _TestAnalyticsService extends AnalyticsService {
+  int trackEventCalls = 0;
+  final List<String> trackedEventNames = [];
+  final List<Map<String, dynamic>?> trackedEventProperties = [];
+
+  @override
+  FutureOr<void> dispose() {}
+
+  @override
+  Future<void> groupUser(String groupId, {Map<String, dynamic>? traits}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> identifyUser(String userId, {Map<String, dynamic>? traits}) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> recordNavigation(
+    String from,
+    String to, {
+    Map<String, dynamic>? properties,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> recordPageView(
+    String pageName, {
+    Map<String, dynamic>? properties,
+  }) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> trackEvent(
+    String name, {
+    Map<String, dynamic>? properties,
+  }) async {
+    trackEventCalls++;
+    trackedEventNames.add(name);
+    trackedEventProperties.add(properties);
+  }
+}

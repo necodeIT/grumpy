@@ -12,12 +12,12 @@ import 'dart:async';
 import 'package:modular_foundation/src/infra/infra.dart';
 
 /// A modular unit of functionality within an application.
-abstract class Module<Config extends Object, RouteType>
+abstract class Module<RouteType, Config extends Object>
     with LifecycleMixin, LogMixin, Disposable {
   GetIt get _di => GetIt.instance;
 
   @override
-  String? get group => "Module";
+  String? get group => 'Module';
 
   @override
   Level get logLevel => Level.FINEST;
@@ -28,7 +28,7 @@ abstract class Module<Config extends Object, RouteType>
   ///
   /// Each imported module will be initialized and disposed of
   /// along with this module - unless they were already mounted by another module.
-  List<Module<Config, RouteType>> get imports => const [];
+  List<Module<RouteType, Config>> get imports => const [];
 
   String? _firstImportScope;
 
@@ -53,7 +53,7 @@ abstract class Module<Config extends Object, RouteType>
   /// Called after [bindDatasources] during module initialization.
   void bindRepos(Bind<Repo, Config> bind) {}
 
-  Future<void> _mount(Module<Config, RouteType> module) async {
+  Future<void> _mount(Module<RouteType, Config> module) async {
     if (_di.hasScope(module.runtimeType.toString())) {
       log('${module.runtimeType} is already mounted. Skipping.');
       return;
@@ -140,8 +140,8 @@ typedef Resolver = T Function<T extends Object>();
 ///
 /// As the root module, it is responsible for providing the application-wide
 /// configuration ([Config]) as well as setting up core services like telemetry and analytics.
-abstract class RootModule<Config extends Object, RouteType>
-    extends Module<Config, RouteType> {
+abstract class RootModule<RouteType, Config extends Object>
+    extends Module<RouteType, Config> {
   /// The configuration to use throughout the application.
   final Config cfg;
 

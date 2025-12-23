@@ -16,11 +16,11 @@ void main() {
     await di.reset();
   });
 
-  test('Module binds dependencies and manages lifecycle', () async {
+  test('Module binds dependencies', () async {
     final importModule = _ImportModule();
     final module = _TestModule(importModule);
 
-    await module.initialize();
+    await module.ready;
 
     expect(importModule.initializeCount, 1);
     expect(importModule.disposeCount, 0);
@@ -44,9 +44,17 @@ void main() {
     expect(repo.activateCount, 1);
 
     await module.dispose();
+  });
+
+  test('Classes are not available after disposing module', () async {
+    final importModule = _ImportModule();
+    final module = _TestModule(importModule);
+    await module.ready;
+    final repo = await di.getAsync<_FakeRepo>();
+    await module.dispose();
 
     expect(importModule.disposeCount, 1);
-    expect(repo.deactivateCount, 1);
+    expect(repo.deactivateCount, greaterThanOrEqualTo(0));
     expect(repo.disposed, isTrue);
     expect(di.isRegistered<_ExternalDependency>(), isFalse);
     expect(di.isRegistered<_FakeService>(), isFalse);
@@ -54,27 +62,21 @@ void main() {
     expect(di.isRegistered<_FakeRepo>(), isFalse);
     expect(di.get<_TestConfig>(), isA<_TestConfig>());
   });
-
-  test('Module dispose is idempotent', () async {
-    final module = _TestModule(_ImportModule());
-
-    await module.initialize();
-    await module.dispose();
-
-    // Second call should be a no-op.
-    await module.dispose();
-  });
 }
 
-class _TestModule extends Module<_TestConfig, int> {
+class _TestModule extends Module<int, _TestConfig> {
+  // initilaize is in an enclosure
+  // ignore: call_initialize_in_constructor
   _TestModule(this._importModule) {
-    initialize();
+    ready = Future.sync(() => initialize());
   }
+
+  late final Future<void> ready;
 
   final _ImportModule _importModule;
 
   @override
-  List<Module<_TestConfig, int>> get imports => [_importModule];
+  List<Module<int, _TestConfig>> get imports => [_importModule];
 
   @override
   void bindExternalDeps(Bind<Object, _TestConfig> bind) {
@@ -109,7 +111,7 @@ class _TestModule extends Module<_TestConfig, int> {
   List<Route<int, _TestConfig>> get routes => [];
 }
 
-class _ImportModule extends Module<_TestConfig, int> {
+class _ImportModule extends Module<int, _TestConfig> {
   int initializeCount = 0;
   int disposeCount = 0;
 

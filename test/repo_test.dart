@@ -16,7 +16,7 @@ void main() {
     }
   });
 
-  group("Repo reactiveness", () {
+  group('Repo reactiveness', () {
     test('Initial state is loading', () {
       expect(repo.state.isLoading, isTrue);
     });
@@ -64,7 +64,7 @@ void main() {
       );
     });
 
-    group("Stream emissions", () {
+    group('Stream emissions', () {
       test('Emits loading initially', () {
         expectLater(
           repo.stream,
@@ -111,7 +111,7 @@ void main() {
         repo.setError(error);
       });
 
-      test("Receives multiple state changes", () {
+      test('Receives multiple state changes', () {
         final error = Exception('Another error');
         expectLater(
           repo.stream,
@@ -135,6 +135,48 @@ void main() {
         repo.setLoading();
         repo.setError(error);
       });
+    });
+  });
+
+  group('RepoState', () {
+    test('data exposes value and throws on invalid conversions', () {
+      final state = const RepoState.data(42);
+      expect(state.hasData, isTrue);
+      expect(state.isLoading, isFalse);
+      expect(state.hasError, isFalse);
+      expect(state.data, equals(42));
+      expect(state.requireData, equals(42));
+      expect(() => state.asError, throwsA(isA<RepoStateError>()));
+      expect(() => state.asLoading, throwsA(isA<RepoStateError>()));
+    });
+
+    test('loading exposes elapsed time and guards data access', () {
+      final state = RepoState<int>.loading();
+      expect(state.hasData, isFalse);
+      expect(state.isLoading, isTrue);
+      expect(state.hasError, isFalse);
+      expect(state.data, isNull);
+      final loadingState = state.asLoading;
+      expect(loadingState.timeStamp, isA<DateTime>());
+      expect(loadingState.elapsed, isA<Duration>());
+      expect(loadingState.elapsed.isNegative, isFalse);
+      expect(() => state.requireData, throwsA(isA<NoRepoDataError>()));
+      expect(() => state.asError, throwsA(isA<RepoStateError>()));
+    });
+
+    test('error exposes metadata and throws on data access', () {
+      final error = Exception('Test error');
+      final stackTrace = StackTrace.current;
+      final state = RepoState<int>.error(error, stackTrace);
+      expect(state.hasData, isFalse);
+      expect(state.isLoading, isFalse);
+      expect(state.hasError, isTrue);
+      expect(state.data, isNull);
+      expect(() => state.requireData, throwsA(isA<NoRepoDataError>()));
+      expect(() => state.asLoading, throwsA(isA<RepoStateError>()));
+      final errorState = state.asError;
+      expect(errorState.error, equals(error));
+      expect(errorState.stackTrace, same(stackTrace));
     });
   });
 }

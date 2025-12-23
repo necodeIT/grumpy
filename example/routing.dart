@@ -9,7 +9,7 @@ import 'package:modular_foundation/modular_foundation.dart';
 
 class _Config {}
 
-class _RootModule extends RootModule<_Config, String> {
+class _RootModule extends RootModule<String, _Config> {
   @override
   final List<Route<String, _Config>> routes = [
     LeafRoute<String, _Config>(
@@ -47,7 +47,7 @@ class _TestView extends Leaf<String> {
   }
 }
 
-class _TestModule extends Module<_Config, String> {
+class _TestModule extends Module<String, _Config> {
   @override
   final List<Route<String, _Config>> routes = [
     LeafRoute<String, _Config>(path: '/a', view: _TestView()),
@@ -70,7 +70,7 @@ Future<void> main() async {
 
   await router.navigate('/test/123we/a', callback: print);
 
-  print(router.currentContext());
+  print(router.currentContext);
 
   await Future.delayed(const Duration(seconds: 1));
 }

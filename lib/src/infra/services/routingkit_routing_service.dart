@@ -10,7 +10,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   RouteContext? _context;
 
   /// The root module of the application.
-  final RootModule<Config, T> rootModule;
+  final RootModule<T, Config> rootModule;
 
   final List<void Function(Route<T, Config>)> _listeners = [];
 
@@ -19,7 +19,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
   /// Whether route matching should be case-sensitive.
   final bool caseSensitive;
-  final Map<String, List<Module<Config, T>>> _moduleCache = {};
+  final Map<String, List<Module<T, Config>>> _moduleCache = {};
 
   /// [RoutingService] impementation that uses RoutingKit for route parsing and matching.
   RoutingKitRoutingService(this.rootModule, {this.caseSensitive = false}) {
@@ -27,7 +27,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   }
 
   @override
-  RouteContext currentContext() => _context!;
+  RouteContext get currentContext => _context!;
 
   @override
   FutureOr<void> dispose() {
@@ -64,7 +64,6 @@ class RoutingKitRoutingService<T, Config extends Object>
   FutureOr<void> initialize() {
     _kit = createRouter(caseSensitive: caseSensitive);
 
-    // TODO: handle top level child routes
     _addRoute(root, '/');
   }
 
@@ -87,7 +86,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   /// Returns a list of modules that need to be activated for the given [path].
   ///
   /// This method uses a cache to optimize repeated lookups for the same path.
-  List<Module<Config, T>> getDependencies(String path) {
+  List<Module<T, Config>> getDependencies(String path) {
     if (path.isEmpty) return [];
 
     if (path == '/') return [];
@@ -96,12 +95,12 @@ class RoutingKitRoutingService<T, Config extends Object>
       return _moduleCache[path]!;
     }
 
-    final List<Module<Config, T>> modules = [];
+    final List<Module<T, Config>> modules = [];
     final List<String> pathNodes = path.split('/');
 
-    String currentPath = "";
+    String currentPath = '';
     for (String pathNode in pathNodes) {
-      currentPath += "/$pathNode";
+      currentPath += '/$pathNode';
       final match = _kit.find(null, currentPath)?.data;
       if (match is ModuleRoute<T, Config>) {
         modules.add(match.module);
@@ -128,8 +127,8 @@ class RoutingKitRoutingService<T, Config extends Object>
     if (match == null) {
       throw ArgumentError.value(
         path,
-        "path",
-        "No route found for the given path!",
+        'path',
+        'No route found for the given path!',
       );
     }
 
@@ -137,7 +136,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
     // check if leaf (throw if not)
     if (leaf is! LeafRoute) {
-      throw ArgumentError.value(path, "path", "Resolved route is not a leaf!");
+      throw ArgumentError.value(path, 'path', 'Resolved route is not a leaf!');
     }
 
     leaf as LeafRoute<T, Config>;
@@ -158,7 +157,7 @@ class RoutingKitRoutingService<T, Config extends Object>
     // activate required modules
     final dependencies = getDependencies(cleanPath);
 
-    for (Module<Config, T> module in dependencies) {
+    for (Module<T, Config> module in dependencies) {
       module.activate();
       log('Activated module: ${module.runtimeType}');
     }

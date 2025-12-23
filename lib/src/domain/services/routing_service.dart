@@ -29,7 +29,7 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   bool isActive(String path, {bool exact = true, bool ignoreParams = false});
 
   /// Returns the current routing context.
-  RouteContext currentContext();
+  RouteContext get currentContext;
 
   /// Adds a listener that is called on routing changes.
   ///

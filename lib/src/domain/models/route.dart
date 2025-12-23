@@ -53,7 +53,9 @@ class Route<T, Config extends Object> extends Model {
 /// mount a dedicated [Module] (and its dependency graph) on navigation.
 class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
   /// The module that will be mounted when this route is activated.
-  final Module<Config, T> module;
+  final Module<T, Config> module;
+
+  final LeafRoute<T, Config>? root;
 
   /// Creates a [ModuleRoute] for the given [path] and [module].
   ///
@@ -62,6 +64,7 @@ class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
     required super.path,
     required this.module,
     super.middleware,
+    this.root,
   });
 
   @override

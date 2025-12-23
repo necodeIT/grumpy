@@ -83,11 +83,22 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
   /// IMPORTANT:
   /// - Choose a unique [name] per logical query for clean telemetry.
   /// - Provide a **stable** [cacheKey] that uniquely represents the inputs.
+  ///
+  /// Analytics:
+  /// - If [analyticsAction] is provided, an analytics event with that name
+  ///   is tracked before executing the query.
+  /// - Additional [analyticsProperties] can be provided to enrich the event.
+  ///
+  /// Telemetry:
+  /// - Additional [telemetryAttributes] can be provided to enrich the span.
   Future<QueryResult?> query<QueryResult>(
     String name,
     FutureOr<QueryResult> Function(T data) query, {
     Object? cacheKey,
     Duration? ttl,
+    Map<String, String>? telemetryAttributes,
+    String? analyticsAction,
+    Map<String, String>? analyticsProperties,
   }) async {
     if (!_installed) {
       throw StateError(
@@ -99,6 +110,14 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
         name,
         'name',
         'QueryMixin: Query name must not be empty.',
+      );
+    }
+
+    final analytics = get<AnalyticsService>();
+    if (analyticsAction != null) {
+      await analytics.trackEvent(
+        analyticsAction,
+        properties: analyticsProperties,
       );
     }
 
@@ -124,7 +143,11 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
 
     QueryResult? result;
     try {
-      result = await telemetry.runSpan(name, () => query(state.requireData));
+      result = await telemetry.runSpan(
+        name,
+        () => query(state.requireData),
+        attributes: telemetryAttributes,
+      );
     } catch (e, st) {
       log('$name: Error during query execution', e, st);
       result = null;
@@ -161,15 +184,35 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T> {
 /// containing a list of items [T].
 mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
   /// Returns the matching item with the given [id], or `null` if not found.
-  Future<T?> getById(ID id) async {
-    return query<T?>('queryById', (data) {
-      try {
-        return data.firstWhere((item) => getId(item) == id);
-      } catch (_) {
-        log('Item with ID $id not found.');
-        return null;
-      }
-    }, cacheKey: id);
+  ///
+  /// If [analyticsAction] is provided, an analytics event with that name
+  /// is tracked before executing the query.
+  /// Additional [analyticsProperties] can be provided to enrich the event.
+  ///
+  /// The result is cached for [ttl] duration. Defaults to the cacheExpiry
+  /// defined in [QueryMixin].
+  Future<T?> getById(
+    ID id, {
+    String? analyticsAction,
+    Map<String, dynamic>? analyticsProperties,
+    Duration? ttl,
+  }) async {
+    return query<T?>(
+      'queryById',
+      (data) {
+        try {
+          return data.firstWhere((item) => getId(item) == id);
+        } catch (_) {
+          log('Item with ID $id not found.');
+          return null;
+        }
+      },
+      cacheKey: id,
+      ttl: ttl,
+      telemetryAttributes: {'id': id.toString()},
+      analyticsAction: analyticsAction,
+      analyticsProperties: {'id': id.toString(), ...?analyticsProperties},
+    );
   }
 
   /// Returns the ID of the given [item].
@@ -182,7 +225,19 @@ mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
 /// Uses the `fuzzy_bolt` package for performing fuzzy searches.
 mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
   /// Performs a fuzzy search over [fuzzySelectors] for items matching [query].
-  Future<List<T>> fuzzyFind(String query) async {
+  ///
+  /// If [analyticsAction] is provided, an analytics event with that name
+  /// is tracked before executing the fuzzy search.
+  /// Additional [analyticsProperties] can be provided to enrich the event.
+  ///
+  /// The results are cached for [ttl] duration. Defaults to the cacheExpiry
+  /// defined in [QueryMixin].
+  Future<List<T>> fuzzyFind(
+    String query, {
+    String? analyticsAction,
+    Map<String, dynamic>? analyticsProperties,
+    Duration? ttl,
+  }) async {
     final result = await this.query<List<T>>(
       'fuzzyFind',
       (data) async {
@@ -196,7 +251,10 @@ mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
         return r.map(extractResult).toList();
       },
       cacheKey: query.toLowerCase(),
-      ttl: const Duration(minutes: 2),
+      telemetryAttributes: {'query': query},
+      ttl: ttl,
+      analyticsAction: analyticsAction,
+      analyticsProperties: {'query': query, ...?analyticsProperties},
     );
 
     return result ?? <T>[];
