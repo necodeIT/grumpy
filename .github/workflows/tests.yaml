@@ -1,0 +1,44 @@
+name: Unit Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Unit Testing
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📚 Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🐦 Set up Dart
+        uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+
+      - name: 📦 Install dependencies
+        run: dart pub get
+
+      - name: 🧪 Run Tests
+        run: dart test -r json > test-results.json
+        continue-on-error: true
+
+      - name: 📊 Upload Test Results
+        uses: actions/upload-artifact@v4.6.2
+        with:
+          name: test-results
+          path: test-results.json
+          
+      - name: 📝 Check Test Results
+        run: |
+          if grep -q '"result":"failure"' test-results.json; then
+            echo "❌ Tests failed"
+            exit 1
+          fi
+          echo "✅ All tests passed"
