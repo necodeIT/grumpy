@@ -27,7 +27,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   }
 
   @override
-  RouteContext get currentContext => _context!;
+  RouteContext? get currentContext => _context;
 
   @override
   FutureOr<void> dispose() {
@@ -119,6 +119,12 @@ class RoutingKitRoutingService<T, Config extends Object>
     required void Function(T) callback,
   }) async {
     final uri = Uri.parse(path);
+
+    if (uri == currentContext?.uri) {
+      log('Already at path: $path, skipping navigation.');
+      return;
+    }
+
     final cleanPath = uri.path;
 
     // find the route

@@ -16,6 +16,8 @@ abstract class Module<RouteType, Config extends Object>
     with LifecycleMixin, LogMixin, Disposable {
   GetIt get _di => GetIt.instance;
 
+  bool _isActive = false;
+
   @override
   String? get group => 'Module';
 
@@ -64,8 +66,32 @@ abstract class Module<RouteType, Config extends Object>
     _firstImportScope ??= module.runtimeType.toString();
 
     await module.initialize();
+    await module.activate();
 
     log('${module.runtimeType} mounted successfully.');
+  }
+
+  @mustCallSuper
+  @override
+  FutureOr<void> activate() async {
+    if (_isActive) return;
+
+    for (final module in imports) {
+      await module.activate();
+    }
+
+    _isActive = true;
+  }
+
+  @mustCallSuper
+  @override
+  FutureOr<void> deactivate() async {
+    if (!_isActive) return;
+
+    for (final module in imports.reversed) {
+      await module.deactivate();
+    }
+    _isActive = false;
   }
 
   @mustCallSuper

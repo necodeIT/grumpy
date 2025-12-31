@@ -28,8 +28,12 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   /// Default is false.
   bool isActive(String path, {bool exact = true, bool ignoreParams = false});
 
+  /// Returns the current routing context, or null if no route is active.
+  RouteContext? get currentContext;
+
   /// Returns the current routing context.
-  RouteContext get currentContext;
+  /// Throws an error if no route is active.
+  RouteContext get requiredCurrentContext => currentContext!;
 
   /// Adds a listener that is called on routing changes.
   ///
