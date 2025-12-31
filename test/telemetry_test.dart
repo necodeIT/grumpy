@@ -76,14 +76,14 @@ class _TestTelemetryService extends TelemetryService
   @override
   Future<void> recordEvent(
     String name, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) async {}
 
   @override
   Future<void> recordException(
     Object error, [
     StackTrace? stackTrace,
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   ]) async {
     recordedExceptions.add(error);
   }
@@ -92,7 +92,7 @@ class _TestTelemetryService extends TelemetryService
   Future<T> runSpan<T>(
     String name,
     FutureOr<T> Function() callback, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) {
     return runSpanWithZone(name, callback, attributes: attributes);
   }
@@ -100,7 +100,7 @@ class _TestTelemetryService extends TelemetryService
   @override
   FutureOr<String> onStartSpan(
     String name, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
     TelemetryContext<String>? parent,
   }) {
     final span = 'span-$name';

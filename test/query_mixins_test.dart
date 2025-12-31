@@ -312,26 +312,26 @@ class _UninitializedQueryRepo extends Repo<List<_TestItem>>
 class _TestTelemetryService extends TelemetryService {
   int runSpanCalls = 0;
   final List<String> runSpanNames = [];
-  final Map<String, String> spanAttributes = {};
+  final Map<String, dynamic> spanAttributes = {};
 
   @override
   Future<void> recordEvent(
     String name, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) async {}
 
   @override
   Future<void> recordException(
     Object error, [
     StackTrace? stackTrace,
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   ]) async {}
 
   @override
   Future<T> runSpan<T>(
     String name,
     FutureOr<T> Function() callback, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) async {
     runSpanCalls++;
     runSpanNames.add(name);

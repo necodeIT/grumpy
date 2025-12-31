@@ -39,6 +39,10 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(span),const DeepCollectionEquality().hash(attributes),ownerType);
 
+@override
+String toString() {
+  return 'TelemetryContext<$T>(span: $span, attributes: $attributes, ownerType: $ownerType)';
+}
 
 
 }
@@ -251,6 +255,10 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,const DeepCollectionEquality().hash(span),const DeepCollectionEquality().hash(_attributes),ownerType);
 
+@override
+String toString() {
+  return 'TelemetryContext<$T>(span: $span, attributes: $attributes, ownerType: $ownerType)';
+}
 
 
 }

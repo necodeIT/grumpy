@@ -99,7 +99,7 @@ mixin TelemetryZoneMixin<T> on TelemetryService {
   @protected
   FutureOr<T> onStartSpan(
     String name, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
     TelemetryContext<T>? parent,
   });
 
@@ -125,7 +125,7 @@ mixin TelemetryZoneMixin<T> on TelemetryService {
   Future<R> runSpanWithZone<R>(
     String name,
     FutureOr<R> Function() callback, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) async {
     final parent = getContext();
     final span = await onStartSpan(

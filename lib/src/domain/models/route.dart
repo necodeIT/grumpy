@@ -21,7 +21,7 @@ class Route<T, Config extends Object> extends Model {
   ///
   /// If any [Middleware.canActivate] returns `false`, the route is considered
   /// not accessible and the navigation should be aborted or redirected if [Middleware.redirectTo] is set.
-  final List<Middleware> middleware;
+  final List<Middleware<T, Config>> middleware;
 
   /// Child routes that are matched relative to this route's [path].
   ///

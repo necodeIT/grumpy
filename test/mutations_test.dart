@@ -353,26 +353,26 @@ class _UninitializedMutationRepo extends Repo<int>
 
 class _TestTelemetry extends TelemetryService {
   final List<String> runSpanNames = [];
-  final Map<String, Map<String, String>?> spanAttributes = {};
+  final Map<String, Map<String, dynamic>?> spanAttributes = {};
 
   @override
   Future<void> recordEvent(
     String name, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) async {}
 
   @override
   Future<void> recordException(
     Object error, [
     StackTrace? stackTrace,
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   ]) async {}
 
   @override
   Future<T> runSpan<T>(
     String name,
     FutureOr<T> Function() callback, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) async {
     runSpanNames.add(name);
     spanAttributes[name] = attributes;

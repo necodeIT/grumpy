@@ -15,7 +15,7 @@ import 'package:grumpy/grumpy.dart';
 /// Middleware is executed in the order it is defined, allowing for
 /// layered processing of routing requests.
 /// {@endtemplate}
-abstract class Middleware {
+abstract class Middleware<T, Config extends Object> with LogMixin {
   /// {@macro middleware}
   const Middleware();
 

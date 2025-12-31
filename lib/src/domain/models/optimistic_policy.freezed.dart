@@ -41,6 +41,10 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert);
 
+@override
+String toString() {
+  return 'OptimisticPolicy<$T>(optimisticValue: $optimisticValue, shouldRevert: $shouldRevert)';
+}
 
 
 }
@@ -244,6 +248,10 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,optimisticValue,shouldRevert);
 
+@override
+String toString() {
+  return 'OptimisticPolicy<$T>(optimisticValue: $optimisticValue, shouldRevert: $shouldRevert)';
+}
 
 
 }

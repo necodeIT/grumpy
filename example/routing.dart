@@ -42,7 +42,7 @@ class _TestView extends Leaf<String> {
   }
 
   @override
-  FutureOr<String> build(RouteContext ctx) {
+  FutureOr<String> content(RouteContext ctx) {
     return 'Built View';
   }
 }

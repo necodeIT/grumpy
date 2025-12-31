@@ -1,32 +1,31 @@
-import 'package:meta/meta.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:grumpy/grumpy.dart';
 
+part 'route_context.freezed.dart';
+part 'route_context.g.dart';
+
 /// Contextual information about the current routing state.
-@immutable
-class RouteContext extends Model {
-  /// The full path of the current route.
-  final String fullPath;
-
-  /// The path parameters extracted from the route.
-  final Map<String, String> pathParams;
-
-  /// The query parameters extracted from the route.
-  final Map<String, String> queryParams;
-
-  /// The query parameters extracted from the route, allowing multiple values per key.
-  final Map<String, List<String>> queryParamsAll;
-
-  /// The fragment identifier from the URL, if any.
-  final String fragment;
+@freezed
+abstract class RouteContext extends Model with _$RouteContext {
+  const RouteContext._();
 
   /// Contextual information about the current routing state.
-  const RouteContext({
-    required this.fullPath,
-    this.pathParams = const {},
-    this.queryParams = const {},
-    this.queryParamsAll = const {},
-    this.fragment = '',
-  });
+  const factory RouteContext({
+    /// The full path of the current route.
+    required String fullPath,
+
+    /// The path parameters extracted from the route.
+    @Default({}) Map<String, String> pathParams,
+
+    /// The query parameters extracted from the route.
+    @Default({}) Map<String, String> queryParams,
+
+    /// The query parameters extracted from the route, allowing multiple values per key.
+    @Default({}) Map<String, List<String>> queryParamsAll,
+
+    /// The fragment identifier from the URL, if any.
+    @Default('') String fragment,
+  }) = _RouteContext;
 
   /// Parses the [fullPath] into a [Uri] object.
   Uri get uri => Uri.parse(fullPath);
@@ -52,8 +51,24 @@ class RouteContext extends Model {
   /// Checks if a parameter with the given [key] exists in either path or query parameters.
   bool has(String key) => hasPathParam(key) || hasQueryParam(key);
 
-  @override
-  String toString() {
-    return 'RoutingContext(fullPath: $fullPath, pathParams: $pathParams, queryParams: $queryParams , fragment: $fragment, queryParamsAll: $queryParamsAll)';
+  /// Creates a new [RouteContext] from a JSON map.
+  factory RouteContext.fromJson(Map<String, dynamic> json) =>
+      _$RouteContextFromJson(json);
+
+  /// Creates a new [RouteContext] from a [Uri] object.
+  factory RouteContext.fromUri(Uri uri) {
+    return RouteContext(
+      fullPath: uri.toString(),
+      pathParams: {},
+      queryParams: uri.queryParameters,
+      queryParamsAll: uri.queryParametersAll,
+      fragment: uri.fragment,
+    );
+  }
+
+  /// Parses a URI string into a [RouteContext].
+  factory RouteContext.parse(String uriString) {
+    final uri = Uri.parse(uriString);
+    return RouteContext.fromUri(uri);
   }
 }

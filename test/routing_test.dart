@@ -64,7 +64,7 @@ void main() {
       final context = const RouteContext(fullPath: '/leaf');
 
       final preview = route.view.preview(context);
-      final built = await route.view.build(context);
+      final built = await route.view.content(context);
 
       expect(preview, equals('preview:/leaf'));
       expect(built, equals('built:/leaf'));
@@ -181,7 +181,7 @@ void main() {
   });
 }
 
-class _CountingMiddleware extends Middleware {
+class _CountingMiddleware extends Middleware<String, Object> {
   int calls = 0;
 
   @override
@@ -231,7 +231,7 @@ class _TestLeaf extends Leaf<String> {
   }
 
   @override
-  Future<String> build(RouteContext ctx) async {
+  Future<String> content(RouteContext ctx) async {
     buildCalls++;
     return 'built:${ctx.fullPath}';
   }
@@ -242,7 +242,7 @@ class _TestLeaf2 extends Leaf<String> {
   String preview(RouteContext ctx) => 'preview:${ctx.fullPath}';
 
   @override
-  Future<String> build(RouteContext ctx) async => 'built:${ctx.fullPath}';
+  Future<String> content(RouteContext ctx) async => 'built:${ctx.fullPath}';
 }
 
 class _FeatureModule extends Module<String, _Cfg> {

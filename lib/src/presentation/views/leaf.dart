@@ -20,7 +20,7 @@ abstract class Leaf<T> {
   T preview(RouteContext ctx);
 
   /// Builds the final presentation of [T] once the route has been validated.
-  FutureOr<T> build(RouteContext ctx);
+  FutureOr<T> content(RouteContext ctx);
 }
 
 // this is an extension of Route and not a view.

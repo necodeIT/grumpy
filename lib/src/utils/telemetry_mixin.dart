@@ -10,7 +10,7 @@ mixin TelemetryMixin {
   Future<T> trace<T>(
     String name,
     FutureOr<T> Function() function, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   }) async {
     final telemetry = Service.get<TelemetryService>();
 

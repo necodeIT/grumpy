@@ -152,13 +152,7 @@ class RoutingKitRoutingService<T, Config extends Object>
     leaf as LeafRoute<T, Config>;
 
     // find context
-    var context = RouteContext(
-      fullPath: path,
-      pathParams: match.params,
-      queryParams: uri.queryParameters,
-      queryParamsAll: uri.queryParametersAll,
-      fragment: uri.fragment,
-    );
+    var context = RouteContext.fromUri(uri);
 
     log('Navigating to $path with context: $context');
 
@@ -185,7 +179,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
     _context = context;
 
-    callback(await leaf.view.build(context));
+    callback(await leaf.view.content(context));
 
     log('Activated route at $path');
 

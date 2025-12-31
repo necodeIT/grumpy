@@ -34,6 +34,10 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,delay,maxAttempts);
 
+@override
+String toString() {
+  return 'RetryPolicy(delay: $delay, maxAttempts: $maxAttempts)';
+}
 
 
 }
@@ -230,6 +234,10 @@ bool operator ==(Object other) {
 @override
 int get hashCode => Object.hash(runtimeType,delay,maxAttempts);
 
+@override
+String toString() {
+  return 'RetryPolicy(delay: $delay, maxAttempts: $maxAttempts)';
+}
 
 
 }

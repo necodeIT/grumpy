@@ -82,7 +82,7 @@ abstract class TelemetryService extends Service {
   ///
   /// These events provide operational visibility into system behavior.
   /// They are not intended for product analytics.
-  Future<void> recordEvent(String name, {Map<String, String>? attributes});
+  Future<void> recordEvent(String name, {Map<String, dynamic>? attributes});
 
   /// Records an exception or error with optional [stackTrace] and additional [attributes].
   ///
@@ -91,7 +91,7 @@ abstract class TelemetryService extends Service {
   Future<void> recordException(
     Object error, [
     StackTrace? stackTrace,
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   ]);
 
   /// Executes the provided [callback] within a new tracing span named [name].
@@ -113,7 +113,7 @@ abstract class TelemetryService extends Service {
   Future<T> runSpan<T>(
     String name,
     FutureOr<T> Function() callback, {
-    Map<String, String>? attributes,
+    Map<String, dynamic>? attributes,
   });
 
   /// Adds a key/value attribute to the currently active span, if any.
