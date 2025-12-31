@@ -73,6 +73,6 @@ class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
 
   @override
   String toString() {
-    return 'ModuleRoute(path: $path, module: $module, middleware: $middleware)';
+    return 'ModuleRoute(path: $path, module: $module, middleware: $middleware, root: $root)';
   }
 }

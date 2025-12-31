@@ -78,7 +78,7 @@ abstract class Module<RouteType, Config extends Object>
     _di.pushNewScope(scopeName: runtimeType.toString(), dispose: dispose);
 
     bindExternalDeps(<T extends Object>(builder) {
-      _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get));
+      _di.registerSingleton<T>(builder(_di.get<Config>(), _di.get));
     });
 
     bindServices(<T extends Service>(Builder<Service, Config> builder) {
