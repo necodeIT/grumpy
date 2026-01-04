@@ -18,7 +18,7 @@ void main() {
       await target.activate();
       await target.deactivate();
       await target.dependenciesChanged();
-      await target.dispose();
+      await target.free();
 
       expect(target.initializeCalls, 1);
       expect(target.activateCalls, 1);
@@ -26,7 +26,7 @@ void main() {
       expect(target.dependenciesChangedCalls, 1);
       expect(target.disposed, isTrue);
 
-      expect(() => target.dispose(), throwsA(isA<StateError>()));
+      expect(() => target.free(), throwsA(isA<StateError>()));
     });
   });
 
@@ -45,7 +45,7 @@ void main() {
       await lifecycle.activate();
       await lifecycle.deactivate();
       await lifecycle.dependenciesChanged();
-      await lifecycle.dispose();
+      await lifecycle.free();
 
       expect(calls, [
         'initialize',
@@ -68,10 +68,10 @@ void main() {
       lifecycle.onDisposed(() => calls.add('dispose'));
 
       await lifecycle.activate();
-      await lifecycle.dispose();
+      await lifecycle.free();
 
       expect(calls, ['asyncActivate', 'dispose']);
-      expect(() => lifecycle.dispose(), throwsA(isA<StateError>()));
+      expect(() => lifecycle.free(), throwsA(isA<StateError>()));
     });
   });
 
@@ -95,7 +95,7 @@ void main() {
       expect(loadingCalls, 1);
       expect(errorCalls.single, same(exception));
 
-      await repo.dispose();
+      await repo.free();
     });
   });
 }
@@ -128,8 +128,8 @@ class _LifecycleTarget with Disposable, LifecycleMixin {
   }
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
     disposed = true;
   }
 }
@@ -144,8 +144,8 @@ class _HookedLifecycle
   }
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
     disposed = true;
   }
 }
@@ -162,8 +162,8 @@ class _HookedRepo extends Repo<int>
   Future<void> dependenciesChanged() async {}
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
   }
 
   @override

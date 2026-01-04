@@ -12,26 +12,46 @@ mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
   final List<FutureOr<void> Function()> _disposeHooks = [];
 
   /// Registers a hook to be called in [initialize].
+  ///
+  /// Note: It is unsafe to access the same variables in multiple hooks
+  /// registered via this method, as the order of execution is not guaranteed.
+  /// Use a single hook to manage shared state.
   void onInitialize(FutureOr<void> Function() hook) {
     _initializeHooks.add(hook);
   }
 
   /// Registers a hook to be called in [activate].
+  ///
+  /// Note: It is unsafe to access the same variables in multiple hooks
+  /// registered via this method, as the order of execution is not guaranteed.
+  /// Use a single hook to manage shared state.
   void onActivate(FutureOr<void> Function() hook) {
     _activateHooks.add(hook);
   }
 
   /// Registers a hook to be called in [deactivate].
+  ///
+  /// Note: It is unsafe to access the same variables in multiple hooks
+  /// registered via this method, as the order of execution is not guaranteed.
+  /// Use a single hook to manage shared state.
   void onDeactivate(FutureOr<void> Function() hook) {
     _deactivateHooks.add(hook);
   }
 
   /// Registers a hook to be called in [dependenciesChanged].
+  ///
+  /// Note: It is unsafe to access the same variables in multiple hooks
+  /// registered via this method, as the order of execution is not guaranteed.
+  /// Use a single hook to manage shared state.
   void onDependenciesChanged(FutureOr<void> Function() hook) {
     _dependenciesChangedHooks.add(hook);
   }
 
-  /// Registers a hook to be called in [dispose].
+  /// Registers a hook to be called in [free].
+  ///
+  /// Note: It is unsafe to access the same variables in multiple hooks
+  /// registered via this method, as the order of execution is not guaranteed.
+  /// Use a single hook to manage shared state.
   void onDisposed(FutureOr<void> Function() hook) {
     _disposeHooks.add(hook);
   }
@@ -75,8 +95,8 @@ mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
 
   @override
   @mustCallSuper
-  FutureOr<void> dispose() async {
-    await super.dispose();
+  FutureOr<void> free() async {
+    await super.free();
 
     _initializeHooks.clear();
     _activateHooks.clear();

@@ -137,7 +137,7 @@ void main() {
       final results = <String>[];
 
       await expectLater(
-        routing.navigate('/idk/', callback: results.add),
+        routing.navigate('/idk/', callback: (result, _) => results.add(result)),
         throwsA(isA<ArgumentError>()),
       );
 
@@ -148,7 +148,10 @@ void main() {
       final results = <String>[];
 
       await expectLater(
-        routing.navigate('/module', callback: results.add),
+        routing.navigate(
+          '/module',
+          callback: (result, _) => results.add(result),
+        ),
         throwsA(isA<ArgumentError>()),
       );
 
@@ -158,7 +161,10 @@ void main() {
     test('navigating to nested leaf activates required modules', () async {
       final results = <String>[];
 
-      await routing.navigate('/feature/child', callback: results.add);
+      await routing.navigate(
+        '/feature/child',
+        callback: (result, _) => results.add(result),
+      );
 
       expect(results, ['preview:/feature/child', 'built:/feature/child']);
       expect(root.featureModule.activateCalls, 1);
@@ -170,7 +176,10 @@ void main() {
         final results = <String>[];
 
         await expectLater(
-          routing.navigate('/feature/', callback: results.add),
+          routing.navigate(
+            '/feature/',
+            callback: (result, _) => results.add(result),
+          ),
           completes,
         );
 
@@ -198,17 +207,21 @@ class _CountingMiddleware extends Middleware<String, Object> {
 
 class _DummyModule extends Module<String, Object> {
   @override
-  Future<void> activate() async {}
+  Future<void> activate() async {
+    super.activate();
+  }
 
   @override
-  Future<void> deactivate() async {}
+  Future<void> deactivate() async {
+    super.deactivate();
+  }
 
   @override
   Future<void> dependenciesChanged() async {}
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
   }
 
   @override
@@ -250,11 +263,14 @@ class _FeatureModule extends Module<String, _Cfg> {
 
   @override
   Future<void> activate() async {
+    super.activate();
     activateCalls++;
   }
 
   @override
-  Future<void> deactivate() async {}
+  Future<void> deactivate() async {
+    super.deactivate();
+  }
 
   @override
   Future<void> dependenciesChanged() async {}
@@ -265,8 +281,8 @@ class _FeatureModule extends Module<String, _Cfg> {
   }
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
   }
 
   @override
@@ -296,12 +312,6 @@ class _RootTestModule extends RootModule<String, _Cfg> {
     ModuleRoute<String, _Cfg>(path: 'module', module: featureModule),
     const Route<String, _Cfg>(path: 'idk'),
   ];
-
-  @override
-  FutureOr<void> activate() {}
-
-  @override
-  FutureOr<void> deactivate() {}
 
   @override
   FutureOr<void> dependenciesChanged() {}

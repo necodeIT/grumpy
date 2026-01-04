@@ -17,7 +17,11 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   E? _lastError;
   L? _lastLoading;
 
-  Future<void> _onWatchedRepoStateChange() async {
+  Future<void> _onWatchedRepoStateChange(Repo changedRepo) async {
+    log(
+      'Detected state change in dependencies (${changedRepo.runtimeType}). Re-evaluating...',
+    );
+
     if (_handlingStateChange) return;
     _handlingStateChange = true;
     bool anyLoading = false;
@@ -25,11 +29,17 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 
     for (final repo in _watchedRepos.values) {
       if (repo.state.hasError) {
+        log(
+          'Dependency of type ${repo.runtimeType} has error. Rebuilding error state...',
+        );
         final errorState = repo.state.asError;
 
         firstError = errorState;
         break;
       } else if (repo.state.isLoading) {
+        log(
+          'Dependency of type ${repo.runtimeType} is loading. Rebuilding loading state...',
+        );
         anyLoading = true;
       }
     }
@@ -39,13 +49,15 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     _lastError = firstError != null
         ? await onDependencyError(firstError.error, firstError.stackTrace)
         : null;
-    _lastLoading = anyLoading ? await onDependenciesLoading() : null;
+    _lastLoading = anyLoading ? onDependenciesLoading() : null;
 
     try {
+      if (allDataReady) log('All dependencies are ready. Rebuilding data...');
       _lastData = allDataReady ? await onDependenciesReady() : null;
+      if (allDataReady) log('Dependencies ready, obtained new data.');
     } on NoRepoDataError catch (e, st) {
       if (e.state.isLoading) {
-        _lastLoading = await onDependenciesLoading();
+        _lastLoading = onDependenciesLoading();
         _lastData = null;
       } else {
         _lastError = await onDependencyError(e, st);
@@ -56,12 +68,14 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       _lastData = null;
     }
 
+    log('State rebuilt, notifying listeners...');
     await dependenciesChanged();
 
     _handlingStateChange = false;
   }
 
   Future<void> _discover() async {
+    log('Discovering dependencies...');
     try {
       final result = await onDependenciesReady();
 
@@ -69,7 +83,11 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       _lastData = result;
       _lastError = null;
       _lastLoading = null;
-    } catch (e) {
+    } on NoRepoDataError catch (_) {
+      log('At least one dependency is not ready, waiting for updates...');
+    } catch (e, st) {
+      log('Error during dependency discovery: $e');
+      _lastError = await onDependencyError(e, st);
       // Ignore errors during the initial discovery phase.
       // we are just trying to discover repos here.
     }
@@ -83,9 +101,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     _installed = true;
 
     /// Set to loading state initially.
-    onInitialize(() async {
-      _lastLoading = await onDependenciesLoading();
-    });
+    _lastLoading = onDependenciesLoading();
 
     onInitialize(_discover);
 
@@ -105,9 +121,9 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       for (final sub in _subs) {
         await sub.cancel();
       }
+      _subs.clear();
     });
     onDisposed(_watchedRepos.clear);
-    onDisposed(_subs.clear);
   }
 
   /// Watches a [Repo] of type [R] managing data of type [S] and
@@ -128,10 +144,12 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 
     final repo = await GetIt.I.getAsync<R>();
 
+    log('Discovered new dependency. Now watching repo of type $R');
+
     _watchedRepos[R] = repo;
 
     final sub = repo.stream.listen((_) async {
-      await _onWatchedRepoStateChange();
+      await _onWatchedRepoStateChange(repo);
     });
 
     _subs.add(sub);
@@ -155,7 +173,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   FutureOr<E> onDependencyError(Object error, StackTrace? stackTrace);
 
   /// A callback function that is called when any of the watched repositories emit a loading state.
-  FutureOr<L> onDependenciesLoading();
+  L onDependenciesLoading();
 
   /// A pattern matching function that executes the appropriate callback
   /// based on the last known state of the watched repositories.

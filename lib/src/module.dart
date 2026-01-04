@@ -101,7 +101,7 @@ abstract class Module<RouteType, Config extends Object>
       await _mount(module);
     }
 
-    _di.pushNewScope(scopeName: runtimeType.toString(), dispose: dispose);
+    _di.pushNewScope(scopeName: runtimeType.toString(), dispose: free);
 
     bindExternalDeps(<T extends Object>(builder) {
       _di.registerSingleton<T>(builder(_di.get<Config>(), _di.get));
@@ -128,7 +128,7 @@ abstract class Module<RouteType, Config extends Object>
         },
         dispose: (repo) async {
           await repo.deactivate();
-          await repo.dispose();
+          await repo.free();
         },
       );
     });
@@ -136,11 +136,11 @@ abstract class Module<RouteType, Config extends Object>
 
   @override
   @mustCallSuper
-  FutureOr<void> dispose() async {
+  FutureOr<void> free() async {
     if (_disposed) return;
     _disposed = true;
 
-    await super.dispose();
+    await super.free();
 
     if (_firstImportScope != null) {
       await _di.popScopesTill(_firstImportScope!);
@@ -211,7 +211,7 @@ abstract class RootModule<RouteType, Config extends Object>
   @override
   // if the root module is disposed, something is very wrong.
   // ignore: must_call_super
-  FutureOr<void> dispose() {
+  FutureOr<void> free() {
     throw StateError(
       'RootModule should not be disposed. It lives throughout the application lifecycle.',
     );

@@ -18,7 +18,7 @@ void main() {
 
   tearDown(() async {
     try {
-      await repo.dispose();
+      await repo.free();
     } on StateError {
       // Repo already disposed in the test.
     }
@@ -59,7 +59,7 @@ void main() {
     });
 
     test('Dispose closes the stream', () async {
-      await repo.dispose();
+      await repo.free();
       expect(
         () => repo.setData(123),
         throwsA(

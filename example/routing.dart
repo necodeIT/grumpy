@@ -68,7 +68,12 @@ Future<void> main() async {
 
   final router = GetIt.I<RoutingService<String, _Config>>();
 
-  await router.navigate('/test/123we/a', callback: print);
+  await router.navigate(
+    '/test/123we/a',
+    callback: (view, preview) {
+      print('Navigation callback: preview=$preview, view=$view');
+    },
+  );
 
   print(router.currentContext);
 

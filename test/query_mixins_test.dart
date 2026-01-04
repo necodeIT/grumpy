@@ -50,7 +50,7 @@ void main() {
 
   tearDown(() async {
     for (final repo in repos) {
-      await repo.dispose();
+      await repo.free();
     }
     repos.clear();
     await di.reset();
@@ -348,7 +348,7 @@ class _TestTelemetryService extends TelemetryService {
   }
 
   @override
-  FutureOr<void> dispose() {}
+  FutureOr<void> free() {}
 }
 
 class _TestItem {
@@ -382,7 +382,7 @@ class _TestAnalyticsService extends AnalyticsService {
   final List<Map<String, dynamic>?> trackedEventProperties = [];
 
   @override
-  FutureOr<void> dispose() {}
+  FutureOr<void> free() {}
 
   @override
   Future<void> groupUser(String groupId, {Map<String, dynamic>? traits}) {

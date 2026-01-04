@@ -28,7 +28,7 @@ void main() {
   });
 
   tearDown(() async {
-    await repo.dispose();
+    await repo.free();
     await di.reset();
   });
   group('OptimisticPolicy', () {
@@ -99,7 +99,7 @@ void main() {
         throwsA(isA<StateError>()),
       );
 
-      await uninitialized.dispose();
+      await uninitialized.free();
     });
 
     test('mutate updates state and records telemetry/analytics', () async {
@@ -320,8 +320,8 @@ class _MutationRepo extends Repo<int>
   }
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
   }
 }
 
@@ -346,8 +346,8 @@ class _UninitializedMutationRepo extends Repo<int>
   }
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
   }
 }
 
@@ -383,7 +383,7 @@ class _TestTelemetry extends TelemetryService {
   void addSpanAttribute(String key, String value) {}
 
   @override
-  Future<void> dispose() async {}
+  Future<void> free() async {}
 }
 
 class _TestAnalytics extends AnalyticsService {
@@ -425,5 +425,5 @@ class _TestAnalytics extends AnalyticsService {
   }) async {}
 
   @override
-  Future<void> dispose() async {}
+  Future<void> free() async {}
 }

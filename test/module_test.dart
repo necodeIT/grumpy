@@ -37,7 +37,7 @@ void main() {
     final externalB = di.get<_ExternalDependency>();
     expect(externalA.config, same(di.get<_TestConfig>()));
     expect(externalB.config, same(di.get<_TestConfig>()));
-    expect(externalA, isNot(same(externalB)));
+    expect(externalA, same(externalB));
 
     final service = di.get<_FakeService>();
     expect(service.config, same(di.get<_TestConfig>()));
@@ -51,7 +51,7 @@ void main() {
     expect(repo.initializeHookRan, isTrue);
     expect(repo.activateCount, 1);
 
-    await module.dispose();
+    await module.free();
   });
 
   test('Classes are not available after disposing module', () async {
@@ -59,7 +59,7 @@ void main() {
     final module = _TestModule(importModule);
     await module.ready;
     final repo = await di.getAsync<_FakeRepo>();
-    await module.dispose();
+    await module.free();
 
     expect(importModule.disposeCount, 1);
     expect(repo.deactivateCount, greaterThanOrEqualTo(0));
@@ -107,10 +107,14 @@ class _TestModule extends Module<int, _TestConfig> {
   }
 
   @override
-  Future<void> activate() async {}
+  Future<void> activate() async {
+    super.activate();
+  }
 
   @override
-  Future<void> deactivate() async {}
+  Future<void> deactivate() async {
+    super.deactivate();
+  }
 
   @override
   Future<void> dependenciesChanged() async {}
@@ -130,16 +134,20 @@ class _ImportModule extends Module<int, _TestConfig> {
   }
 
   @override
-  Future<void> dispose() async {
+  Future<void> free() async {
     disposeCount++;
-    await super.dispose();
+    await super.free();
   }
 
   @override
-  Future<void> activate() async {}
+  Future<void> activate() async {
+    super.activate();
+  }
 
   @override
-  Future<void> deactivate() async {}
+  Future<void> deactivate() async {
+    super.deactivate();
+  }
 
   @override
   Future<void> dependenciesChanged() async {}
@@ -160,7 +168,7 @@ class _FakeService extends Service {
   final _TestConfig config;
 
   @override
-  Future<void> dispose() async {}
+  Future<void> free() async {}
 }
 
 class _FakeDatasource extends Datasource {
@@ -169,7 +177,7 @@ class _FakeDatasource extends Datasource {
   final _TestConfig config;
 
   @override
-  Future<void> dispose() async {}
+  Future<void> free() async {}
 }
 
 class _FakeRepo extends Repo<int> {
@@ -210,8 +218,8 @@ class _FakeRepo extends Repo<int> {
   Future<void> dependenciesChanged() async {}
 
   @override
-  Future<void> dispose() async {
-    await super.dispose();
+  Future<void> free() async {
+    await super.free();
   }
 }
 

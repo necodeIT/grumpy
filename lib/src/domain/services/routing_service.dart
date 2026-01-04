@@ -15,7 +15,7 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   Future<void> navigate(
     String path, {
     bool skipPreview = false,
-    required void Function(T) callback,
+    required void Function(T, bool) callback,
   });
 
   /// Checks if the specified [path] is currently active.

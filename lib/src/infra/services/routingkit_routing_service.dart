@@ -9,6 +9,8 @@ class RoutingKitRoutingService<T, Config extends Object>
     with LifecycleMixin {
   RouteContext? _context;
 
+  final Map<Uri, (Future<bool>, LeafRoute<T, Config>)> _pendingNavigations = {};
+
   /// The root module of the application.
   final RootModule<T, Config> rootModule;
 
@@ -30,8 +32,8 @@ class RoutingKitRoutingService<T, Config extends Object>
   RouteContext? get currentContext => _context;
 
   @override
-  FutureOr<void> dispose() {
-    super.dispose();
+  FutureOr<void> free() {
+    super.free();
     _listeners.clear();
   }
 
@@ -116,82 +118,145 @@ class RoutingKitRoutingService<T, Config extends Object>
   Future<void> navigate(
     String path, {
     bool skipPreview = false,
-    required void Function(T) callback,
+    required void Function(T, bool) callback,
   }) async {
     final uri = Uri.parse(path);
 
     if (uri == currentContext?.uri) {
       log('Already at path: $path, skipping navigation.');
+
       return;
     }
 
+    if (_pendingNavigations.containsKey(uri)) {
+      log('Navigation to $path is already in progress, forwarding callback.');
+
+      final (future, leaf) = _pendingNavigations[uri]!;
+
+      if (!skipPreview) {
+        callback(leaf.view.preview(RouteContext.fromUri(uri)), true);
+      }
+
+      log('Waiting for pending navigation to $path to complete.');
+
+      final success = await future;
+
+      if (!success) {
+        log(
+          'Pending navigation to $path failed, not invoking content callback.',
+        );
+        return;
+      }
+
+      log('Pending navigation to $path completed, invoking content callback.');
+
+      callback(await leaf.view.content(RouteContext.fromUri(uri)), false);
+
+      return;
+    }
+
+    try {
+      final cleanPath = uri.path;
+
+      // find the route
+      final match = _kit.find(null, cleanPath);
+
+      if (match == null) {
+        throw ArgumentError.value(
+          path,
+          'path',
+          'No route found for the given path!',
+        );
+      }
+
+      var leaf = match.data;
+
+      if (leaf is ModuleRoute<T, Config>) {
+        leaf =
+            leaf.root ??
+            (throw ArgumentError.value(
+              path,
+              'path',
+              'Resolved ModuleRoute does not have a root LeafRoute defined!',
+            ));
+      }
+
+      // check if leaf (throw if not)
+      if (leaf is! LeafRoute) {
+        throw ArgumentError.value(
+          path,
+          'path',
+          'Resolved route is not a leaf!',
+        );
+      }
+
+      leaf as LeafRoute<T, Config>;
+
+      final future = _navigate(uri, leaf, skipPreview, callback);
+
+      _pendingNavigations[uri] = (future, leaf);
+      await future;
+    } catch (e, s) {
+      log('Navigation to $path failed with error', e, s);
+      rethrow;
+    } finally {
+      _pendingNavigations.remove(uri);
+    }
+  }
+
+  Future<bool> _navigate(
+    Uri uri,
+    LeafRoute<T, Config> leaf,
+    bool skipPreview,
+    void Function(T, bool) callback,
+  ) async {
+    var context = RouteContext.fromUri(uri);
     final cleanPath = uri.path;
 
-    // find the route
-    final match = _kit.find(null, cleanPath);
+    log('Navigating to $cleanPath with context: $context');
 
-    if (match == null) {
-      throw ArgumentError.value(
-        path,
-        'path',
-        'No route found for the given path!',
-      );
-    }
-
-    var leaf = match.data;
-
-    if (leaf is ModuleRoute<T, Config>) {
-      leaf =
-          leaf.root ??
-          (throw ArgumentError.value(
-            path,
-            'path',
-            'Resolved ModuleRoute does not have a root LeafRoute defined!',
-          ));
-    }
-
-    // check if leaf (throw if not)
-    if (leaf is! LeafRoute) {
-      throw ArgumentError.value(path, 'path', 'Resolved route is not a leaf!');
-    }
-
-    leaf as LeafRoute<T, Config>;
-
-    // find context
-    var context = RouteContext.fromUri(uri);
-
-    log('Navigating to $path with context: $context');
-
-    if (!skipPreview) callback(leaf.view.preview(context));
+    if (!skipPreview) callback(leaf.view.preview(context), true);
 
     // activate required modules
     final dependencies = getDependencies(cleanPath);
 
     for (Module<T, Config> module in dependencies) {
-      module.activate();
+      await module.activate();
       log('Activated module: ${module.runtimeType}');
     }
 
     // run middlewares (if any)
     try {
-      for (final middleware in leaf.middleware) {
+      for (var i = 0; i < leaf.middleware.length; i++) {
+        final middleware = leaf.middleware[i];
+        log(
+          'Executing middleware ${i + 1}/${leaf.middleware.length}: ${middleware.runtimeType}',
+        );
         context = await middleware(context);
-        log('Middleware processed context: $context');
       }
+      log(
+        'All ${leaf.middleware.length} middlewares executed successfully for $cleanPath',
+      );
     } catch (e, s) {
-      log('A middleware threw an exception during navigation to $path', e, s);
-      rethrow;
+      log(
+        'A middleware threw an exception during navigation to $cleanPath',
+        e,
+        s,
+      );
+      return false;
     }
 
     _context = context;
 
-    callback(await leaf.view.content(context));
+    callback(await leaf.view.content(context), false);
 
-    log('Activated route at $path');
+    log('Activated route at $cleanPath');
 
     // notify listeners
     for (final listener in _listeners) {
       listener(leaf);
     }
+
+    return true;
   }
 }

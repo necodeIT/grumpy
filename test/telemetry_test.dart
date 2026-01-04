@@ -120,7 +120,7 @@ class _TestTelemetryService extends TelemetryService
   }
 
   @override
-  Future<void> dispose() async {}
+  Future<void> free() async {}
 }
 
 class _TelemetryService {}
