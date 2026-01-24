@@ -19,7 +19,7 @@ abstract class Module<RouteType, Config extends Object>
   bool _isActive = false;
 
   @override
-  String? get group => 'Module';
+  String get group => 'Module';
 
   @override
   Level get logLevel => Level.FINEST;
@@ -216,4 +216,7 @@ abstract class RootModule<RouteType, Config extends Object>
       'RootModule should not be disposed. It lives throughout the application lifecycle.',
     );
   }
+
+  @override
+  String get group => '${super.group}.RootModule';
 }

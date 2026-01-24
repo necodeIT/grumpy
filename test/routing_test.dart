@@ -1,3 +1,5 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
 import 'dart:async';
 
 import 'package:get_it/get_it.dart';
@@ -126,6 +128,7 @@ void main() {
       di = GetIt.instance;
       await di.reset(dispose: false);
       root = _RootTestModule(const _Cfg('cfg'));
+      await root.initialize();
       routing = di.get<RoutingService<String, _Cfg>>();
     });
 
@@ -203,6 +206,9 @@ class _CountingMiddleware extends Middleware<String, Object> {
   String toString() {
     return 'CountingMiddleware(calls: $calls)';
   }
+
+  @override
+  String get logTag => '_CountingMiddleware';
 }
 
 class _DummyModule extends Module<String, Object> {
@@ -231,6 +237,8 @@ class _DummyModule extends Module<String, Object> {
 
   @override
   List<Route<String, Object>> get routes => const [];
+  @override
+  String get logTag => '_DummyModule';
 }
 
 class _TestLeaf extends Leaf<String> {
@@ -293,12 +301,12 @@ class _FeatureModule extends Module<String, _Cfg> {
       children: [LeafRoute<String, _Cfg>(path: 'final', view: _TestLeaf2())],
     ),
   ];
+  @override
+  String get logTag => '_FeatureModule';
 }
 
 class _RootTestModule extends RootModule<String, _Cfg> {
-  _RootTestModule(super.cfg) : featureModule = _FeatureModule() {
-    initialize();
-  }
+  _RootTestModule(super.cfg) : featureModule = _FeatureModule();
 
   final _FeatureModule featureModule;
 
@@ -315,6 +323,8 @@ class _RootTestModule extends RootModule<String, _Cfg> {
 
   @override
   FutureOr<void> dependenciesChanged() {}
+  @override
+  String get logTag => '_RootTestModule';
 }
 
 class _Cfg {

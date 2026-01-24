@@ -1,16 +1,17 @@
 include: package:lints/recommended.yaml
-
+plugins:
+  grumpy_lints:
+    path: ../grumpy_lints
+    diagnostics:
+      must_call_in_constructor:
+        enabled: true
+        ignorable: true
+      abstract_classes_should_set_log_group: true
+      concrete_classes_should_set_log_tag: true
 analyzer:
-  plugins:
-    - custom_lint
   exclude:
     - "**/*.g.dart"
     - "**/*.freezed.dart"
-
-custom_lint:
-  debug: true
-  # Optional, will cause custom_lint to log its internal debug information
-  verbose: true
 
 linter:
   rules:

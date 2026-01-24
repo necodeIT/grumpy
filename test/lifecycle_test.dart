@@ -1,3 +1,6 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
+
 import 'package:logging/logging.dart';
 import 'package:grumpy/grumpy.dart';
 import 'package:test/test.dart';
@@ -14,7 +17,6 @@ void main() {
     test('tracks lifecycle invocations and prevents double dispose', () async {
       final target = _LifecycleTarget();
 
-      await target.initialize();
       await target.activate();
       await target.deactivate();
       await target.dependenciesChanged();
@@ -107,6 +109,10 @@ class _LifecycleTarget with Disposable, LifecycleMixin {
   int dependenciesChangedCalls = 0;
   bool disposed = false;
 
+  _LifecycleTarget() {
+    initialize();
+  }
+
   @override
   Future<void> activate() async {
     activateCalls++;
@@ -138,6 +144,10 @@ class _HookedLifecycle
     with Disposable, LogMixin, LifecycleMixin, LifecycleHooksMixin {
   bool disposed = false;
 
+  _HookedLifecycle() {
+    initialize();
+  }
+
   @override
   void log(String message, [Object? error, StackTrace? stackTrace]) {
     // No-op logger for tests.
@@ -148,6 +158,9 @@ class _HookedLifecycle
     await super.free();
     disposed = true;
   }
+
+  @override
+  String get logTag => '_HookedLifecycle';
 }
 
 class _HookedRepo extends Repo<int>
@@ -170,4 +183,7 @@ class _HookedRepo extends Repo<int>
   Future<void> initialize() async {
     await super.initialize();
   }
+
+  @override
+  String get logTag => '_HookedRepo';
 }

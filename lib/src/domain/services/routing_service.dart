@@ -42,4 +42,6 @@ abstract class RoutingService<T, Config extends Object> extends Service {
 
   /// Removes a previously added routing listener.
   void removeListener(void Function(Route<T, Config> route) listener);
+  @override
+  String get group => '${super.group}.RoutingService';
 }

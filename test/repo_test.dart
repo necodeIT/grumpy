@@ -1,3 +1,5 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
 import 'package:logging/logging.dart';
 import 'package:grumpy/grumpy.dart';
 import 'package:test/test.dart';
@@ -192,15 +194,15 @@ void main() {
 class NoOpTelemetryService extends TelemetryService {
   @override
   noSuchMethod(Invocation invocation) {}
+  @override
+  String get logTag => 'NoOpTelemetryService';
 }
 
 class _TestRepo extends Repo<int> {
-  _TestRepo() {
-    initialize();
-  }
-
   void setData(int value) => data(value);
   void setLoading() => loading();
   void setError(Object error, [StackTrace? stackTrace]) =>
       super.error(error, stackTrace);
+  @override
+  String get logTag => '_TestRepo';
 }

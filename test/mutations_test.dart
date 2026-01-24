@@ -1,3 +1,5 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
 import 'dart:async';
 
 import 'package:get_it/get_it.dart';
@@ -302,7 +304,6 @@ class _MutationRepo extends Repo<int>
         MutationMixins<int> {
   _MutationRepo() {
     installMutationHooks();
-    initialize();
   }
 
   @override
@@ -323,8 +324,13 @@ class _MutationRepo extends Repo<int>
   Future<void> free() async {
     await super.free();
   }
+
+  @override
+  String get logTag => '_MutationRepo';
 }
 
+// for testing uninitialized repo behavior
+// ignore: missing_required_constructor_call
 class _UninitializedMutationRepo extends Repo<int>
     with
         RepoLifecycleMixin<int>,
@@ -349,6 +355,9 @@ class _UninitializedMutationRepo extends Repo<int>
   Future<void> free() async {
     await super.free();
   }
+
+  @override
+  String get logTag => '_UninitializedMutationRepo';
 }
 
 class _TestTelemetry extends TelemetryService {
@@ -384,6 +393,8 @@ class _TestTelemetry extends TelemetryService {
 
   @override
   Future<void> free() async {}
+  @override
+  String get logTag => '_TestTelemetry';
 }
 
 class _TestAnalytics extends AnalyticsService {
@@ -426,4 +437,6 @@ class _TestAnalytics extends AnalyticsService {
 
   @override
   Future<void> free() async {}
+  @override
+  String get logTag => '_TestAnalytics';
 }

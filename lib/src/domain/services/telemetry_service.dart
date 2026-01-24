@@ -120,4 +120,6 @@ abstract class TelemetryService extends Service {
   ///
   /// Has no effect if called outside of an active telemetry context.
   void addSpanAttribute(String key, String value);
+  @override
+  String get group => '${super.group}.TelemetryService';
 }

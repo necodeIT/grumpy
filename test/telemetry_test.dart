@@ -1,3 +1,5 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
 import 'dart:async';
 
 import 'package:logging/logging.dart';
@@ -121,6 +123,8 @@ class _TestTelemetryService extends TelemetryService
 
   @override
   Future<void> free() async {}
+  @override
+  String get logTag => '_TestTelemetryService';
 }
 
 class _TelemetryService {}

@@ -259,4 +259,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
     return true;
   }
+
+  @override
+  String get logTag => 'RoutingKitRoutingService';
 }

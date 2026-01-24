@@ -6,4 +6,7 @@ class NoopAnalyticsService extends AnalyticsService {
   noSuchMethod(Invocation invocation) {
     log('NoopAnalyticsService: ${invocation.memberName} called.');
   }
+
+  @override
+  String get logTag => 'NoopAnalyticsService';
 }

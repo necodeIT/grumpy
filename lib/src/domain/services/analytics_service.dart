@@ -140,4 +140,6 @@ abstract class AnalyticsService extends Service {
   /// [groupId] — unique identifier for the group/organization.
   /// [traits] — group-level properties (plan, employee count, region, etc).
   Future<void> groupUser(String groupId, {Map<String, dynamic>? traits});
+  @override
+  String get group => '${super.group}.AnalyticsService';
 }

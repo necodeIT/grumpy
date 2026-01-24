@@ -9,3 +9,4 @@ pubspec.lock
 # FVM Version Cache
 .fvm/
 custom_lint.log
+grumpy_lints.log

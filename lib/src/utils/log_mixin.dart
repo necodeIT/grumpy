@@ -3,17 +3,18 @@ import 'package:meta/meta.dart';
 
 /// A mixin that provides logging capabilities to a class.
 mixin class LogMixin {
-  Logger get _logger => Logger('${group != null ? '$group.' : ''}$logTag');
+  Logger get _logger => Logger('${group.isNotEmpty ? '$group.' : ''}$logTag');
 
   /// The tag used for logging, typically the class name.
   /// Defaults to the runtime type of the class.
   ///
   /// It is recommended to override this getter to a harder-coded string if targeting
-  /// minified environments where runtimeType may be obfuscated.
+  /// minified environments where [runtimeType] may be obfuscated.
+  @mustBeOverridden
   String get logTag => runtimeType.toString();
 
   /// The parent logging group for this class.
-  String? get group => null;
+  String get group => '';
 
   /// Logs a message with an optional error and stack trace.
   /// If an error is provided, it logs at [errorLogLevel], otherwise at [logLevel].

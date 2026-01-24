@@ -1,3 +1,5 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
 import 'dart:async';
 
 import 'package:get_it/get_it.dart' hide Disposable;
@@ -54,6 +56,7 @@ void main() {
     di.registerSingletonAsync<_StringRepo>(() async => stringRepo);
 
     final repo = _DeferredCombinedRepo();
+    await repo.initialize();
     await settle();
 
     return (intRepo: intRepo, stringRepo: stringRepo, repo: repo);
@@ -205,6 +208,7 @@ class _UseRepoConsumer
   _UseRepoConsumer() {
     installUseRepoHooks();
     onDependenciesChanged(() => dependenciesChangedCalls++);
+    initialize();
   }
 
   int dependenciesChangedCalls = 0;
@@ -229,8 +233,13 @@ class _UseRepoConsumer
   String onDependenciesLoading() {
     return 'loading';
   }
+
+  @override
+  String get logTag => '_UseRepoConsumer';
 }
 
+// for testing uninitialized usage
+// ignore: missing_required_constructor_call
 class _UninitializedConsumer
     with
         Disposable,
@@ -246,21 +255,20 @@ class _UninitializedConsumer
 
   @override
   void onDependenciesLoading() {}
+  @override
+  String get logTag => '_UninitializedConsumer';
 }
 
 class _IntRepo extends Repo<int> {
-  _IntRepo() {
-    initialize();
-  }
-
   void setData(int value) => data(value);
+  @override
+  String get logTag => '_IntRepo';
 }
 
 class _DeferredCombinedRepo extends Repo<String>
     with UseRepoMixin, DeferredRepoMixin<String> {
   _DeferredCombinedRepo() {
     installUseRepoHooks();
-    initialize();
   }
 
   @override
@@ -269,14 +277,15 @@ class _DeferredCombinedRepo extends Repo<String>
     final (label, _) = await useRepo<String, _StringRepo>();
     return '$count-$label';
   }
+
+  @override
+  String get logTag => '_DeferredCombinedRepo';
 }
 
 class _StringRepo extends Repo<String> {
-  _StringRepo() {
-    initialize();
-  }
-
   void setData(String value) => data(value);
   void setError(Object error, [StackTrace? stackTrace]) =>
       super.error(error, stackTrace);
+  @override
+  String get logTag => '_StringRepo';
 }

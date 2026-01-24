@@ -1,3 +1,5 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
 import 'dart:async';
 
 import 'package:get_it/get_it.dart';
@@ -260,8 +262,6 @@ class _TestQueryRepo extends Repo<List<_TestItem>>
        _invalidateOnLoading = invalidateOnLoading,
        _cacheNullResults = cacheNullResults {
     installMemoryCacheHooks();
-
-    initialize();
   }
 
   final bool? _invalidateOnNewData;
@@ -294,8 +294,12 @@ class _TestQueryRepo extends Repo<List<_TestItem>>
 
   @override
   String getId(_TestItem item) => item.id;
+  @override
+  String get logTag => '_TestQueryRepo';
 }
 
+// for testing uninitialized repo behavior
+// ignore: missing_required_constructor_call
 class _UninitializedQueryRepo extends Repo<List<_TestItem>>
     with
         RepoLifecycleMixin<List<_TestItem>>,
@@ -307,6 +311,8 @@ class _UninitializedQueryRepo extends Repo<List<_TestItem>>
 
   @override
   String getId(_TestItem item) => item.id;
+  @override
+  String get logTag => '_UninitializedQueryRepo';
 }
 
 class _TestTelemetryService extends TelemetryService {
@@ -349,6 +355,8 @@ class _TestTelemetryService extends TelemetryService {
 
   @override
   FutureOr<void> free() {}
+  @override
+  String get logTag => '_TestTelemetryService';
 }
 
 class _TestItem {
@@ -420,4 +428,7 @@ class _TestAnalyticsService extends AnalyticsService {
     trackedEventNames.add(name);
     trackedEventProperties.add(properties);
   }
+
+  @override
+  String get logTag => '_TestAnalyticsService';
 }

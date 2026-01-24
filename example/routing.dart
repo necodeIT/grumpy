@@ -22,9 +22,7 @@ class _RootModule extends RootModule<String, _Config> {
     ModuleRoute<String, _Config>(path: '/test/:id', module: _TestModule()),
   ];
 
-  _RootModule(super.cfg) {
-    initialize();
-  }
+  _RootModule(super.cfg);
 
   @override
   Route<String, _Config> get root => Route.root(routes);
@@ -33,6 +31,9 @@ class _RootModule extends RootModule<String, _Config> {
   noSuchMethod(Invocation invocation) {
     print('Called: ${invocation.memberName}');
   }
+
+  @override
+  String get logTag => '_RootModule';
 }
 
 class _TestView extends Leaf<String> {
@@ -57,6 +58,9 @@ class _TestModule extends Module<String, _Config> {
   noSuchMethod(Invocation invocation) {
     print('Called: ${invocation.memberName}');
   }
+
+  @override
+  String get logTag => '_TestModule';
 }
 
 Future<void> main() async {

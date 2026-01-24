@@ -19,6 +19,9 @@ abstract class Middleware<T, Config extends Object> with LogMixin {
   /// {@macro middleware}
   const Middleware();
 
+  @override
+  String get group => 'Middleware';
+
   /// Intercepts a routing [context] and returns a potentially modified [RouteContext].
   Future<RouteContext> call(RouteContext context);
 

@@ -21,4 +21,7 @@ class NoopTelemetryService extends TelemetryService {
 
     return callback();
   }
+
+  @override
+  String get logTag => 'NoopTelemetryService';
 }

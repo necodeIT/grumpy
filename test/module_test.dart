@@ -1,3 +1,5 @@
+// irrelevant for testing purposes
+// ignore_for_file: missing_override_of_must_be_overridden
 import 'dart:async';
 
 import 'package:get_it/get_it.dart';
@@ -28,7 +30,7 @@ void main() {
     final importModule = _ImportModule();
     final module = _TestModule(importModule);
 
-    await module.ready;
+    await module.initialize();
 
     expect(importModule.initializeCount, 1);
     expect(importModule.disposeCount, 0);
@@ -47,7 +49,7 @@ void main() {
 
     final repo = await di.getAsync<_FakeRepo>();
     expect(repo.config, same(di.get<_TestConfig>()));
-    expect(repo.initializeCallCount, greaterThanOrEqualTo(2));
+    expect(repo.initializeCallCount, greaterThanOrEqualTo(1));
     expect(repo.initializeHookRan, isTrue);
     expect(repo.activateCount, 1);
 
@@ -57,7 +59,7 @@ void main() {
   test('Classes are not available after disposing module', () async {
     final importModule = _ImportModule();
     final module = _TestModule(importModule);
-    await module.ready;
+    await module.initialize();
     final repo = await di.getAsync<_FakeRepo>();
     await module.free();
 
@@ -73,13 +75,7 @@ void main() {
 }
 
 class _TestModule extends Module<int, _TestConfig> {
-  // initilaize is in an enclosure
-  // ignore: call_initialize_in_constructor
-  _TestModule(this._importModule) {
-    ready = Future.sync(() => initialize());
-  }
-
-  late final Future<void> ready;
+  _TestModule(this._importModule);
 
   final _ImportModule _importModule;
 
@@ -121,6 +117,8 @@ class _TestModule extends Module<int, _TestConfig> {
 
   @override
   List<Route<int, _TestConfig>> get routes => [];
+  @override
+  String get logTag => '_TestModule';
 }
 
 class _ImportModule extends Module<int, _TestConfig> {
@@ -154,6 +152,8 @@ class _ImportModule extends Module<int, _TestConfig> {
 
   @override
   List<Route<int, _TestConfig>> get routes => [];
+  @override
+  String get logTag => '_ImportModule';
 }
 
 class _ExternalDependency extends Object {
@@ -169,6 +169,8 @@ class _FakeService extends Service {
 
   @override
   Future<void> free() async {}
+  @override
+  String get logTag => '_FakeService';
 }
 
 class _FakeDatasource extends Datasource {
@@ -178,6 +180,8 @@ class _FakeDatasource extends Datasource {
 
   @override
   Future<void> free() async {}
+  @override
+  String get logTag => '_FakeDatasource';
 }
 
 class _FakeRepo extends Repo<int> {
@@ -186,8 +190,6 @@ class _FakeRepo extends Repo<int> {
     onActivate(() => activateCount++);
     onDeactivate(() => deactivateCount++);
     onDisposed(() => disposed = true);
-
-    initialize();
   }
 
   final _TestConfig config;
@@ -221,6 +223,9 @@ class _FakeRepo extends Repo<int> {
   Future<void> free() async {
     await super.free();
   }
+
+  @override
+  String get logTag => '_FakeRepo';
 }
 
 class _TestConfig {

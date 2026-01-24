@@ -12,7 +12,6 @@ abstract class Service with LogMixin, Disposable, TelemetryMixin {
   /// or reading/writing files.
   const Service();
 
-  @nonVirtual
   @override
   String get group => 'Service';
 

@@ -8,26 +8,26 @@ environment:
 # Add regular dependencies here.
 dependencies:
   freezed_annotation: ^3.1.0
-  json_annotation: ^4.8.0
   fuzzy_bolt: ^2.0.2
   get_it: ^8.2.0
   grumpy_annotations:
     git:
       url: https://github.com/necodeIT/grumpy_annotations.git
+  json_annotation: ^4.8.0
   logging: ^1.3.0
   memory_cache: ^1.2.0
   meta: ^1.17.0
   routingkit: ^5.1.2
   rxdart: ^0.28.0
 dev_dependencies:
-  json_serializable: ^6.6.1
   build_runner: ^2.10.1
-  custom_lint: ^0.8.1
   freezed: ^3.2.3
   freezed_lint: ^0.0.12
-  grumpy_lints:
-    git:
-      url: https://github.com/necodeIT/grumpy_lints.git
+  json_serializable: ^6.6.1
 
   lints: ^6.0.0
   test: ^1.25.6
+
+dependency_overrides:
+  grumpy_annotations:
+    path: ../grumpy_annotations
