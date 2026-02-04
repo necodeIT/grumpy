@@ -219,4 +219,9 @@ abstract class RootModule<RouteType, Config extends Object>
 
   @override
   String get group => '${super.group}.RootModule';
+
+  /// Retrieves the module configuration from the dependency injector.
+  static T getConfig<T extends Object>() {
+    return GetIt.instance.get<T>();
+  }
 }

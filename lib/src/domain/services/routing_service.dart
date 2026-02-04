@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:grumpy/grumpy.dart';
 
 /// A service responsible for managing application routing.
@@ -44,4 +46,22 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   void removeListener(void Function(Route<T, Config> route) listener);
   @override
   String get group => '${super.group}.RoutingService';
+
+  /// Subscribes to view change events.
+  ///
+  /// The [callback] is invoked whenever the view changes, receiving a [ViewChangedEvent]
+  /// that contains the new view, whether it's a preview, the current route context, and the configuration.
+  ///
+  /// Returns a [StreamSubscription] that can be used to cancel the subscription.
+  StreamSubscription<ViewChangedEvent<T, Config>> onViewChanged(
+    void Function(ViewChangedEvent<T, Config>) callback,
+  );
 }
+
+/// An event representing a change in the view rendered by the [RoutingService].
+typedef ViewChangedEvent<T, Config> = ({
+  T view,
+  bool isPreview,
+  RouteContext? context,
+  Config config,
+});

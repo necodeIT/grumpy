@@ -1,4 +1,5 @@
 import 'package:get_it/get_it.dart' hide Disposable;
+import 'package:grumpy_annotations/grumpy_annotations.dart';
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
@@ -7,6 +8,7 @@ import 'package:grumpy/grumpy.dart';
 // ignore: services_must_extend_service
 /// A service is responsible for IO operations, such as making network requests
 /// or reading/writing files.
+@BaseClass(allowedLayers: {.domain, .infra})
 abstract class Service with LogMixin, Disposable, TelemetryMixin {
   /// A service is responsible for IO operations, such as making network requests
   /// or reading/writing files.

@@ -23,6 +23,9 @@ class RoutingKitRoutingService<T, Config extends Object>
   final bool caseSensitive;
   final Map<String, Set<Module<T, Config>>> _moduleCache = {};
 
+  final StreamController<ViewChangedEvent<T, Config>> _viewChangeController =
+      StreamController<ViewChangedEvent<T, Config>>.broadcast();
+
   /// [RoutingService] impementation that uses RoutingKit for route parsing and matching.
   RoutingKitRoutingService(this.rootModule, {this.caseSensitive = false}) {
     initialize();
@@ -39,6 +42,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
   @override
   bool isActive(String path, {bool exact = true, bool ignoreParams = false}) {
+    // TODO: implement isActive
     throw UnimplementedError();
   }
 
@@ -57,7 +61,12 @@ class RoutingKitRoutingService<T, Config extends Object>
   FutureOr<void> activate() {}
 
   @override
-  FutureOr<void> deactivate() {}
+  FutureOr<void> deactivate() {
+    _context = null;
+    _listeners.clear();
+    _moduleCache.clear();
+    _viewChangeController.close();
+  }
 
   @override
   FutureOr<void> dependenciesChanged() {}
@@ -120,6 +129,21 @@ class RoutingKitRoutingService<T, Config extends Object>
     bool skipPreview = false,
     required void Function(T, bool) callback,
   }) async {
+    void handler(T view, bool isPreview) {
+      log(
+        'View changed: isPreview=$isPreview, view=${view.runtimeType} for path: $path',
+      );
+
+      _viewChangeController.add((
+        view: view,
+        isPreview: isPreview,
+        context: currentContext,
+        config: RootModule.getConfig<Config>(),
+      ));
+
+      callback(view, isPreview);
+    }
+
     final uri = Uri.parse(path);
 
     if (uri == currentContext?.uri) {
@@ -134,7 +158,7 @@ class RoutingKitRoutingService<T, Config extends Object>
       final (future, leaf) = _pendingNavigations[uri]!;
 
       if (!skipPreview) {
-        callback(leaf.view.preview(RouteContext.fromUri(uri)), true);
+        handler(leaf.view.preview(RouteContext.fromUri(uri)), true);
       }
 
       log('Waiting for pending navigation to $path to complete.');
@@ -150,7 +174,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
       log('Pending navigation to $path completed, invoking content callback.');
 
-      callback(await leaf.view.content(RouteContext.fromUri(uri)), false);
+      handler(await leaf.view.content(RouteContext.fromUri(uri)), false);
 
       return;
     }
@@ -192,7 +216,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
       leaf as LeafRoute<T, Config>;
 
-      final future = _navigate(uri, leaf, skipPreview, callback);
+      final future = _navigate(uri, leaf, skipPreview, handler);
 
       _pendingNavigations[uri] = (future, leaf);
       await future;
@@ -262,4 +286,9 @@ class RoutingKitRoutingService<T, Config extends Object>
 
   @override
   String get logTag => 'RoutingKitRoutingService';
+
+  @override
+  StreamSubscription<ViewChangedEvent<T, Config>> onViewChanged(
+    void Function(ViewChangedEvent<T, Config>) callback,
+  ) => _viewChangeController.stream.listen(callback);
 }

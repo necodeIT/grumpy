@@ -3,7 +3,7 @@ description: A modular, declarative, and codegen-first architecture for scalable
 version: 1.0.0
 repository: https://github.com/necodeIT/grumpy
 environment:
-  sdk: ^3.8.1
+  sdk: ^3.10.0
 
 # Add regular dependencies here.
 dependencies:
