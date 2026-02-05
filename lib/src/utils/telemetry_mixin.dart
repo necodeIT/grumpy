@@ -12,7 +12,7 @@ mixin TelemetryMixin {
     FutureOr<T> Function() function, {
     Map<String, dynamic>? attributes,
   }) async {
-    final telemetry = Service.get<TelemetryService>();
+    final telemetry = TelemetryService();
 
     return telemetry.runSpan(name, function, attributes: attributes);
   }

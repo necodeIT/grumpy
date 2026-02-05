@@ -192,6 +192,8 @@ void main() {
 }
 
 class NoOpTelemetryService extends TelemetryService {
+  NoOpTelemetryService() : super.internal();
+
   @override
   noSuchMethod(Invocation invocation) {}
   @override

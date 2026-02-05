@@ -142,4 +142,14 @@ abstract class AnalyticsService extends Service {
   Future<void> groupUser(String groupId, {Map<String, dynamic>? traits});
   @override
   String get group => '${super.group}.AnalyticsService';
+
+  /// Internal constructor for subclasses.
+  AnalyticsService.internal();
+
+  /// Returns the DI-registered implementation of [AnalyticsService].
+  ///
+  /// Shorthand for [Service.get].
+  factory AnalyticsService() {
+    return Service.get<AnalyticsService>();
+  }
 }

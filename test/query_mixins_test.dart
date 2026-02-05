@@ -316,6 +316,8 @@ class _UninitializedQueryRepo extends Repo<List<_TestItem>>
 }
 
 class _TestTelemetryService extends TelemetryService {
+  _TestTelemetryService() : super.internal();
+
   int runSpanCalls = 0;
   final List<String> runSpanNames = [];
   final Map<String, dynamic> spanAttributes = {};
@@ -385,6 +387,8 @@ final _seedItems = <_TestItem>[
 ];
 
 class _TestAnalyticsService extends AnalyticsService {
+  _TestAnalyticsService() : super.internal();
+
   int trackEventCalls = 0;
   final List<String> trackedEventNames = [];
   final List<Map<String, dynamic>?> trackedEventProperties = [];

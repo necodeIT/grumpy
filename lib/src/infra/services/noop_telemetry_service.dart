@@ -4,6 +4,9 @@ import 'package:grumpy/grumpy.dart';
 
 /// A no-operation implementation of [TelemetryService].
 class NoopTelemetryService extends TelemetryService {
+  /// A no-operation implementation of [TelemetryService].
+  NoopTelemetryService() : super.internal();
+
   @override
   noSuchMethod(Invocation invocation) {
     log('NoopTelemetryService: ${invocation.memberName} called.');

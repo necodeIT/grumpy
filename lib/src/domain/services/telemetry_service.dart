@@ -122,4 +122,14 @@ abstract class TelemetryService extends Service {
   void addSpanAttribute(String key, String value);
   @override
   String get group => '${super.group}.TelemetryService';
+
+  /// Internal constructor for subclasses.
+  TelemetryService.internal();
+
+  /// Returns the DI-registered implementation of [TelemetryService].
+  ///
+  /// Shorthand for [Service.get].
+  factory TelemetryService() {
+    return Service.get<TelemetryService>();
+  }
 }

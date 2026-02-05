@@ -11,6 +11,8 @@ plugins:
       base_class:
         ignorable: true
         enabled: true
+      domain_factory_from_di: true
+      prefer_domain_di_factory: true
 analyzer:
   exclude:
     - "**/*.g.dart"

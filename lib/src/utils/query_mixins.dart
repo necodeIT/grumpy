@@ -113,7 +113,7 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
       );
     }
 
-    final analytics = Service.get<AnalyticsService>();
+    final analytics = AnalyticsService();
     if (analyticsAction != null) {
       await analytics.trackEvent(
         analyticsAction,

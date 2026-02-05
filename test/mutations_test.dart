@@ -361,6 +361,8 @@ class _UninitializedMutationRepo extends Repo<int>
 }
 
 class _TestTelemetry extends TelemetryService {
+  _TestTelemetry() : super.internal();
+
   final List<String> runSpanNames = [];
   final Map<String, Map<String, dynamic>?> spanAttributes = {};
 
@@ -398,6 +400,8 @@ class _TestTelemetry extends TelemetryService {
 }
 
 class _TestAnalytics extends AnalyticsService {
+  _TestAnalytics() : super.internal();
+
   final List<String> events = [];
   final Map<String, Map<String, dynamic>?> eventProperties = {};
 

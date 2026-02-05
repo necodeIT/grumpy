@@ -27,7 +27,8 @@ class RoutingKitRoutingService<T, Config extends Object>
       StreamController<ViewChangedEvent<T, Config>>.broadcast();
 
   /// [RoutingService] impementation that uses RoutingKit for route parsing and matching.
-  RoutingKitRoutingService(this.rootModule, {this.caseSensitive = false}) {
+  RoutingKitRoutingService(this.rootModule, {this.caseSensitive = false})
+    : super.internal() {
     initialize();
   }
 
@@ -127,12 +128,10 @@ class RoutingKitRoutingService<T, Config extends Object>
   Future<void> navigate(
     String path, {
     bool skipPreview = false,
-    required void Function(T, bool) callback,
+    void Function(T, bool) callback = RoutingService.noopCallback,
   }) async {
     void handler(T view, bool isPreview) {
-      log(
-        'View changed: isPreview=$isPreview, view=${view.runtimeType} for path: $path',
-      );
+      log('View changed: isPreview=$isPreview, view=$view for path: $path');
 
       _viewChangeController.add((
         view: view,
@@ -291,4 +290,8 @@ class RoutingKitRoutingService<T, Config extends Object>
   StreamSubscription<ViewChangedEvent<T, Config>> onViewChanged(
     void Function(ViewChangedEvent<T, Config>) callback,
   ) => _viewChangeController.stream.listen(callback);
+
+  @override
+  Stream<ViewChangedEvent<T, Config>> get viewStream =>
+      _viewChangeController.stream.asBroadcastStream();
 }

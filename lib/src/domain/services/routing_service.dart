@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:grumpy/grumpy.dart';
+import 'package:meta/meta.dart';
 
 /// A service responsible for managing application routing.
 /// Note: This router is only responsible for marking routes as active and
@@ -12,13 +13,20 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   /// Returns the root route of the application with all its nested routes expanded.
   Route<T, Config> get root;
 
+  /// Required for the factory pattern to work.
+  @internal
+  RoutingService.internal();
+
   /// Navigates to the specified [path] and invokes the [callback] with the built presentation.
   /// If [skipPreview] is true, the preview phase is skipped and [callback] is called only after the final build phase.
   Future<void> navigate(
     String path, {
     bool skipPreview = false,
-    required void Function(T, bool) callback,
+    void Function(T, bool) callback = noopCallback,
   });
+
+  /// Default callback for [navigate].
+  static void noopCallback(dynamic _, bool _) {}
 
   /// Checks if the specified [path] is currently active.
   ///
@@ -56,6 +64,16 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   StreamSubscription<ViewChangedEvent<T, Config>> onViewChanged(
     void Function(ViewChangedEvent<T, Config>) callback,
   );
+
+  /// A stream of all view change events.
+  Stream<ViewChangedEvent<T, Config>> get viewStream;
+
+  /// Returns the DI-registered implementation of [RoutingService].
+  ///
+  /// Shorthand for [Service.get].
+  factory RoutingService() {
+    return Service.get<RoutingService<T, Config>>();
+  }
 }
 
 /// An event representing a change in the view rendered by the [RoutingService].

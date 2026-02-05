@@ -59,7 +59,7 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
 
     final stateVersion = _stateVersion;
 
-    final analytics = Service.get<AnalyticsService>();
+    final analytics = AnalyticsService();
 
     try {
       log('Starting mutation $name');
@@ -117,7 +117,7 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     final snapshot = state;
     _applyOptimistics(optimisticPolicy);
     final stateVersion = _stateVersion;
-    final analytics = Service.get<AnalyticsService>();
+    final analytics = AnalyticsService();
 
     try {
       log('Starting action $name');

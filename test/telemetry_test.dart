@@ -69,6 +69,8 @@ void main() {
 
 class _TestTelemetryService extends TelemetryService
     with TelemetryZoneMixin<String> {
+  _TestTelemetryService() : super.internal();
+
   final startedSpans = <String>[];
   final parentSpans = <String?>[];
   final endedSpans = <(String, Object?)>[];
