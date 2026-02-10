@@ -190,6 +190,38 @@ void main() {
         expect(root.featureModule.activateCalls, 1);
       },
     );
+
+    test('isActive returns false when no route is active', () {
+      expect(routing.isActive('/feature/child'), isFalse);
+      expect(routing.isActive('/feature', exact: false), isFalse);
+    });
+
+    test('isActive supports exact and partial matches', () async {
+      await routing.navigate('/feature/child');
+
+      expect(routing.isActive('/feature/child'), isTrue);
+      expect(routing.isActive('/feature'), isFalse);
+      expect(routing.isActive('/feature', exact: false), isTrue);
+      expect(routing.isActive('/feature/sub', exact: false), isFalse);
+    });
+
+    test('isActive can ignore query params and fragments', () async {
+      await routing.navigate('/feature/child?tab=profile#details');
+
+      expect(
+        routing.isActive('/feature/child?tab=profile#details'),
+        isTrue,
+      );
+      expect(routing.isActive('/feature/child'), isFalse);
+      expect(
+        routing.isActive('/feature/child', ignoreParams: true),
+        isTrue,
+      );
+      expect(
+        routing.isActive('/feature', exact: false, ignoreParams: true),
+        isTrue,
+      );
+    });
   });
 }
 

@@ -43,8 +43,16 @@ class RoutingKitRoutingService<T, Config extends Object>
 
   @override
   bool isActive(String path, {bool exact = true, bool ignoreParams = false}) {
-    // TODO: implement isActive
-    throw UnimplementedError();
+    final context = _context;
+    if (context == null) return false;
+
+    final currentUri = context.uri;
+    final targetUri = Uri.parse(path);
+
+    final current = ignoreParams ? currentUri.path : currentUri.toString();
+    final target = ignoreParams ? targetUri.path : targetUri.toString();
+
+    return exact ? current == target : current.startsWith(target);
   }
 
   @override
