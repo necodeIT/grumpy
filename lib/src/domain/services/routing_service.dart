@@ -10,12 +10,19 @@ import 'package:meta/meta.dart';
 /// [T] represents the type of the presentation (e.g., Widget).
 /// [Config] represents the configuration type used in modules.
 abstract class RoutingService<T, Config extends Object> extends Service {
-  /// Returns the root route of the application with all its nested routes expanded.
-  Route<T, Config> get root;
+
+  /// Returns the DI-registered implementation of [RoutingService].
+  ///
+  /// Shorthand for [Service.get].
+  factory RoutingService() {
+    return Service.get<RoutingService<T, Config>>();
+  }
 
   /// Required for the factory pattern to work.
   @internal
   RoutingService.internal();
+  /// Returns the root route of the application with all its nested routes expanded.
+  Route<T, Config> get root;
 
   /// Navigates to the specified [path] and invokes the [callback] with the built presentation.
   /// If [skipPreview] is true, the preview phase is skipped and [callback] is called only after the final build phase.
@@ -67,13 +74,6 @@ abstract class RoutingService<T, Config extends Object> extends Service {
 
   /// A stream of all view change events.
   Stream<ViewChangedEvent<T, Config>> get viewStream;
-
-  /// Returns the DI-registered implementation of [RoutingService].
-  ///
-  /// Shorthand for [Service.get].
-  factory RoutingService() {
-    return Service.get<RoutingService<T, Config>>();
-  }
 
   @override
   bool get singelton => true;

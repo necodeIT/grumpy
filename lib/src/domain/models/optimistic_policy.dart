@@ -11,7 +11,6 @@ part 'optimistic_policy.freezed.dart';
 /// allowing for a responsive user experience while handling potential failures.
 @freezed
 abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
-  const OptimisticPolicy._();
 
   /// Creates an [OptimisticPolicy] with the given parameters.
   const factory OptimisticPolicy({
@@ -28,6 +27,7 @@ abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
     /// but the optimistic update is not reverted.
     required bool Function(Object? error) shouldRevert,
   }) = _OptimisticPolicy;
+  const OptimisticPolicy._();
 
   /// An [OptimisticPolicy] that always reverts on error and swallows the error.
   factory OptimisticPolicy.alwaysRevert({

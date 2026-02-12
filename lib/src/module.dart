@@ -25,6 +25,9 @@ abstract class Module<RouteType, Config extends Object>
   Level get logLevel => Level.FINEST;
 
   bool _disposed = false;
+  final List<Future<Repo<dynamic>> Function()> _repoResolvers = [];
+  final List<Repo<dynamic>> _activeRepos = [];
+  final Set<Repo<dynamic>> _activeRepoSet = {};
 
   /// Override this getter to import other modules.
   ///
@@ -90,6 +93,14 @@ abstract class Module<RouteType, Config extends Object>
       await module.activate();
     }
 
+    for (final resolveRepo in _repoResolvers) {
+      final repo = await resolveRepo();
+      if (_activeRepoSet.add(repo)) {
+        await repo.activate();
+        _activeRepos.add(repo);
+      }
+    }
+
     _isActive = true;
   }
 
@@ -97,6 +108,12 @@ abstract class Module<RouteType, Config extends Object>
   @override
   FutureOr<void> deactivate() async {
     if (!_isActive) return;
+
+    for (final repo in _activeRepos.reversed) {
+      await repo.deactivate();
+    }
+    _activeRepos.clear();
+    _activeRepoSet.clear();
 
     for (final module in imports.reversed) {
       await module.deactivate();
@@ -126,16 +143,16 @@ abstract class Module<RouteType, Config extends Object>
     });
 
     bindRepos(<T extends Repo>(Builder<Repo, Config> builder) {
+      _repoResolvers.add(() async => await _di.getAsync<T>());
+
       _di.registerLazySingletonAsync<T>(
         () async {
           final repo = builder(_di.get<Config>(), _di.get);
 
           await repo.initialize();
-          await repo.activate();
           return repo as T;
         },
         dispose: (repo) async {
-          await repo.deactivate();
           await repo.free();
         },
       );
@@ -176,11 +193,11 @@ typedef Resolver = T Function<T extends Object>();
 /// configuration ([Config]) as well as setting up core services like telemetry and analytics.
 abstract class RootModule<RouteType, Config extends Object>
     extends Module<RouteType, Config> {
-  /// The configuration to use throughout the application.
-  final Config cfg;
 
   /// Creates a new [RootModule] with the given [cfg].
   RootModule(this.cfg);
+  /// The configuration to use throughout the application.
+  final Config cfg;
 
   /// Creates the telemetry service instance.
   ///
@@ -198,13 +215,25 @@ abstract class RootModule<RouteType, Config extends Object>
   Builder<AnalyticsService, Config> get analyticsServiceBuilder =>
       (cfg, _) => NoopAnalyticsService();
 
+  /// Creates the module registry service instance.
+  ///
+  /// Override this method to provide a custom module registry implementation.
+  /// By default, it returns [CanonicalModuleRegistryService].
+  Builder<ModuleRegistryService<RouteType, Config>, Config>
+  get moduleRegistryServiceBuilder =>
+      (cfg, _) => CanonicalModuleRegistryService<RouteType, Config>();
+
   /// Creates the routing service instance.
   ///
   /// Override this method to provide a custom routing service implementation.
-  /// By default, it returns a [RoutingKitRoutingService] using the root module's routes.
+  /// By default, it returns a [RoutingKitRoutingService] using the root
+  /// module's routes and the registered [ModuleRegistryService].
   Builder<RoutingService<RouteType, Config>, Config>
   get routingServiceBuilder =>
-      (cfg, _) => RoutingKitRoutingService<RouteType, Config>(this);
+      (cfg, resolve) => RoutingKitRoutingService<RouteType, Config>(
+        this,
+        moduleRegistry: resolve<ModuleRegistryService<RouteType, Config>>(),
+      );
 
   @override
   FutureOr<void> initialize() {
@@ -212,6 +241,9 @@ abstract class RootModule<RouteType, Config extends Object>
 
     _bindInjectable<TelemetryService>(telemetryServiceBuilder);
     _bindInjectable<AnalyticsService>(analyticsServiceBuilder);
+    _bindInjectable<ModuleRegistryService<RouteType, Config>>(
+      moduleRegistryServiceBuilder,
+    );
     _bindInjectable<RoutingService<RouteType, Config>>(routingServiceBuilder);
 
     return super.initialize();

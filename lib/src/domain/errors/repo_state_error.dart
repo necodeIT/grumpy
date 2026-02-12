@@ -6,9 +6,9 @@ import 'package:grumpy/src/domain/models/repo_state.dart';
 /// Thrown when attempting to access data or error information
 /// that is not available in the current state.
 class RepoStateError extends StateError {
-  /// The [RepoState] that caused this error.
-  final RepoState state;
 
   /// Creates a [RepoStateError] for the given [state] with an optional [message].
   RepoStateError(this.state, super.message);
+  /// The [RepoState] that caused this error.
+  final RepoState state;
 }

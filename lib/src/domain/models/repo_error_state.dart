@@ -2,14 +2,14 @@ import 'package:grumpy/grumpy.dart';
 
 /// Represents an error state in a [Repo].
 class RepoErrorState<T> extends RepoState<T> {
+
+  /// Creates a [RepoErrorState] with the given [error] and optional [stackTrace].
+  const RepoErrorState(this.error, [this.stackTrace]);
   /// The error object associated with this state.
   final Object error;
 
   /// The optional stack trace associated with this error.
   final StackTrace? stackTrace;
-
-  /// Creates a [RepoErrorState] with the given [error] and optional [stackTrace].
-  const RepoErrorState(this.error, [this.stackTrace]);
 
   @override
   String toString() {

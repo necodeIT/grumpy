@@ -103,15 +103,15 @@ void main() {
 }
 
 class _LifecycleTarget with Disposable, LifecycleMixin {
+
+  _LifecycleTarget() {
+    initialize();
+  }
   int initializeCalls = 0;
   int activateCalls = 0;
   int deactivateCalls = 0;
   int dependenciesChangedCalls = 0;
   bool disposed = false;
-
-  _LifecycleTarget() {
-    initialize();
-  }
 
   @override
   Future<void> activate() async {
@@ -142,11 +142,11 @@ class _LifecycleTarget with Disposable, LifecycleMixin {
 
 class _HookedLifecycle
     with Disposable, LogMixin, LifecycleMixin, LifecycleHooksMixin {
-  bool disposed = false;
 
   _HookedLifecycle() {
     initialize();
   }
+  bool disposed = false;
 
   @override
   void log(String message, [Object? error, StackTrace? stackTrace]) {

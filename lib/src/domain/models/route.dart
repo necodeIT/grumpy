@@ -11,6 +11,18 @@ import 'package:grumpy/grumpy.dart';
 /// The type parameter [T] usually corresponds to the concrete presentation type
 /// produced by the route (e.g. a `Widget` in Flutter).
 class Route<T, Config extends Object> extends Model {
+
+  /// Creates a [Route] with the given [path], optional [children] and [middleware].
+  const Route({
+    required this.path,
+    this.children = const [],
+    this.middleware = const [],
+  });
+
+  /// Creates a root [Route] with the given [children].
+  @internal
+  factory Route.root(List<Route<T, Config>> children) =>
+      Route<T, Config>(path: '/', children: children);
   /// The path segment used to match this route.
   ///
   /// This is interpreted relative to the parent route. For top-level routes
@@ -28,18 +40,6 @@ class Route<T, Config extends Object> extends Model {
   /// Use [children] to build nested routing hierarchies, where each child
   /// can define its own guards and sub-routes.
   final List<Route<T, Config>> children;
-
-  /// Creates a [Route] with the given [path], optional [children] and [middleware].
-  const Route({
-    required this.path,
-    this.children = const [],
-    this.middleware = const [],
-  });
-
-  /// Creates a root [Route] with the given [children].
-  @internal
-  factory Route.root(List<Route<T, Config>> children) =>
-      Route<T, Config>(path: '/', children: children);
 
   @override
   String toString() {

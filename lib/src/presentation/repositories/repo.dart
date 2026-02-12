@@ -14,12 +14,12 @@ import 'package:rxdart/rxdart.dart';
 abstract class Repo<T>
     with LogMixin, LifecycleMixin, LifecycleHooksMixin, Disposable
     implements Injectable {
-  final _stream = BehaviorSubject.seeded(RepoState<T>.loading());
 
   /// Creates a new instance of [Repo].
   Repo() {
     onDisposed(_stream.close);
   }
+  final _stream = BehaviorSubject.seeded(RepoState<T>.loading());
 
   @nonVirtual
   @override

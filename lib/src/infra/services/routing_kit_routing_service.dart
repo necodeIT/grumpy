@@ -7,6 +7,19 @@ import 'package:grumpy/grumpy.dart';
 class RoutingKitRoutingService<T, Config extends Object>
     extends RoutingService<T, Config>
     with LifecycleMixin {
+  /// [RoutingService] impementation that uses RoutingKit for route parsing and matching.
+  RoutingKitRoutingService(
+    this.rootModule, {
+    ModuleRegistryService<T, Config>? moduleRegistry,
+    this.caseSensitive = false,
+  }) : moduleRegistry = moduleRegistry ?? ModuleRegistryService<T, Config>(),
+       super.internal() {
+    initialize();
+  }
+
+  /// Centralized module lifecycle manager.
+  final ModuleRegistryService<T, Config> moduleRegistry;
+
   RouteContext? _context;
 
   final Map<Uri, (Future<bool>, LeafRoute<T, Config>)> _pendingNavigations = {};
@@ -25,12 +38,6 @@ class RoutingKitRoutingService<T, Config extends Object>
 
   final StreamController<ViewChangedEvent<T, Config>> _viewChangeController =
       StreamController<ViewChangedEvent<T, Config>>.broadcast();
-
-  /// [RoutingService] impementation that uses RoutingKit for route parsing and matching.
-  RoutingKitRoutingService(this.rootModule, {this.caseSensitive = false})
-    : super.internal() {
-    initialize();
-  }
 
   @override
   RouteContext? get currentContext => _context;
@@ -70,11 +77,12 @@ class RoutingKitRoutingService<T, Config extends Object>
   FutureOr<void> activate() {}
 
   @override
-  FutureOr<void> deactivate() {
+  FutureOr<void> deactivate() async {
     _context = null;
     _listeners.clear();
     _moduleCache.clear();
-    _viewChangeController.close();
+    await moduleRegistry.sync(<Module<T, Config>>[]);
+    await _viewChangeController.close();
   }
 
   @override
@@ -115,21 +123,69 @@ class RoutingKitRoutingService<T, Config extends Object>
       return _moduleCache[path]!;
     }
 
-    final Set<Module<T, Config>> modules = {};
-    final List<String> pathNodes = path.split('/');
-
-    String currentPath = '';
-    for (String pathNode in pathNodes) {
-      currentPath += '/$pathNode';
-      final match = _kit.find(null, currentPath)?.data;
-      if (match is ModuleRoute<T, Config>) {
-        modules.add(match.module);
-      }
-    }
+    final modules = _collectModulesForPath(path);
 
     _moduleCache[path] = modules;
 
     return modules;
+  }
+
+  Set<Module<T, Config>> _collectModulesForPath(String path) {
+    final modules = <Module<T, Config>>{};
+    final pathSegments = _normalizePath(path);
+
+    for (final child in root.children) {
+      _collectMatchingModules(child, pathSegments, 0, modules);
+    }
+
+    return modules;
+  }
+
+  void _collectMatchingModules(
+    Route<T, Config> route,
+    List<String> pathSegments,
+    int startIndex,
+    Set<Module<T, Config>> modules,
+  ) {
+    final routeSegments = _normalizePath(route.path);
+    if (!_matchesAt(pathSegments, startIndex, routeSegments)) return;
+
+    final nextIndex = startIndex + routeSegments.length;
+
+    if (route is ModuleRoute<T, Config>) {
+      modules.add(route.module);
+      for (final moduleChild in route.module.routes) {
+        _collectMatchingModules(moduleChild, pathSegments, nextIndex, modules);
+      }
+    }
+
+    for (final child in route.children) {
+      _collectMatchingModules(child, pathSegments, nextIndex, modules);
+    }
+  }
+
+  bool _matchesAt(
+    List<String> fullPathSegments,
+    int startIndex,
+    List<String> routeSegments,
+  ) {
+    if (startIndex + routeSegments.length > fullPathSegments.length) {
+      return false;
+    }
+
+    for (var i = 0; i < routeSegments.length; i++) {
+      if (fullPathSegments[startIndex + i] != routeSegments[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  List<String> _normalizePath(String path) {
+    if (path.isEmpty || path == '/') return const [];
+    final normalized = path.startsWith('/') ? path : '/$path';
+    return Uri.parse(normalized).pathSegments;
   }
 
   @override
@@ -138,7 +194,7 @@ class RoutingKitRoutingService<T, Config extends Object>
     bool skipPreview = false,
     void Function(T, bool) callback = RoutingService.noopCallback,
   }) async {
-    void handler(T view, bool isPreview) {
+    void emitToStream(T view, bool isPreview) {
       log('View changed: isPreview=$isPreview, view=$view for path: $path');
 
       _viewChangeController.add((
@@ -147,7 +203,10 @@ class RoutingKitRoutingService<T, Config extends Object>
         context: currentContext,
         config: RootModule.getConfig<Config>(),
       ));
+    }
 
+    void handler(T view, bool isPreview) {
+      emitToStream(view, isPreview);
       callback(view, isPreview);
     }
 
@@ -165,7 +224,7 @@ class RoutingKitRoutingService<T, Config extends Object>
       final (future, leaf) = _pendingNavigations[uri]!;
 
       if (!skipPreview) {
-        handler(leaf.view.preview(RouteContext.fromUri(uri)), true);
+        callback(leaf.view.preview(RouteContext.fromUri(uri)), true);
       }
 
       log('Waiting for pending navigation to $path to complete.');
@@ -181,7 +240,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
       log('Pending navigation to $path completed, invoking content callback.');
 
-      handler(await leaf.view.content(RouteContext.fromUri(uri)), false);
+      callback(await leaf.view.content(RouteContext.fromUri(uri)), false);
 
       return;
     }
@@ -251,10 +310,7 @@ class RoutingKitRoutingService<T, Config extends Object>
     // activate required modules
     final dependencies = getDependencies(cleanPath);
 
-    for (Module<T, Config> module in dependencies) {
-      await module.activate();
-      log('Activated module: ${module.runtimeType}');
-    }
+    await moduleRegistry.sync(dependencies);
 
     // run middlewares (if any)
     try {

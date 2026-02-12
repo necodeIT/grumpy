@@ -31,6 +31,7 @@ void main() {
     final module = _TestModule(importModule);
 
     await module.initialize();
+    await module.activate();
 
     expect(importModule.initializeCount, 1);
     expect(importModule.disposeCount, 0);
@@ -115,6 +116,28 @@ void main() {
     expect(di.isRegistered<_FakeRepo>(), isFalse);
     expect(di.get<_TestConfig>(), isA<_TestConfig>());
   });
+
+  test('Repos are deactivated and reactivated without cold start', () async {
+    final module = _TestModule(_ImportModule());
+    await module.initialize();
+    await module.activate();
+    final repo = await di.getAsync<_FakeRepo>();
+
+    expect(repo.initializeCallCount, 1);
+    expect(repo.activateCount, 1);
+    expect(repo.deactivateCount, 0);
+
+    await module.deactivate();
+    expect(repo.deactivateCount, 1);
+    expect(repo.disposed, isFalse);
+
+    await module.activate();
+    expect(repo.initializeCallCount, 1);
+    expect(repo.activateCount, 2);
+
+    await module.free();
+    expect(repo.disposed, isTrue);
+  });
 }
 
 class _TestModule extends Module<int, _TestConfig> {
@@ -149,12 +172,12 @@ class _TestModule extends Module<int, _TestConfig> {
 
   @override
   Future<void> activate() async {
-    super.activate();
+    await super.activate();
   }
 
   @override
   Future<void> deactivate() async {
-    super.deactivate();
+    await super.deactivate();
   }
 
   @override
@@ -184,12 +207,12 @@ class _ImportModule extends Module<int, _TestConfig> {
 
   @override
   Future<void> activate() async {
-    super.activate();
+    await super.activate();
   }
 
   @override
   Future<void> deactivate() async {
-    super.deactivate();
+    await super.deactivate();
   }
 
   @override

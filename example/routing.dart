@@ -10,6 +10,8 @@ import 'package:grumpy/grumpy.dart';
 class _Config {}
 
 class _RootModule extends RootModule<String, _Config> {
+
+  _RootModule(super.cfg);
   @override
   final List<Route<String, _Config>> routes = [
     LeafRoute<String, _Config>(
@@ -21,8 +23,6 @@ class _RootModule extends RootModule<String, _Config> {
     ),
     ModuleRoute<String, _Config>(path: '/test/:id', module: _TestModule()),
   ];
-
-  _RootModule(super.cfg);
 
   @override
   Route<String, _Config> get root => Route.root(routes);

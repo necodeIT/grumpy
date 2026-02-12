@@ -39,7 +39,6 @@ part 'telemetry_context.freezed.dart';
 /// accidentally attaching to each other.
 @freezed
 abstract class TelemetryContext<T> extends Model with _$TelemetryContext<T> {
-  const TelemetryContext._();
 
   /// Creates a new [TelemetryContext].
   const factory TelemetryContext({
@@ -56,4 +55,5 @@ abstract class TelemetryContext<T> extends Model with _$TelemetryContext<T> {
     /// Used to ensure type-safe context lookups in [TelemetryZoneMixin].
     required Type ownerType,
   }) = _TelemetryContext<T>;
+  const TelemetryContext._();
 }

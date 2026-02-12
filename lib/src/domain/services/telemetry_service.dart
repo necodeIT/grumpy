@@ -78,6 +78,16 @@ import 'package:grumpy/grumpy.dart';
 /// Do **not** use it for business or user analytics — for that, see
 /// [AnalyticsService].
 abstract class TelemetryService extends Service {
+
+  /// Returns the DI-registered implementation of [TelemetryService].
+  ///
+  /// Shorthand for [Service.get].
+  factory TelemetryService() {
+    return Service.get<TelemetryService>();
+  }
+
+  /// Internal constructor for subclasses.
+  TelemetryService.internal();
   /// Records a low-level telemetry event such as `"api_request_started"`.
   ///
   /// These events provide operational visibility into system behavior.
@@ -122,14 +132,4 @@ abstract class TelemetryService extends Service {
   void addSpanAttribute(String key, String value);
   @override
   String get group => '${super.group}.TelemetryService';
-
-  /// Internal constructor for subclasses.
-  TelemetryService.internal();
-
-  /// Returns the DI-registered implementation of [TelemetryService].
-  ///
-  /// Shorthand for [Service.get].
-  factory TelemetryService() {
-    return Service.get<TelemetryService>();
-  }
 }
