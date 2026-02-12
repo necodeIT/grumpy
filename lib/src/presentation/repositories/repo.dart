@@ -12,7 +12,8 @@ import 'package:rxdart/rxdart.dart';
 ///
 /// See [RepoState] for more details on the possible states.
 abstract class Repo<T>
-    with LogMixin, LifecycleMixin, LifecycleHooksMixin, Disposable {
+    with LogMixin, LifecycleMixin, LifecycleHooksMixin, Disposable
+    implements Injectable {
   final _stream = BehaviorSubject.seeded(RepoState<T>.loading());
 
   /// Creates a new instance of [Repo].
@@ -55,4 +56,8 @@ abstract class Repo<T>
 
   /// Retrieves an instance of the specified [Repo] type from the service locator.
   static Future<R> get<R extends Repo>() => GetIt.instance.getAsync<R>();
+
+  /// This will be ignored by the module's DI system, as repositories are always treated as async singletons.
+  @override
+  bool get singelton => true;
 }

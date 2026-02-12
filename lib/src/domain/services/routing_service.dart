@@ -74,6 +74,9 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   factory RoutingService() {
     return Service.get<RoutingService<T, Config>>();
   }
+
+  @override
+  bool get singelton => true;
 }
 
 /// An event representing a change in the view rendered by the [RoutingService].

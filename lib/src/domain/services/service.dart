@@ -9,7 +9,9 @@ import 'package:grumpy/grumpy.dart';
 /// A service is responsible for IO operations, such as making network requests
 /// or reading/writing files.
 @BaseClass(allowedLayers: {.domain, .infra})
-abstract class Service with LogMixin, Disposable, TelemetryMixin {
+abstract class Service
+    with LogMixin, Disposable, TelemetryMixin
+    implements Injectable {
   /// A service is responsible for IO operations, such as making network requests
   /// or reading/writing files.
   const Service();
@@ -27,4 +29,7 @@ abstract class Service with LogMixin, Disposable, TelemetryMixin {
 
   /// Retrieves an instance of the specified [Service] type from the service locator.
   static S get<S extends Service>() => GetIt.instance<S>();
+
+  @override
+  bool get singelton => false;
 }

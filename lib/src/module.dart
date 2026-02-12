@@ -71,6 +71,16 @@ abstract class Module<RouteType, Config extends Object>
     log('${module.runtimeType} mounted successfully.');
   }
 
+  void _bindInjectable<T extends Injectable>(Builder<T, Config> builder) {
+    final instance = builder(_di.get<Config>(), _di.get);
+
+    if (instance.singelton) {
+      _di.registerLazySingleton<T>(() => builder(_di.get<Config>(), _di.get));
+    } else {
+      _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get));
+    }
+  }
+
   @mustCallSuper
   @override
   FutureOr<void> activate() async {
@@ -107,14 +117,12 @@ abstract class Module<RouteType, Config extends Object>
       _di.registerSingleton<T>(builder(_di.get<Config>(), _di.get));
     });
 
-    bindServices(<T extends Service>(Builder<Service, Config> builder) {
-      _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get) as T);
+    bindServices(<T extends Service>(Builder<T, Config> builder) {
+      _bindInjectable<T>(builder);
     });
 
-    bindDatasources(<T extends Datasource>(
-      Builder<Datasource, Config> builder,
-    ) {
-      _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get) as T);
+    bindDatasources(<T extends Datasource>(Builder<T, Config> builder) {
+      _bindInjectable<T>(builder);
     });
 
     bindRepos(<T extends Repo>(Builder<Repo, Config> builder) {

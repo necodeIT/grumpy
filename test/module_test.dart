@@ -44,8 +44,14 @@ void main() {
     final service = di.get<_FakeService>();
     expect(service.config, same(di.get<_TestConfig>()));
 
+    final singletonService = di.get<_SingletonFakeService>();
+    expect(singletonService.config, same(di.get<_TestConfig>()));
+
     final datasource = di.get<_FakeDatasource>();
     expect(datasource.config, same(di.get<_TestConfig>()));
+
+    final singletonDatasource = di.get<_SingletonFakeDatasource>();
+    expect(singletonDatasource.config, same(di.get<_TestConfig>()));
 
     final repo = await di.getAsync<_FakeRepo>();
     expect(repo.config, same(di.get<_TestConfig>()));
@@ -54,6 +60,41 @@ void main() {
     expect(repo.activateCount, 1);
 
     await module.free();
+  });
+
+  group('Injectables', () {
+    test('marked as factory return a new instance per resolution', () async {
+      final module = _TestModule(_ImportModule());
+      await module.initialize();
+
+      final serviceA = di.get<_FakeService>();
+      final serviceB = di.get<_FakeService>();
+      expect(serviceA, isNot(same(serviceB)));
+
+      final datasourceA = di.get<_FakeDatasource>();
+      final datasourceB = di.get<_FakeDatasource>();
+      expect(datasourceA, isNot(same(datasourceB)));
+
+      await module.free();
+    });
+
+    test(
+      'marked as singelton return the same instance per resolution',
+      () async {
+        final module = _TestModule(_ImportModule());
+        await module.initialize();
+
+        final serviceA = di.get<_SingletonFakeService>();
+        final serviceB = di.get<_SingletonFakeService>();
+        expect(serviceA, same(serviceB));
+
+        final datasourceA = di.get<_SingletonFakeDatasource>();
+        final datasourceB = di.get<_SingletonFakeDatasource>();
+        expect(datasourceA, same(datasourceB));
+
+        await module.free();
+      },
+    );
   });
 
   test('Classes are not available after disposing module', () async {
@@ -68,7 +109,9 @@ void main() {
     expect(repo.disposed, isTrue);
     expect(di.isRegistered<_ExternalDependency>(), isFalse);
     expect(di.isRegistered<_FakeService>(), isFalse);
+    expect(di.isRegistered<_SingletonFakeService>(), isFalse);
     expect(di.isRegistered<_FakeDatasource>(), isFalse);
+    expect(di.isRegistered<_SingletonFakeDatasource>(), isFalse);
     expect(di.isRegistered<_FakeRepo>(), isFalse);
     expect(di.get<_TestConfig>(), isA<_TestConfig>());
   });
@@ -90,11 +133,13 @@ class _TestModule extends Module<int, _TestConfig> {
   @override
   void bindServices(Bind<Service, _TestConfig> bind) {
     bind((config, resolver) => _FakeService(config));
+    bind((config, resolver) => _SingletonFakeService(config));
   }
 
   @override
   void bindDatasources(Bind<Datasource, _TestConfig> bind) {
     bind((config, resolver) => _FakeDatasource(config));
+    bind((config, resolver) => _SingletonFakeDatasource(config));
   }
 
   @override
@@ -173,6 +218,20 @@ class _FakeService extends Service {
   String get logTag => '_FakeService';
 }
 
+class _SingletonFakeService extends Service {
+  _SingletonFakeService(this.config);
+
+  final _TestConfig config;
+
+  @override
+  bool get singelton => true;
+
+  @override
+  Future<void> free() async {}
+  @override
+  String get logTag => '_SingletonFakeService';
+}
+
 class _FakeDatasource extends Datasource {
   _FakeDatasource(this.config);
 
@@ -182,6 +241,20 @@ class _FakeDatasource extends Datasource {
   Future<void> free() async {}
   @override
   String get logTag => '_FakeDatasource';
+}
+
+class _SingletonFakeDatasource extends Datasource {
+  _SingletonFakeDatasource(this.config);
+
+  final _TestConfig config;
+
+  @override
+  bool get singelton => true;
+
+  @override
+  Future<void> free() async {}
+  @override
+  String get logTag => '_SingletonFakeDatasource';
 }
 
 class _FakeRepo extends Repo<int> {
