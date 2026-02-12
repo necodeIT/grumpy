@@ -187,27 +187,32 @@ abstract class RootModule<RouteType, Config extends Object>
   /// Override this method to enable telemetry.
   ///
   /// By default, it returns a no-op implementation.
-  TelemetryService createTelemetryService(Config cfg) {
-    return NoopTelemetryService();
-  }
+  Builder<TelemetryService, Config> get telemetryServiceBuilder =>
+      (cfg, _) => NoopTelemetryService();
 
   /// Creates the analytics service instance.
   ///
   /// Override this method to enable analytics.
   ///
   /// By default, it returns a no-op implementation.
-  AnalyticsService createAnalyticsService(Config cfg) {
-    return NoopAnalyticsService();
-  }
+  Builder<AnalyticsService, Config> get analyticsServiceBuilder =>
+      (cfg, _) => NoopAnalyticsService();
+
+  /// Creates the routing service instance.
+  ///
+  /// Override this method to provide a custom routing service implementation.
+  /// By default, it returns a [RoutingKitRoutingService] using the root module's routes.
+  Builder<RoutingService<RouteType, Config>, Config>
+  get routingServiceBuilder =>
+      (cfg, _) => RoutingKitRoutingService<RouteType, Config>(this);
 
   @override
   FutureOr<void> initialize() {
     _di.registerSingleton<Config>(cfg);
-    _di.registerSingleton<RoutingService<RouteType, Config>>(
-      RoutingKitRoutingService(this),
-    );
-    _di.registerFactory<TelemetryService>(() => createTelemetryService(cfg));
-    _di.registerFactory<AnalyticsService>(() => createAnalyticsService(cfg));
+
+    _bindInjectable<TelemetryService>(telemetryServiceBuilder);
+    _bindInjectable<AnalyticsService>(analyticsServiceBuilder);
+    _bindInjectable<RoutingService<RouteType, Config>>(routingServiceBuilder);
 
     return super.initialize();
   }
