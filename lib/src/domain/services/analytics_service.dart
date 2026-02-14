@@ -84,7 +84,6 @@ import 'package:grumpy/grumpy.dart';
 /// - [TelemetryContext] — for span execution context
 ///
 abstract class AnalyticsService extends Service {
-
   /// Returns the DI-registered implementation of [AnalyticsService].
   ///
   /// Shorthand for [Service.get].
@@ -94,6 +93,7 @@ abstract class AnalyticsService extends Service {
 
   /// Internal constructor for subclasses.
   AnalyticsService.internal();
+
   /// Identifies a user within the analytics system.
   ///
   /// Should be called once the user is known (e.g., after login or signup).
