@@ -193,9 +193,9 @@ typedef Resolver = T Function<T extends Object>();
 /// configuration ([Config]) as well as setting up core services like telemetry and analytics.
 abstract class RootModule<RouteType, Config extends Object>
     extends Module<RouteType, Config> {
-
   /// Creates a new [RootModule] with the given [cfg].
   RootModule(this.cfg);
+
   /// The configuration to use throughout the application.
   final Config cfg;
 

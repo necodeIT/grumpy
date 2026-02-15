@@ -20,7 +20,7 @@ abstract mixin class LifecycleMixin implements Disposable {
   /// Called when the the object is instantiated in the constructor.
   ///
   /// Any initial setup or resource allocation should be handled here.
-  @MustCallInConstructor(exempt: [Module, Repo])
+  @MustCallInConstructor(exempt: [Module, Injectable])
   FutureOr<void> initialize();
 
   /// Called when the object is being activated (e.g. after object is created
