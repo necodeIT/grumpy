@@ -39,7 +39,6 @@ part 'telemetry_context.freezed.dart';
 /// accidentally attaching to each other.
 @freezed
 abstract class TelemetryContext<T> extends Model with _$TelemetryContext<T> {
-
   /// Creates a new [TelemetryContext].
   const factory TelemetryContext({
     /// The backend-specific span object (e.g., a Sentry or OTel span).

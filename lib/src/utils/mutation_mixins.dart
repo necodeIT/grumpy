@@ -7,6 +7,8 @@ import 'package:grumpy_annotations/grumpy_annotations.dart';
 mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   bool _installed = false;
   int _stateVersion = 0;
+  int _enqueueOrder = 0;
+  int _latestMutationOrder = -1;
 
   /// Installs required lifecycle hooks required for [MutationMixins] to function.
   @mustCallInConstructor
@@ -20,18 +22,6 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   }
 
   /// Runs a stateful mutation on the repo's current data with telemetry + analytics.
-  ///
-  /// - [name] is the logical name of the mutation (also used for the span name).
-  /// - [mutation] is called with the current data and returns the new value.
-  /// - [attributes] (optional) are attached as analytics event properties.
-  /// - [eventName] (optional) overrides the default `mutation_<name>` event key.
-  /// - [retryPolicy] (optional) defines the retry behavior for the mutation.
-  /// - [optimisticPolicy] (optional) defines the optimistic update strategy.
-  ///
-  /// Behavior:
-  /// - Throws a [StateError] if [installMutationHooks] was not called.
-  /// - Returns `null` if the repo has no data or if an error occurs.
-  /// - Wraps the mutation in a telemetry span and tracks an analytics event.
   Future<T?> mutate(
     String name,
     FutureOr<T> Function(T currentData) mutation, {
@@ -58,6 +48,8 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     _applyOptimistics(optimisticPolicy);
 
     final stateVersion = _stateVersion;
+    final order = _enqueueOrder++;
+    _latestMutationOrder = order;
 
     final analytics = AnalyticsService();
 
@@ -73,32 +65,21 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
         );
       });
 
-      data(result);
+      // newer-wins for overlapping (legacy mutations are treated as overlapping)
+      if (order == _latestMutationOrder) {
+        data(result);
+      }
       log('Completed mutation $name');
       return result;
     } catch (e, st) {
       log('Error during mutation $name', e, st);
-      _revertOptimistic(optimisticPolicy, snapshot, e, stateVersion);
+      _revertOptimistic(optimisticPolicy, snapshot, e, stateVersion, order);
 
       return null;
     }
   }
 
   /// Runs a side-effecting action with telemetry + analytics, without repo data.
-  ///
-  /// - [name] is the logical name of the action (also used for the span name).
-  /// - [action] is the callback to execute.
-  /// - [attributes] (optional) are attached as analytics event properties.
-  /// - [eventName] (optional) overrides the default `mutation_<name>` event key.
-  /// - [retryPolicy] (optional) defines the retry behavior for the action.
-  /// - [optimisticPolicy] (optional) defines the optimistic update strategy.
-  ///
-  /// Behavior:
-  /// - Throws a [StateError] if [installMutationHooks] was not called.
-  /// - Wraps the action in a telemetry span and tracks an analytics event.
-  /// - Logs but swallows errors; failures do not throw.
-  ///
-  /// Similar to [mutate], but does not provide the current data.
   Future<void> action(
     String name,
     FutureOr<void> Function() action, {
@@ -128,7 +109,13 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
       log('Completed action $name');
     } catch (e, st) {
       log('Error during action $name', e, st);
-      _revertOptimistic(optimisticPolicy, snapshot, e, stateVersion);
+      _revertOptimistic(
+        optimisticPolicy,
+        snapshot,
+        e,
+        stateVersion,
+        _latestMutationOrder,
+      );
     }
   }
 
@@ -178,10 +165,12 @@ mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     RepoState<T> snapshot,
     Object? error,
     int version,
+    int order,
   ) {
     if (policy == null) return;
     if (!policy.shouldRevert(error)) return;
     if (version != _stateVersion) return;
+    if (order != _latestMutationOrder) return;
 
     snapshot.when(
       data: (d) => data(d.requireData),

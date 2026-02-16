@@ -5,7 +5,6 @@ import 'package:grumpy/grumpy.dart';
 /// Use [LeafRoute] for leaf routes that don't require their own [Module]
 /// and can be satisfied by a single [Leaf].
 class LeafRoute<T, Config extends Object> extends Route<T, Config> {
-
   /// Creates a [LeafRoute] for the given [path] and [view].
   ///
   /// - [guards] are evaluated before [view] is built.
@@ -21,6 +20,7 @@ class LeafRoute<T, Config extends Object> extends Route<T, Config> {
   /// This is a convenience constructor for defining root leaf routes in [ModuleRoute]s.
   const LeafRoute.root(this.view, {super.middleware, super.children})
     : super(path: '/');
+
   /// The view responsible for building the presentation for this route.
   final Leaf<T> view;
 

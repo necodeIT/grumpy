@@ -4,8 +4,6 @@ import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 import 'package:rxdart/rxdart.dart';
 
-// this is the base class for repositories.
-// ignore: repositories_must_extend_repo
 /// A repository that manages the state of data of type [T].
 /// It's purpose is to expose the data in a presentable way by providing
 /// filter, sorting, and CRUD operations that can be easily bound by consumers.
@@ -14,7 +12,6 @@ import 'package:rxdart/rxdart.dart';
 abstract class Repo<T>
     with LogMixin, LifecycleMixin, LifecycleHooksMixin, Disposable
     implements Injectable {
-
   /// Creates a new instance of [Repo].
   Repo() {
     onDisposed(_stream.close);

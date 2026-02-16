@@ -1,41 +1,81 @@
 import 'dart:async';
 
 import 'package:fuzzy_bolt/fuzzy_bolt.dart';
+import 'package:get_it/get_it.dart';
 import 'package:grumpy_annotations/grumpy_annotations.dart';
 import 'package:memory_cache/memory_cache.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
-/// Adds query execution with telemetry and in-memory caching to a [Repo].
+/// Adds query execution with telemetry and optional cache-pipeline support.
+///
+/// [QueryMixin] keeps read-path logic in repos ergonomic while providing:
+/// - trace spans for each query execution
+/// - optional analytics events
+/// - in-flight deduplication per cache key
+/// - legacy in-memory caching fallback
+/// - optional multi-layer pipeline caching (memory + file)
+///
+/// Setup:
+/// 1. mix into a repo that includes [RepoLifecycleHooksMixin].
+/// 2. call [installMemoryCacheHooks] in the repo constructor.
+/// 3. call [query] from domain-specific read methods.
+///
+/// Example:
+/// ```dart
+/// Future<User?> getById(String id) {
+///   return query<User?>(
+///     'getUserById',
+///     (data) => data.firstWhere((u) => u.id == id),
+///     cacheKey: id,
+///     ttl: const Duration(minutes: 2),
+///   );
+/// }
+/// ```
 mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   bool _installed = false;
 
-  /// Monotonic counter that increments whenever the repo publishes new data.
-  /// It scopes cached entries to the data snapshot they were computed from.
   int _dataVersion = 0;
 
-  /// In-memory cache for query results.
+  /// Legacy in-memory cache used when pipeline is unavailable.
   final cache = MemoryCache();
+  final Map<String, Future<Object?>> _inflight = <String, Future<Object?>>{};
 
-  /// Default duration for which cached query results are valid.
+  /// Default cache expiration for legacy memory-cache mode.
+  ///
+  /// Used only when pipeline integration is not active.
   Duration get cacheExpiry => const Duration(minutes: 5);
 
-  /// Whether to invalidate the cache when new data is set.
+  /// Clears cache when repo emits new data.
   bool get invalidateCacheOnNewData => true;
 
-  /// Whether to invalidate the cache when an error occurs.
+  /// Clears cache when repo emits error.
   bool get invalidateCacheOnError => true;
 
-  /// Whether to invalidate the cache when loading starts.
+  /// Clears cache when repo emits loading.
   bool get invalidateCacheOnLoading => true;
 
-  /// Whether to cache `null` results from queries (negative caching).
+  /// Caches `null` query results in legacy mode.
   bool get cacheNullResults => true;
 
-  /// Call **once** in your repo constructor to install lifecycle hooks that:
-  /// - bump [_dataVersion] on new data,
-  /// - (optionally) clear the cache on data/loading/error,
-  /// - clear everything on dispose.
+  /// Namespace used when pipeline-backed keys are built.
+  ///
+  /// Override this for stable cross-repo key grouping.
+  String get cacheNamespace => runtimeType.toString();
+
+  /// Default cache policy used when no per-query policy is supplied.
+  CachePolicy<Object> get defaultCachePolicy => const CachePolicy<Object>();
+
+  /// Enables cache pipeline integration when service is registered.
+  bool get enableCachePipeline => true;
+
+  /// Installs query cache lifecycle hooks.
+  ///
+  /// Must be called in the repo constructor.
+  /// Hook behavior:
+  /// - increments data version on each `data(...)` emission
+  /// - optionally invalidates legacy cache on data/error/loading transitions
+  /// - clears cache on dispose
   @nonVirtual
   @mustCallInConstructor
   void installMemoryCacheHooks() {
@@ -71,30 +111,25 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     _installed = true;
   }
 
-  /// Executes a query named [name] against the current repo data.
+  /// Executes a query with telemetry, optional analytics, and cache lookups.
   ///
-  /// - Returns `null` if the repo currently has no data.
-  /// - Wraps execution in a telemetry span named [name].
-  /// - If [cacheKey] is provided, the result is cached using a **versioned**
-  ///   key that incorporates the current [_dataVersion]. Subsequent calls with
-  ///   the same [name] + [cacheKey] reuse the cached result until it expires.
-  /// - Pass [ttl] to override the default [cacheExpiry] for this call.
+  /// Execution order:
+  /// 1. validate setup and data availability
+  /// 2. deduplicate concurrent identical queries
+  /// 3. attempt cache read (pipeline or legacy memory)
+  /// 4. execute callback on miss/stale-refresh path
+  /// 5. write-through result according to policy
   ///
-  /// IMPORTANT:
-  /// - Choose a unique [name] per logical query for clean telemetry.
-  /// - Provide a **stable** [cacheKey] that uniquely represents the inputs.
-  ///
-  /// Analytics:
-  /// - If [analyticsAction] is provided, an analytics event with that name
-  ///   is tracked before executing the query.
-  /// - Additional [analyticsProperties] can be provided to enrich the event.
-  ///
-  /// Telemetry:
-  /// - Additional [telemetryAttributes] can be provided to enrich the span.
+  /// Returns:
+  /// - query value when available
+  /// - `null` when no data, cache miss + callback failure, or callback returns
+  ///   null for nullable result types.
   Future<QueryResult?> query<QueryResult>(
     String name,
     FutureOr<QueryResult> Function(T data) query, {
     Object? cacheKey,
+    CachePolicy<Object>? cachePolicy,
+    SerializationCodec<QueryResult, Object>? codec,
     Duration? ttl,
     Map<String, String>? telemetryAttributes,
     String? analyticsAction,
@@ -113,28 +148,105 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
       );
     }
 
-    final analytics = AnalyticsService();
     if (analyticsAction != null) {
-      await analytics.trackEvent(
+      await AnalyticsService().trackEvent(
         analyticsAction,
         properties: analyticsProperties,
       );
     }
-
-    log('Executing query: $name');
 
     if (!state.hasData) {
       log('$name: Aborting query - no data available');
       return null;
     }
 
-    final key = _buildCacheKey(name, cacheKey);
+    final fullKey = _buildCacheKey(name, cacheKey);
+    final inflightKey = fullKey ?? '$name|no-key';
 
-    // Cache fast path (only when key provided)
-    if (key != null && cache.contains(key)) {
-      final cachedResult = cache.read<QueryResult>(key);
+    final pending = _inflight[inflightKey];
+    if (pending != null) {
+      return await pending as QueryResult?;
+    }
+
+    final future = _queryInternal<QueryResult>(
+      name,
+      query,
+      cacheKey: cacheKey,
+      fullKey: fullKey,
+      ttl: ttl,
+      cachePolicy: cachePolicy,
+      codec: codec,
+      telemetryAttributes: telemetryAttributes,
+    );
+
+    _inflight[inflightKey] = future;
+    try {
+      return await future;
+    } finally {
+      _inflight.remove(inflightKey);
+    }
+  }
+
+  Future<QueryResult?> _queryInternal<QueryResult>(
+    String name,
+    FutureOr<QueryResult> Function(T data) query, {
+    required Object? cacheKey,
+    required String? fullKey,
+    required Duration? ttl,
+    required CachePolicy<Object>? cachePolicy,
+    required SerializationCodec<QueryResult, Object>? codec,
+    required Map<String, String>? telemetryAttributes,
+  }) async {
+    final pipeline = _resolvePipeline();
+
+    QueryResult? staleFallback;
+
+    if (cacheKey != null && pipeline != null) {
+      final key = _QueryCacheKey<QueryResult>(
+        namespace: cacheNamespace,
+        primaryKey: fullKey!,
+      );
+
+      final policy = cachePolicy ?? _policyFromLegacy(ttl);
+      final cached = await pipeline.get<QueryResult, Object>(
+        key: key,
+        policy: policy,
+        codec: codec,
+      );
+
+      if (cached != null) {
+        if (!cached.isStale) {
+          return cached.value;
+        }
+        staleFallback = cached.value;
+      }
+
+      try {
+        final result = await trace(
+          name,
+          () => query(state.requireData),
+          attributes: telemetryAttributes,
+        );
+        await pipeline.put<QueryResult, Object>(
+          key,
+          result,
+          policy: policy,
+          codec: codec,
+        );
+        return result;
+      } catch (e, st) {
+        log('$name: Error during query execution', e, st);
+        if (staleFallback != null && policy.allowStaleFileOnQueryError) {
+          return staleFallback;
+        }
+        return null;
+      }
+    }
+
+    if (fullKey != null && cache.contains(fullKey)) {
+      final cachedResult = cache.read<QueryResult>(fullKey);
       if (cachedResult != null || cacheNullResults) {
-        log('$name: Returning cached result ($key)');
+        log('$name: Returning cached result ($fullKey)');
         return cachedResult;
       }
     }
@@ -151,10 +263,25 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
       result = null;
     }
 
-    // Cache write (only when key provided)
-    _cacheResult<QueryResult>(key, result, ttl);
+    _cacheResult<QueryResult>(fullKey, result, ttl);
 
     return result;
+  }
+
+  CachePipelineService? _resolvePipeline() {
+    if (!enableCachePipeline) return null;
+    if (!GetIt.I.isRegistered<CachePipelineService>()) return null;
+    return CachePipelineService();
+  }
+
+  CachePolicy<Object> _policyFromLegacy(Duration? ttl) {
+    if (ttl == null) return defaultCachePolicy;
+    return CachePolicy<Object>(
+      useMemory: true,
+      useFile: false,
+      memoryTtl: ttl,
+      cacheNullResults: cacheNullResults,
+    );
   }
 
   @pragma('vm:prefer-inline')
@@ -170,25 +297,35 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   String? _buildCacheKey(String name, Object? key) {
     if (key == null) return null;
 
-    // Stable, compact, versioned key:
-    // We combine name, current data version, and a hash of the provided key.
-    // Using Object.hash avoids huge strings and accidental PII in logs.
     final h = Object.hash(name, _dataVersion, key);
     return '$name|v=$_dataVersion|h=$h';
   }
 }
 
-/// A mixin that provides a method to query an item by its ID from a repository
-/// containing a list of items [T].
+class _QueryCacheKey<T> implements CacheKey<T> {
+  const _QueryCacheKey({required this.namespace, required this.primaryKey});
+
+  @override
+  final String namespace;
+
+  @override
+  final String primaryKey;
+
+  @override
+  String get schemaId => 'query_v1';
+
+  @override
+  int? get compatVersion => null;
+
+  @override
+  String asStorageKey() => '$namespace|$schemaId|$primaryKey';
+}
+
+/// Adds convenience ID-based query lookup behavior.
+///
+/// Useful for list-backed repos where items have stable identifiers.
 mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
-  /// Returns the matching item with the given [id], or `null` if not found.
-  ///
-  /// If [analyticsAction] is provided, an analytics event with that name
-  /// is tracked before executing the query.
-  /// Additional [analyticsProperties] can be provided to enrich the event.
-  ///
-  /// The result is cached for [ttl] duration. Defaults to the cacheExpiry
-  /// defined in [QueryMixin].
+  /// Returns an item by [id], or `null` when not found.
   Future<T?> getById(
     ID id, {
     String? analyticsAction,
@@ -209,27 +346,23 @@ mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
       ttl: ttl,
       telemetryAttributes: {'id': id.toString()},
       analyticsAction: analyticsAction,
-      analyticsProperties: {'id': id.toString(), ...?analyticsProperties},
+      analyticsProperties: {
+        'id': id.toString(),
+        ...?analyticsProperties?.map((k, v) => MapEntry(k, '$v')),
+      },
     );
   }
 
-  /// Returns the ID of the given [item].
+  /// Returns the stable identifier for [item].
   ID getId(T item);
 }
 
-/// A mixin that provides fuzzy search capabilities for a repository
-/// containing a list of items [T].
+/// Adds fuzzy-search query helpers for list-backed repos.
 ///
-/// Uses the `fuzzy_bolt` package for performing fuzzy searches.
+/// This mixin delegates scoring to `fuzzy_bolt` and keeps caching/telemetry
+/// behavior consistent with [QueryMixin.query].
 mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
-  /// Performs a fuzzy search over [fuzzySelectors] for items matching [query].
-  ///
-  /// If [analyticsAction] is provided, an analytics event with that name
-  /// is tracked before executing the fuzzy search.
-  /// Additional [analyticsProperties] can be provided to enrich the event.
-  ///
-  /// The results are cached for [ttl] duration. Defaults to the cacheExpiry
-  /// defined in [QueryMixin].
+  /// Performs a fuzzy search and returns ranked results.
   Future<List<T>> fuzzyFind(
     String query, {
     String? analyticsAction,
@@ -246,27 +379,27 @@ mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
           fuzzySearchConfig,
         );
 
-        return r.map(extractResult).toList();
+        return r.map<T>(extractResult).toList();
       },
       cacheKey: query.toLowerCase(),
       telemetryAttributes: {'query': query},
       ttl: ttl,
       analyticsAction: analyticsAction,
-      analyticsProperties: {'query': query, ...?analyticsProperties},
+      analyticsProperties: {
+        'query': query,
+        ...?analyticsProperties?.map((k, v) => MapEntry(k, '$v')),
+      },
     );
 
     return result ?? <T>[];
   }
 
-  /// Extracts the item of type [T] from a [FuzzyResult].
-  ///
-  /// Override this if your result mapping differs.
-  T extractResult(FuzzyResult<T> fuzzyResult) => fuzzyResult.item;
-
-  /// Selector functions used by the fuzzy search,
-  /// e.g., `(t) => t.title`, `(t) => t.description`.
+  /// Selectors used for fuzzy search matching.
   List<String Function(T item)> get fuzzySelectors;
 
-  /// Configuration for fuzzy search behavior.
+  /// Search configuration used by the fuzzy engine.
   FuzzySearchConfig get fuzzySearchConfig => const FuzzySearchConfig();
+
+  /// Maps a fuzzy result into the caller's item type.
+  T extractResult(FuzzyResult<T> result) => result.item;
 }

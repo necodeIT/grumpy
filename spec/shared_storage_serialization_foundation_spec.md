@@ -1,6 +1,6 @@
 # Shared Storage, Serialization, and Schema Strategy Foundation Spec
 
-Status: Proposed
+Status: Implemented
 Owner: grumpy runtime
 Target: shared contracts reused by query cache and repo state persistence
 

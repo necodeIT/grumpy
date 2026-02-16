@@ -243,29 +243,32 @@ void main() {
       },
     );
 
-    test('concurrent mutations settle in completion order', () async {
-      repo.data(5);
+    test(
+      'concurrent overlapping mutations resolve with newer intent winning',
+      () async {
+        repo.data(5);
 
-      Future<int?> addOne() => repo.mutate('addOne', (value) async {
-        await Future<void>.delayed(const Duration(milliseconds: 25));
-        return value + 1;
-      });
+        Future<int?> addOne() => repo.mutate('addOne', (value) async {
+          await Future<void>.delayed(const Duration(milliseconds: 25));
+          return value + 1;
+        });
 
-      Future<int?> addTwo() => repo.mutate('addTwo', (value) async {
-        await Future<void>.delayed(const Duration(milliseconds: 10));
-        return value + 2;
-      });
+        Future<int?> addTwo() => repo.mutate('addTwo', (value) async {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          return value + 2;
+        });
 
-      final results = await Future.wait([addOne(), addTwo()]);
+        final results = await Future.wait([addOne(), addTwo()]);
 
-      expect(results, [6, 7]);
-      expect(repo.state.requireData, 6); // last-completing mutation writes last
-      expect(
-        analytics.events,
-        containsAll(['mutation_addOne', 'mutation_addTwo']),
-      );
-      expect(telemetry.runSpanNames, containsAll(['addOne', 'addTwo']));
-    });
+        expect(results, [6, 7]);
+        expect(repo.state.requireData, 7);
+        expect(
+          analytics.events,
+          containsAll(['mutation_addOne', 'mutation_addTwo']),
+        );
+        expect(telemetry.runSpanNames, containsAll(['addOne', 'addTwo']));
+      },
+    );
 
     test('applies optimistic update immediately', () async {
       repo.data(3);

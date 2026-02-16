@@ -138,6 +138,64 @@ void main() {
     await module.free();
     expect(repo.disposed, isTrue);
   });
+
+  group('Lifecycle-managed injectables', () {
+    test(
+      'singleton lifecycle service is initialized once across warm cycles',
+      () async {
+        final module = _LifecycleModule();
+        await module.initialize();
+
+        expect(() => di.get<_LifecycleService>(), throwsA(isA<StateError>()));
+
+        await module.activate();
+        final service = di.get<_LifecycleService>();
+
+        expect(service.initializeCalls, 1);
+        expect(service.activateCalls, 1);
+
+        await module.deactivate();
+        expect(service.deactivateCalls, 1);
+
+        await module.activate();
+        expect(service.initializeCalls, 1);
+        expect(service.activateCalls, 2);
+
+        await module.dependenciesChanged();
+        expect(service.dependenciesChangedCalls, 1);
+
+        await module.free();
+      },
+    );
+
+    test(
+      'singleton lifecycle datasource is managed by module lifecycle',
+      () async {
+        final module = _LifecycleModule();
+        await module.initialize();
+        await module.activate();
+
+        final datasource = di.get<_LifecycleDatasource>();
+        expect(datasource.initializeCalls, 1);
+        expect(datasource.activateCalls, 1);
+
+        await module.deactivate();
+        expect(datasource.deactivateCalls, 1);
+
+        await module.free();
+      },
+    );
+
+    test('lifecycle factory service registration throws', () async {
+      final module = _InvalidLifecycleServiceModule();
+      expect(() => module.initialize(), throwsA(isA<StateError>()));
+    });
+
+    test('lifecycle factory datasource registration throws', () async {
+      final module = _InvalidLifecycleDatasourceModule();
+      expect(() => module.initialize(), throwsA(isA<StateError>()));
+    });
+  });
 }
 
 class _TestModule extends Module<int, _TestConfig> {
@@ -237,6 +295,7 @@ class _FakeService extends Service {
 
   @override
   Future<void> free() async {}
+
   @override
   String get logTag => '_FakeService';
 }
@@ -251,6 +310,7 @@ class _SingletonFakeService extends Service {
 
   @override
   Future<void> free() async {}
+
   @override
   String get logTag => '_SingletonFakeService';
 }
@@ -262,6 +322,7 @@ class _FakeDatasource extends Datasource {
 
   @override
   Future<void> free() async {}
+
   @override
   String get logTag => '_FakeDatasource';
 }
@@ -276,6 +337,7 @@ class _SingletonFakeDatasource extends Datasource {
 
   @override
   Future<void> free() async {}
+
   @override
   String get logTag => '_SingletonFakeDatasource';
 }
@@ -328,4 +390,167 @@ class _TestConfig {
   const _TestConfig(this.id);
 
   final String id;
+}
+
+class _LifecycleModule extends Module<int, _TestConfig> {
+  @override
+  void bindServices(Bind<Service, _TestConfig> bind) {
+    bind((cfg, resolve) => _LifecycleService());
+  }
+
+  @override
+  void bindDatasources(Bind<Datasource, _TestConfig> bind) {
+    bind((cfg, resolve) => _LifecycleDatasource());
+  }
+
+  @override
+  List<Route<int, _TestConfig>> get routes => const [];
+
+  @override
+  String get logTag => '_LifecycleModule';
+}
+
+class _InvalidLifecycleServiceModule extends Module<int, _TestConfig> {
+  @override
+  void bindServices(Bind<Service, _TestConfig> bind) {
+    bind((cfg, resolve) => _FactoryLifecycleService());
+  }
+
+  @override
+  List<Route<int, _TestConfig>> get routes => const [];
+
+  @override
+  String get logTag => '_InvalidLifecycleServiceModule';
+}
+
+class _InvalidLifecycleDatasourceModule extends Module<int, _TestConfig> {
+  @override
+  void bindDatasources(Bind<Datasource, _TestConfig> bind) {
+    bind((cfg, resolve) => _FactoryLifecycleDatasource());
+  }
+
+  @override
+  List<Route<int, _TestConfig>> get routes => const [];
+
+  @override
+  String get logTag => '_InvalidLifecycleDatasourceModule';
+}
+
+class _LifecycleService extends Service with LifecycleMixin {
+  int initializeCalls = 0;
+  int activateCalls = 0;
+  int deactivateCalls = 0;
+  int dependenciesChangedCalls = 0;
+
+  @override
+  bool get singelton => true;
+
+  @override
+  Future<void> activate() async {
+    activateCalls++;
+  }
+
+  @override
+  Future<void> deactivate() async {
+    deactivateCalls++;
+  }
+
+  @override
+  Future<void> dependenciesChanged() async {
+    dependenciesChangedCalls++;
+  }
+
+  @override
+  Future<void> initialize() async {
+    initializeCalls++;
+  }
+
+  @override
+  // ignore: must_call_super
+  Future<void> free() async {}
+
+  @override
+  String get logTag => '_LifecycleService';
+}
+
+class _LifecycleDatasource extends Datasource with LifecycleMixin {
+  int initializeCalls = 0;
+  int activateCalls = 0;
+  int deactivateCalls = 0;
+
+  @override
+  bool get singelton => true;
+
+  @override
+  Future<void> activate() async {
+    activateCalls++;
+  }
+
+  @override
+  Future<void> deactivate() async {
+    deactivateCalls++;
+  }
+
+  @override
+  Future<void> dependenciesChanged() async {}
+
+  @override
+  Future<void> initialize() async {
+    initializeCalls++;
+  }
+
+  @override
+  // ignore: must_call_super
+  Future<void> free() async {}
+
+  @override
+  String get logTag => '_LifecycleDatasource';
+}
+
+class _FactoryLifecycleService extends Service with LifecycleMixin {
+  @override
+  bool get singelton => false;
+
+  @override
+  Future<void> activate() async {}
+
+  @override
+  Future<void> deactivate() async {}
+
+  @override
+  Future<void> dependenciesChanged() async {}
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  // ignore: must_call_super
+  Future<void> free() async {}
+
+  @override
+  String get logTag => '_FactoryLifecycleService';
+}
+
+class _FactoryLifecycleDatasource extends Datasource with LifecycleMixin {
+  @override
+  bool get singelton => false;
+
+  @override
+  Future<void> activate() async {}
+
+  @override
+  Future<void> deactivate() async {}
+
+  @override
+  Future<void> dependenciesChanged() async {}
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  // ignore: must_call_super
+  Future<void> free() async {}
+
+  @override
+  String get logTag => '_FactoryLifecycleDatasource';
 }

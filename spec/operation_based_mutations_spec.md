@@ -1,6 +1,6 @@
 # Operation-Based Mutations Transaction Model Spec
 
-Status: Proposed
+Status: Implemented
 Owner: grumpy runtime
 Target: `MutationMixins` redesign for optimistic + concurrent writes
 
@@ -329,4 +329,3 @@ Implementation is complete when:
 3. optimistic UX remains immediate
 4. updated tests validate deterministic replay semantics
 5. architecture remains split into focused files (no giant mixin)
-

@@ -10,7 +10,6 @@ import 'package:meta/meta.dart';
 /// [T] represents the type of the presentation (e.g., Widget).
 /// [Config] represents the configuration type used in modules.
 abstract class RoutingService<T, Config extends Object> extends Service {
-
   /// Returns the DI-registered implementation of [RoutingService].
   ///
   /// Shorthand for [Service.get].
@@ -21,6 +20,7 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   /// Required for the factory pattern to work.
   @internal
   RoutingService.internal();
+
   /// Returns the root route of the application with all its nested routes expanded.
   Route<T, Config> get root;
 

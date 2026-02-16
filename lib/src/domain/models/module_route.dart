@@ -5,7 +5,6 @@ import 'package:grumpy/grumpy.dart';
 /// Use [ModuleRoute] for feature- or domain-level entry points that should
 /// mount a dedicated [Module] (and its dependency graph) on navigation.
 class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
-
   /// Creates a [ModuleRoute] for the given [path] and [module].
   ///
   /// Optional [middleware] can be used to protect access to the module.
@@ -15,6 +14,7 @@ class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
     super.middleware,
     this.root,
   });
+
   /// The module that will be mounted when this route is activated.
   final Module<T, Config> module;
 

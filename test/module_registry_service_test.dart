@@ -30,8 +30,16 @@ void main() {
       final registry = CanonicalModuleRegistryService<int, _Cfg>();
       final depA = _DependencyModule('dep-a', events: events);
       final depB = _DependencyModule('dep-b', events: events);
-      final featureA = _FeatureModule('feature-a', events: events, deps: [depA]);
-      final featureB = _FeatureModule('feature-b', events: events, deps: [depB]);
+      final featureA = _FeatureModule(
+        'feature-a',
+        events: events,
+        deps: [depA],
+      );
+      final featureB = _FeatureModule(
+        'feature-b',
+        events: events,
+        deps: [depB],
+      );
 
       final canonicalFeature = registry.canonicalize(featureA);
       registry.canonicalize(featureB);
@@ -43,27 +51,30 @@ void main() {
       expect(registry.dependencyGraph[featureA], equals({depA}));
     });
 
-    test('sync activates in dependency order and deactivates in reverse order', () async {
-      final events = <String>[];
-      final registry = CanonicalModuleRegistryService<int, _Cfg>();
-      final dep = _DependencyModule('dep', events: events);
-      final feature = _FeatureModule('feature', events: events, deps: [dep]);
+    test(
+      'sync activates in dependency order and deactivates in reverse order',
+      () async {
+        final events = <String>[];
+        final registry = CanonicalModuleRegistryService<int, _Cfg>();
+        final dep = _DependencyModule('dep', events: events);
+        final feature = _FeatureModule('feature', events: events, deps: [dep]);
 
-      await registry.sync([feature]);
-      await registry.sync(const <Module<int, _Cfg>>[]);
+        await registry.sync([feature]);
+        await registry.sync(const <Module<int, _Cfg>>[]);
 
-      expect(
-        events,
-        equals([
-          'initialize:dep',
-          'activate:dep',
-          'initialize:feature',
-          'activate:feature',
-          'deactivate:feature',
-          'deactivate:dep',
-        ]),
-      );
-    });
+        expect(
+          events,
+          equals([
+            'initialize:dep',
+            'activate:dep',
+            'initialize:feature',
+            'activate:feature',
+            'deactivate:feature',
+            'deactivate:dep',
+          ]),
+        );
+      },
+    );
 
     test('sync is idempotent for already-active module set', () async {
       final events = <String>[];
@@ -82,27 +93,38 @@ void main() {
       expect(feature.deactivateCalls, 0);
     });
 
-    test('ensureActive and ensureInactive preserve shared dependencies', () async {
-      final events = <String>[];
-      final registry = CanonicalModuleRegistryService<int, _Cfg>();
-      final shared = _SharedModule('shared', events: events);
-      final featureA = _FeatureModule('feature-a', events: events, deps: [shared]);
-      final settings = _SettingsModule('settings', events: events, deps: [shared]);
+    test(
+      'ensureActive and ensureInactive preserve shared dependencies',
+      () async {
+        final events = <String>[];
+        final registry = CanonicalModuleRegistryService<int, _Cfg>();
+        final shared = _SharedModule('shared', events: events);
+        final featureA = _FeatureModule(
+          'feature-a',
+          events: events,
+          deps: [shared],
+        );
+        final settings = _SettingsModule(
+          'settings',
+          events: events,
+          deps: [shared],
+        );
 
-      await registry.ensureActive(featureA);
-      await registry.ensureActive(settings);
-      await registry.ensureInactive(featureA);
+        await registry.ensureActive(featureA);
+        await registry.ensureActive(settings);
+        await registry.ensureInactive(featureA);
 
-      expect(registry.isActive(settings), isTrue);
-      expect(registry.isActive(shared), isTrue);
-      expect(registry.isActive(featureA), isFalse);
-      expect(shared.deactivateCalls, 0);
+        expect(registry.isActive(settings), isTrue);
+        expect(registry.isActive(shared), isTrue);
+        expect(registry.isActive(featureA), isFalse);
+        expect(shared.deactivateCalls, 0);
 
-      await registry.ensureInactive(settings);
+        await registry.ensureInactive(settings);
 
-      expect(registry.activeModules, isEmpty);
-      expect(shared.deactivateCalls, 1);
-    });
+        expect(registry.activeModules, isEmpty);
+        expect(shared.deactivateCalls, 1);
+      },
+    );
 
     test('isActive resolves aliases via canonical instance', () async {
       final events = <String>[];
@@ -124,8 +146,16 @@ void main() {
       final leafB = _LeafModule('leaf-b', events: events);
       final depA = _DependencyModule('dep-a', events: events, deps: [leafA]);
       final depB = _DependencyModule('dep-b', events: events, deps: [leafB]);
-      final featureA = _FeatureModule('feature-a', events: events, deps: [depA]);
-      final featureB = _FeatureModule('feature-b', events: events, deps: [depB]);
+      final featureA = _FeatureModule(
+        'feature-a',
+        events: events,
+        deps: [depA],
+      );
+      final featureB = _FeatureModule(
+        'feature-b',
+        events: events,
+        deps: [depB],
+      );
 
       final resolved = registry.resolveDependencies([featureA, featureB]);
 
@@ -149,47 +179,61 @@ void main() {
       expect(() => registry.sync([cycleA]), throwsA(isA<StateError>()));
     });
 
-    test('registry recovers after failed sync and can process new work', () async {
-      final events = <String>[];
-      final registry = CanonicalModuleRegistryService<int, _Cfg>();
-      final cycleA = _CycleAModule('a', events: events);
-      final cycleB = _CycleBModule('b', events: events);
-      cycleA.setDeps([cycleB]);
-      cycleB.setDeps([cycleA]);
+    test(
+      'registry recovers after failed sync and can process new work',
+      () async {
+        final events = <String>[];
+        final registry = CanonicalModuleRegistryService<int, _Cfg>();
+        final cycleA = _CycleAModule('a', events: events);
+        final cycleB = _CycleBModule('b', events: events);
+        cycleA.setDeps([cycleB]);
+        cycleB.setDeps([cycleA]);
 
-      expect(() => registry.sync([cycleA]), throwsA(isA<StateError>()));
+        expect(() => registry.sync([cycleA]), throwsA(isA<StateError>()));
 
-      final feature = _FeatureModule('feature', events: events);
-      await registry.sync([feature]);
+        final feature = _FeatureModule('feature', events: events);
+        await registry.sync([feature]);
 
-      expect(registry.activeModules, equals({feature}));
-      expect(feature.initializeCalls, 1);
-      expect(feature.activateCalls, 1);
-    });
+        expect(registry.activeModules, equals({feature}));
+        expect(feature.initializeCalls, 1);
+        expect(feature.activateCalls, 1);
+      },
+    );
 
-    test('queued ensureActive calls are serialized and keep final union', () async {
-      final events = <String>[];
-      final registry = CanonicalModuleRegistryService<int, _Cfg>();
-      final shared = _SharedModule(
-        'shared',
-        events: events,
-        activateDelay: const Duration(milliseconds: 30),
-      );
-      final feature = _FeatureModule('feature', events: events, deps: [shared]);
-      final settings = _SettingsModule('settings', events: events, deps: [shared]);
+    test(
+      'queued ensureActive calls are serialized and keep final union',
+      () async {
+        final events = <String>[];
+        final registry = CanonicalModuleRegistryService<int, _Cfg>();
+        final shared = _SharedModule(
+          'shared',
+          events: events,
+          activateDelay: const Duration(milliseconds: 30),
+        );
+        final feature = _FeatureModule(
+          'feature',
+          events: events,
+          deps: [shared],
+        );
+        final settings = _SettingsModule(
+          'settings',
+          events: events,
+          deps: [shared],
+        );
 
-      await Future.wait([
-        registry.ensureActive(feature),
-        registry.ensureActive(settings),
-      ]);
+        await Future.wait([
+          registry.ensureActive(feature),
+          registry.ensureActive(settings),
+        ]);
 
-      expect(registry.activeModules.length, 3);
-      expect(registry.activeModules, contains(shared));
-      expect(registry.activeModules, contains(feature));
-      expect(registry.activeModules, contains(settings));
-      expect(shared.initializeCalls, 1);
-      expect(shared.activateCalls, 1);
-    });
+        expect(registry.activeModules.length, 3);
+        expect(registry.activeModules, contains(shared));
+        expect(registry.activeModules, contains(feature));
+        expect(registry.activeModules, contains(settings));
+        expect(shared.initializeCalls, 1);
+        expect(shared.activateCalls, 1);
+      },
+    );
 
     test('free deactivates all active modules', () async {
       final events = <String>[];
@@ -232,26 +276,23 @@ void main() {
       },
     );
 
-    test(
-      'sync activates externally mounted but inactive module',
-      () async {
-        final di = GetIt.instance;
-        await di.reset(dispose: false);
+    test('sync activates externally mounted but inactive module', () async {
+      final di = GetIt.instance;
+      await di.reset(dispose: false);
 
-        final registry = CanonicalModuleRegistryService<int, _Cfg>();
-        final module = _ScopedMountedModule();
+      final registry = CanonicalModuleRegistryService<int, _Cfg>();
+      final module = _ScopedMountedModule();
 
-        await module.initialize();
-        expect(module.initializeCalls, 1);
-        expect(module.activateCalls, 0);
+      await module.initialize();
+      expect(module.initializeCalls, 1);
+      expect(module.activateCalls, 0);
 
-        await registry.sync([module]);
+      await registry.sync([module]);
 
-        expect(module.initializeCalls, 1);
-        expect(module.activateCalls, 1);
-        expect(registry.isActive(module), isTrue);
-      },
-    );
+      expect(module.initializeCalls, 1);
+      expect(module.activateCalls, 1);
+      expect(registry.isActive(module), isTrue);
+    });
 
     test('forceDispose disposes module instead of warm deactivating', () async {
       final registry = CanonicalModuleRegistryService<int, _Cfg>();

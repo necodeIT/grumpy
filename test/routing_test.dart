@@ -129,6 +129,7 @@ void main() {
       await di.reset(dispose: false);
       root = _RootTestModule(const _Cfg('cfg'));
       await root.initialize();
+      await root.activate();
       routing = di.get<RoutingService<String, _Cfg>>();
     });
 
@@ -173,27 +174,31 @@ void main() {
       expect(root.featureModule.activateCalls, 1);
     });
 
-    test('final view waits until required module activation completes', () async {
-      await di.reset(dispose: false);
-      final delayedRoot = _DelayedActivationRootModule(const _Cfg('cfg'));
-      await delayedRoot.initialize();
-      final delayedRouting = di.get<RoutingService<String, _Cfg>>();
-      final results = <String>[];
+    test(
+      'final view waits until required module activation completes',
+      () async {
+        await di.reset(dispose: false);
+        final delayedRoot = _DelayedActivationRootModule(const _Cfg('cfg'));
+        await delayedRoot.initialize();
+        await delayedRoot.activate();
+        final delayedRouting = di.get<RoutingService<String, _Cfg>>();
+        final results = <String>[];
 
-      final navigation = delayedRouting.navigate(
-        '/delayed/child',
-        callback: (result, _) => results.add(result),
-      );
+        final navigation = delayedRouting.navigate(
+          '/delayed/child',
+          callback: (result, _) => results.add(result),
+        );
 
-      await delayedRoot.delayedModule.activationStarted.future;
-      expect(results, ['preview:/delayed/child']);
+        await delayedRoot.delayedModule.activationStarted.future;
+        expect(results, ['preview:/delayed/child']);
 
-      delayedRoot.delayedModule.releaseActivation();
-      await navigation;
+        delayedRoot.delayedModule.releaseActivation();
+        await navigation;
 
-      expect(results, ['preview:/delayed/child', 'built:/delayed/child']);
-      expect(delayedRoot.delayedModule.activateCalls, 1);
-    });
+        expect(results, ['preview:/delayed/child', 'built:/delayed/child']);
+        expect(delayedRoot.delayedModule.activateCalls, 1);
+      },
+    );
 
     test(
       'uses ModuleRoute root when navigating into module subroutes',
@@ -230,15 +235,9 @@ void main() {
     test('isActive can ignore query params and fragments', () async {
       await routing.navigate('/feature/child?tab=profile#details');
 
-      expect(
-        routing.isActive('/feature/child?tab=profile#details'),
-        isTrue,
-      );
+      expect(routing.isActive('/feature/child?tab=profile#details'), isTrue);
       expect(routing.isActive('/feature/child'), isFalse);
-      expect(
-        routing.isActive('/feature/child', ignoreParams: true),
-        isTrue,
-      );
+      expect(routing.isActive('/feature/child', ignoreParams: true), isTrue);
       expect(
         routing.isActive('/feature', exact: false, ignoreParams: true),
         isTrue,
@@ -264,10 +263,10 @@ void main() {
 
       await sub.cancel();
 
-      expect(
-        callbackResults,
-        ['preview:/feature/child', 'built:/feature/child'],
-      );
+      expect(callbackResults, [
+        'preview:/feature/child',
+        'built:/feature/child',
+      ]);
       expect(streamEvents.length, 2);
       expect(streamEvents[0].isPreview, isTrue);
       expect(streamEvents[0].view, 'preview:/feature/child');
@@ -307,53 +306,59 @@ void main() {
       expect(streamEvents.single.config.id, 'cfg');
     });
 
-    test('onViewChanged subscription stops receiving events after cancel', () async {
-      final events = <ViewChangedEvent<String, _Cfg>>[];
-      final firstNavDone = Completer<void>();
-      final sub = routing.onViewChanged((event) {
-        events.add(event);
-        if (events.length == 2 && !firstNavDone.isCompleted) {
-          firstNavDone.complete();
-        }
-      });
+    test(
+      'onViewChanged subscription stops receiving events after cancel',
+      () async {
+        final events = <ViewChangedEvent<String, _Cfg>>[];
+        final firstNavDone = Completer<void>();
+        final sub = routing.onViewChanged((event) {
+          events.add(event);
+          if (events.length == 2 && !firstNavDone.isCompleted) {
+            firstNavDone.complete();
+          }
+        });
 
-      await routing.navigate('/feature/child');
-      await firstNavDone.future;
-      await sub.cancel();
-      await routing.navigate('/feature/sub/final');
-      await Future<void>.delayed(Duration.zero);
+        await routing.navigate('/feature/child');
+        await firstNavDone.future;
+        await sub.cancel();
+        await routing.navigate('/feature/sub/final');
+        await Future<void>.delayed(Duration.zero);
 
-      expect(events.length, 2);
-      expect(events[0].view, 'preview:/feature/child');
-      expect(events[1].view, 'built:/feature/child');
-    });
+        expect(events.length, 2);
+        expect(events[0].view, 'preview:/feature/child');
+        expect(events[1].view, 'built:/feature/child');
+      },
+    );
 
-    test('middleware failure emits preview only and does not activate route', () async {
-      final callbackResults = <String>[];
-      final streamEvents = <ViewChangedEvent<String, _Cfg>>[];
-      final streamDone = Completer<void>();
-      final sub = routing.viewStream.listen((event) {
-        streamEvents.add(event);
-        if (streamEvents.length == 1 && !streamDone.isCompleted) {
-          streamDone.complete();
-        }
-      });
+    test(
+      'middleware failure emits preview only and does not activate route',
+      () async {
+        final callbackResults = <String>[];
+        final streamEvents = <ViewChangedEvent<String, _Cfg>>[];
+        final streamDone = Completer<void>();
+        final sub = routing.viewStream.listen((event) {
+          streamEvents.add(event);
+          if (streamEvents.length == 1 && !streamDone.isCompleted) {
+            streamDone.complete();
+          }
+        });
 
-      await routing.navigate(
-        '/blocked',
-        callback: (result, _) => callbackResults.add(result),
-      );
-      await streamDone.future;
+        await routing.navigate(
+          '/blocked',
+          callback: (result, _) => callbackResults.add(result),
+        );
+        await streamDone.future;
 
-      await sub.cancel();
+        await sub.cancel();
 
-      expect(callbackResults, ['preview:/blocked']);
-      expect(streamEvents.length, 1);
-      expect(streamEvents.single.isPreview, isTrue);
-      expect(streamEvents.single.view, 'preview:/blocked');
-      expect(routing.currentContext, isNull);
-      expect(routing.isActive('/blocked'), isFalse);
-    });
+        expect(callbackResults, ['preview:/blocked']);
+        expect(streamEvents.length, 1);
+        expect(streamEvents.single.isPreview, isTrue);
+        expect(streamEvents.single.view, 'preview:/blocked');
+        expect(routing.currentContext, isNull);
+        expect(routing.isActive('/blocked'), isFalse);
+      },
+    );
 
     test('navigating to current uri is a no-op', () async {
       final initialEventsDone = Completer<void>();
@@ -382,45 +387,45 @@ void main() {
       expect(root.featureModule.activateCalls, 1);
     });
 
-    test('listeners are notified once per successful navigation and can be removed', () async {
-      final notifiedPaths = <String>[];
-      void listener(Route<String, _Cfg> route) {
-        notifiedPaths.add(route.path);
-      }
+    test(
+      'listeners are notified once per successful navigation and can be removed',
+      () async {
+        final notifiedPaths = <String>[];
+        void listener(Route<String, _Cfg> route) {
+          notifiedPaths.add(route.path);
+        }
 
-      routing.addListener(listener);
-      await routing.navigate('/feature/child');
-      routing.removeListener(listener);
-      await routing.navigate('/feature/sub/final');
+        routing.addListener(listener);
+        await routing.navigate('/feature/child');
+        routing.removeListener(listener);
+        await routing.navigate('/feature/sub/final');
 
-      expect(notifiedPaths, ['child']);
-    });
+        expect(notifiedPaths, ['child']);
+      },
+    );
 
-    test('middleware can rewrite context used by final view and active context', () async {
-      final callbackResults = <String>[];
+    test(
+      'middleware can rewrite context used by final view and active context',
+      () async {
+        final callbackResults = <String>[];
 
-      await routing.navigate(
-        '/rewrite?x=1#frag',
-        callback: (result, _) => callbackResults.add(result),
-      );
+        await routing.navigate(
+          '/rewrite?x=1#frag',
+          callback: (result, _) => callbackResults.add(result),
+        );
 
-      expect(
-        callbackResults,
-        ['preview:/rewrite?x=1#frag', 'built:/rewrite?from=middleware#rewritten'],
-      );
-      expect(
-        routing.currentContext?.fullPath,
-        '/rewrite?from=middleware#rewritten',
-      );
-      expect(
-        routing.isActive('/rewrite?from=middleware#rewritten'),
-        isTrue,
-      );
-      expect(
-        routing.isActive('/rewrite?x=1#frag'),
-        isFalse,
-      );
-    });
+        expect(callbackResults, [
+          'preview:/rewrite?x=1#frag',
+          'built:/rewrite?from=middleware#rewritten',
+        ]);
+        expect(
+          routing.currentContext?.fullPath,
+          '/rewrite?from=middleware#rewritten',
+        );
+        expect(routing.isActive('/rewrite?from=middleware#rewritten'), isTrue);
+        expect(routing.isActive('/rewrite?x=1#frag'), isFalse);
+      },
+    );
 
     test('failed middleware keeps previously active context', () async {
       await routing.navigate('/feature/child');
@@ -431,103 +436,128 @@ void main() {
       expect(routing.currentContext?.fullPath, '/feature/child');
     });
 
-    test('concurrent navigation to same path resolves via pending navigation', () async {
-      final firstResults = <String>[];
-      final secondResults = <String>[];
+    test(
+      'concurrent navigation to same path resolves via pending navigation',
+      () async {
+        final firstResults = <String>[];
+        final secondResults = <String>[];
 
-      final firstNavigation = routing.navigate(
-        '/slow-pending',
-        callback: (result, _) => firstResults.add(result),
-      );
+        final firstNavigation = routing.navigate(
+          '/slow-pending',
+          callback: (result, _) => firstResults.add(result),
+        );
 
-      await root.slowPendingMiddleware.started;
+        await root.slowPendingMiddleware.started;
 
-      final secondNavigation = routing.navigate(
-        '/slow-pending',
-        callback: (result, _) => secondResults.add(result),
-      );
+        final secondNavigation = routing.navigate(
+          '/slow-pending',
+          callback: (result, _) => secondResults.add(result),
+        );
 
-      root.slowPendingMiddleware.release();
-      await Future.wait([firstNavigation, secondNavigation]);
+        root.slowPendingMiddleware.release();
+        await Future.wait([firstNavigation, secondNavigation]);
 
-      expect(firstResults, ['preview:/slow-pending', 'built:/slow-pending']);
-      expect(secondResults, ['preview:/slow-pending', 'built:/slow-pending']);
-      expect(root.slowPendingMiddleware.calls, 1);
-    });
+        expect(firstResults, ['preview:/slow-pending', 'built:/slow-pending']);
+        expect(secondResults, ['preview:/slow-pending', 'built:/slow-pending']);
+        expect(root.slowPendingMiddleware.calls, 1);
+      },
+    );
 
-    test('concurrent same-path navigation does not duplicate view stream phases', () async {
-      final events = <ViewChangedEvent<String, _Cfg>>[];
-      final eventsDone = Completer<void>();
-      final sub = routing.onViewChanged((event) {
-        if (event.view.contains('/slow-pending')) {
-          events.add(event);
-          if (events.length == 2 && !eventsDone.isCompleted) {
-            eventsDone.complete();
+    test(
+      'concurrent same-path navigation does not duplicate view stream phases',
+      () async {
+        final events = <ViewChangedEvent<String, _Cfg>>[];
+        final eventsDone = Completer<void>();
+        final sub = routing.onViewChanged((event) {
+          if (event.view.contains('/slow-pending')) {
+            events.add(event);
+            if (events.length == 2 && !eventsDone.isCompleted) {
+              eventsDone.complete();
+            }
           }
-        }
-      });
+        });
 
-      final firstNavigation = routing.navigate('/slow-pending');
-      await root.slowPendingMiddleware.started;
-      final secondNavigation = routing.navigate('/slow-pending');
+        final firstNavigation = routing.navigate('/slow-pending');
+        await root.slowPendingMiddleware.started;
+        final secondNavigation = routing.navigate('/slow-pending');
 
-      root.slowPendingMiddleware.release();
-      await Future.wait([firstNavigation, secondNavigation]);
-      await eventsDone.future;
-      await sub.cancel();
+        root.slowPendingMiddleware.release();
+        await Future.wait([firstNavigation, secondNavigation]);
+        await eventsDone.future;
+        await sub.cancel();
 
-      final previewEvents = events.where((event) => event.isPreview).toList();
-      final finalEvents = events.where((event) => !event.isPreview).toList();
+        final previewEvents = events.where((event) => event.isPreview).toList();
+        final finalEvents = events.where((event) => !event.isPreview).toList();
 
-      expect(events.length, 2);
-      expect(previewEvents.length, 1);
-      expect(finalEvents.length, 1);
-      expect(previewEvents.every((event) => event.view == 'preview:/slow-pending'), isTrue);
-      expect(finalEvents.every((event) => event.view == 'built:/slow-pending'), isTrue);
-    });
+        expect(events.length, 2);
+        expect(previewEvents.length, 1);
+        expect(finalEvents.length, 1);
+        expect(
+          previewEvents.every((event) => event.view == 'preview:/slow-pending'),
+          isTrue,
+        );
+        expect(
+          finalEvents.every((event) => event.view == 'built:/slow-pending'),
+          isTrue,
+        );
+      },
+    );
 
-    test('skipPreview on forwarded navigation still does not duplicate stream events', () async {
-      final events = <ViewChangedEvent<String, _Cfg>>[];
-      final eventsDone = Completer<void>();
-      final sub = routing.viewStream.listen((event) {
-        if (event.view.contains('/slow-pending')) {
-          events.add(event);
-          if (events.length == 2 && !eventsDone.isCompleted) {
-            eventsDone.complete();
+    test(
+      'skipPreview on forwarded navigation still does not duplicate stream events',
+      () async {
+        final events = <ViewChangedEvent<String, _Cfg>>[];
+        final eventsDone = Completer<void>();
+        final sub = routing.viewStream.listen((event) {
+          if (event.view.contains('/slow-pending')) {
+            events.add(event);
+            if (events.length == 2 && !eventsDone.isCompleted) {
+              eventsDone.complete();
+            }
           }
-        }
-      });
+        });
 
-      final firstNavigation = routing.navigate('/slow-pending');
-      await root.slowPendingMiddleware.started;
-      final secondNavigation = routing.navigate('/slow-pending', skipPreview: true);
+        final firstNavigation = routing.navigate('/slow-pending');
+        await root.slowPendingMiddleware.started;
+        final secondNavigation = routing.navigate(
+          '/slow-pending',
+          skipPreview: true,
+        );
 
-      root.slowPendingMiddleware.release();
-      await Future.wait([firstNavigation, secondNavigation]);
-      await eventsDone.future;
-      await sub.cancel();
+        root.slowPendingMiddleware.release();
+        await Future.wait([firstNavigation, secondNavigation]);
+        await eventsDone.future;
+        await sub.cancel();
 
-      final previewEvents = events.where((event) => event.isPreview).toList();
-      final finalEvents = events.where((event) => !event.isPreview).toList();
+        final previewEvents = events.where((event) => event.isPreview).toList();
+        final finalEvents = events.where((event) => !event.isPreview).toList();
 
-      expect(events.length, 2);
-      expect(previewEvents.length, 1);
-      expect(finalEvents.length, 1);
-      expect(previewEvents.single.view, 'preview:/slow-pending');
-      expect(finalEvents.every((event) => event.view == 'built:/slow-pending'), isTrue);
-    });
+        expect(events.length, 2);
+        expect(previewEvents.length, 1);
+        expect(finalEvents.length, 1);
+        expect(previewEvents.single.view, 'preview:/slow-pending');
+        expect(
+          finalEvents.every((event) => event.view == 'built:/slow-pending'),
+          isTrue,
+        );
+      },
+    );
 
-    test('activates module dependencies for leading-slash module routes', () async {
-      await di.reset(dispose: false);
-      final slashRoot = _SlashRootModule(const _Cfg('cfg'));
-      await slashRoot.initialize();
-      final slashRouting = di.get<RoutingService<String, _Cfg>>();
+    test(
+      'activates module dependencies for leading-slash module routes',
+      () async {
+        await di.reset(dispose: false);
+        final slashRoot = _SlashRootModule(const _Cfg('cfg'));
+        await slashRoot.initialize();
+        await slashRoot.activate();
+        final slashRouting = di.get<RoutingService<String, _Cfg>>();
 
-      await slashRouting.navigate('/feature/child');
+        await slashRouting.navigate('/feature/child');
 
-      expect(slashRoot.featureModule.activateCalls, 1);
-      expect(slashRoot.dependencyModule.activateCalls, 1);
-    });
+        expect(slashRoot.featureModule.activateCalls, 1);
+        expect(slashRoot.dependencyModule.activateCalls, 1);
+      },
+    );
 
     test(
       'does not reinitialize routed module that was already mounted via imports',
@@ -535,6 +565,7 @@ void main() {
         await di.reset(dispose: false);
         final guardedRoot = _GuardedRootModule(const _Cfg('cfg'));
         await guardedRoot.initialize();
+        await guardedRoot.activate();
         final guardedRouting = di.get<RoutingService<String, _Cfg>>();
 
         final repoBeforeNavigation = await di.getAsync<_GuardedRepo>();
@@ -830,8 +861,7 @@ class _SlashFeatureModule extends Module<String, _Cfg> {
 }
 
 class _SlashRootModule extends RootModule<String, _Cfg> {
-  _SlashRootModule(super.cfg)
-    : dependencyModule = _DependencyTrackingModule();
+  _SlashRootModule(super.cfg) : dependencyModule = _DependencyTrackingModule();
 
   final _DependencyTrackingModule dependencyModule;
   late final _SlashFeatureModule featureModule = _SlashFeatureModule(

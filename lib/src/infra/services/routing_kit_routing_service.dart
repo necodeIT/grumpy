@@ -13,9 +13,7 @@ class RoutingKitRoutingService<T, Config extends Object>
     ModuleRegistryService<T, Config>? moduleRegistry,
     this.caseSensitive = false,
   }) : moduleRegistry = moduleRegistry ?? ModuleRegistryService<T, Config>(),
-       super.internal() {
-    initialize();
-  }
+       super.internal();
 
   /// Centralized module lifecycle manager.
   final ModuleRegistryService<T, Config> moduleRegistry;

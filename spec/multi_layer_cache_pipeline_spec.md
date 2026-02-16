@@ -1,6 +1,6 @@
 # Multi-Layer Cache Pipeline Spec
 
-Status: Proposed
+Status: Implemented
 Owner: grumpy runtime
 Target: query/read-path caching across memory and file storage, with query execution on cache miss
 

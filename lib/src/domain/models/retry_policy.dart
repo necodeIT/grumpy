@@ -7,7 +7,6 @@ part 'retry_policy.freezed.dart';
 
 @freezed
 abstract class RetryPolicy extends Model with _$RetryPolicy {
-
   /// Creates a [RetryPolicy] with the specified [delay] and [maxAttempts].
   @Assert('maxAttempts > 0', 'maxAttempts must be greater than 0')
   const factory RetryPolicy({

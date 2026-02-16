@@ -1,6 +1,6 @@
 # Module-Managed Injectable Lifecycle Spec
 
-Status: Proposed
+Status: Implemented
 Owner: grumpy runtime
 Target: first-class module lifecycle orchestration for lifecycle-capable Services and Datasources
 

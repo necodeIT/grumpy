@@ -13,9 +13,7 @@ class CanonicalModuleRegistryService<T, Config extends Object>
     extends ModuleRegistryService<T, Config>
     with LifecycleMixin {
   /// Creates a module registry service.
-  CanonicalModuleRegistryService() : super.internal() {
-    initialize();
-  }
+  CanonicalModuleRegistryService() : super.internal();
 
   final Map<Type, Module<T, Config>> _modulesByType = {};
   final Map<Module<T, Config>, Set<Module<T, Config>>> _dependencyGraph = {};
@@ -27,9 +25,8 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   GetIt get _di => GetIt.instance;
 
   @override
-  Map<Type, Module<T, Config>> get modulesByType => Map.unmodifiable(
-    _modulesByType,
-  );
+  Map<Type, Module<T, Config>> get modulesByType =>
+      Map.unmodifiable(_modulesByType);
 
   @override
   Set<Module<T, Config>> get activeModules => Set.unmodifiable(_activeModules);
@@ -38,7 +35,8 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   Map<Module<T, Config>, Set<Module<T, Config>>> get dependencyGraph {
     return Map.unmodifiable(
       _dependencyGraph.map(
-        (module, deps) => MapEntry(module, Set<Module<T, Config>>.unmodifiable(deps)),
+        (module, deps) =>
+            MapEntry(module, Set<Module<T, Config>>.unmodifiable(deps)),
       ),
     );
   }
@@ -70,7 +68,10 @@ class CanonicalModuleRegistryService<T, Config extends Object>
       );
     }
 
-    final deps = _dependencyGraph.putIfAbsent(canonical, () => <Module<T, Config>>{});
+    final deps = _dependencyGraph.putIfAbsent(
+      canonical,
+      () => <Module<T, Config>>{},
+    );
     try {
       for (final imported in module.imports) {
         deps.add(_canonicalize(imported, visiting));

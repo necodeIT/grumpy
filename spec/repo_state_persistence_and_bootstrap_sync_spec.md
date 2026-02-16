@@ -1,6 +1,6 @@
 # Repo State Persistence and Bootstrap Sync Spec
 
-Status: Proposed
+Status: Implemented
 Owner: grumpy runtime
 Target: durable repo state hydration at startup + background synchronization with remote
 

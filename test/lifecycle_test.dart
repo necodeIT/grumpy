@@ -103,7 +103,6 @@ void main() {
 }
 
 class _LifecycleTarget with Disposable, LifecycleMixin {
-
   _LifecycleTarget() {
     initialize();
   }
@@ -142,7 +141,6 @@ class _LifecycleTarget with Disposable, LifecycleMixin {
 
 class _HookedLifecycle
     with Disposable, LogMixin, LifecycleMixin, LifecycleHooksMixin {
-
   _HookedLifecycle() {
     initialize();
   }

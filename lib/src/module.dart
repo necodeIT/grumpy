@@ -17,6 +17,8 @@ abstract class Module<RouteType, Config extends Object>
   GetIt get _di => GetIt.instance;
 
   bool _isActive = false;
+  bool _isActivating = false;
+  bool _isInitializing = false;
 
   @override
   String get group => 'Module';
@@ -26,8 +28,12 @@ abstract class Module<RouteType, Config extends Object>
 
   bool _disposed = false;
   final List<Future<Repo<dynamic>> Function()> _repoResolvers = [];
+  final List<Future<LifecycleMixin> Function()> _injectableResolvers = [];
   final List<Repo<dynamic>> _activeRepos = [];
   final Set<Repo<dynamic>> _activeRepoSet = {};
+  final List<LifecycleMixin> _activeInjectables = [];
+  final Set<LifecycleMixin> _activeInjectableSet = {};
+  final Set<LifecycleMixin> _initializedInjectables = {};
 
   /// Override this getter to import other modules.
   ///
@@ -75,10 +81,33 @@ abstract class Module<RouteType, Config extends Object>
   }
 
   void _bindInjectable<T extends Injectable>(Builder<T, Config> builder) {
-    final instance = builder(_di.get<Config>(), _di.get);
+    final probe = builder(_di.get<Config>(), _di.get);
+    final lifecycleManaged = probe is LifecycleMixin;
 
-    if (instance.singelton) {
-      _di.registerLazySingleton<T>(() => builder(_di.get<Config>(), _di.get));
+    if (lifecycleManaged && !probe.singelton) {
+      throw StateError(
+        'Lifecycle-capable injectable ${probe.runtimeType} must be singleton. '
+        'Set singelton => true or remove LifecycleMixin.',
+      );
+    }
+
+    if (probe.singelton) {
+      _di.registerLazySingleton<T>(() {
+        if (lifecycleManaged &&
+            !_isActive &&
+            !_isActivating &&
+            !_isInitializing) {
+          throw StateError(
+            'Lifecycle-managed injectable ${probe.runtimeType} cannot be resolved '
+            'before $runtimeType.activate() completes.',
+          );
+        }
+        return builder(_di.get<Config>(), _di.get);
+      });
+
+      if (lifecycleManaged) {
+        _injectableResolvers.add(() async => _di.get<T>() as LifecycleMixin);
+      }
     } else {
       _di.registerFactory<T>(() => builder(_di.get<Config>(), _di.get));
     }
@@ -93,12 +122,28 @@ abstract class Module<RouteType, Config extends Object>
       await module.activate();
     }
 
-    for (final resolveRepo in _repoResolvers) {
-      final repo = await resolveRepo();
-      if (_activeRepoSet.add(repo)) {
-        await repo.activate();
-        _activeRepos.add(repo);
+    _isActivating = true;
+    try {
+      for (final resolveInjectable in _injectableResolvers) {
+        final injectable = await resolveInjectable();
+        if (_initializedInjectables.add(injectable)) {
+          await injectable.initialize();
+        }
+        if (_activeInjectableSet.add(injectable)) {
+          await injectable.activate();
+          _activeInjectables.add(injectable);
+        }
       }
+
+      for (final resolveRepo in _repoResolvers) {
+        final repo = await resolveRepo();
+        if (_activeRepoSet.add(repo)) {
+          await repo.activate();
+          _activeRepos.add(repo);
+        }
+      }
+    } finally {
+      _isActivating = false;
     }
 
     _isActive = true;
@@ -115,48 +160,72 @@ abstract class Module<RouteType, Config extends Object>
     _activeRepos.clear();
     _activeRepoSet.clear();
 
+    for (final injectable in _activeInjectables.reversed) {
+      await injectable.deactivate();
+    }
+    _activeInjectables.clear();
+    _activeInjectableSet.clear();
+
     for (final module in imports.reversed) {
       await module.deactivate();
     }
     _isActive = false;
   }
 
+  @override
+  FutureOr<void> dependenciesChanged() async {
+    if (!_isActive) return;
+
+    for (final injectable in _activeInjectables) {
+      await injectable.dependenciesChanged();
+    }
+
+    for (final repo in _activeRepos) {
+      await repo.dependenciesChanged();
+    }
+  }
+
   @mustCallSuper
   @override
   FutureOr<void> initialize() async {
-    for (final module in imports) {
-      await _mount(module);
+    _isInitializing = true;
+    try {
+      for (final module in imports) {
+        await _mount(module);
+      }
+
+      _di.pushNewScope(scopeName: runtimeType.toString(), dispose: free);
+
+      bindExternalDeps(<T extends Object>(builder) {
+        _di.registerSingleton<T>(builder(_di.get<Config>(), _di.get));
+      });
+
+      bindServices(<T extends Service>(Builder<T, Config> builder) {
+        _bindInjectable<T>(builder);
+      });
+
+      bindDatasources(<T extends Datasource>(Builder<T, Config> builder) {
+        _bindInjectable<T>(builder);
+      });
+
+      bindRepos(<T extends Repo>(Builder<Repo, Config> builder) {
+        _repoResolvers.add(() async => await _di.getAsync<T>());
+
+        _di.registerLazySingletonAsync<T>(
+          () async {
+            final repo = builder(_di.get<Config>(), _di.get);
+
+            await repo.initialize();
+            return repo as T;
+          },
+          dispose: (repo) async {
+            await repo.free();
+          },
+        );
+      });
+    } finally {
+      _isInitializing = false;
     }
-
-    _di.pushNewScope(scopeName: runtimeType.toString(), dispose: free);
-
-    bindExternalDeps(<T extends Object>(builder) {
-      _di.registerSingleton<T>(builder(_di.get<Config>(), _di.get));
-    });
-
-    bindServices(<T extends Service>(Builder<T, Config> builder) {
-      _bindInjectable<T>(builder);
-    });
-
-    bindDatasources(<T extends Datasource>(Builder<T, Config> builder) {
-      _bindInjectable<T>(builder);
-    });
-
-    bindRepos(<T extends Repo>(Builder<Repo, Config> builder) {
-      _repoResolvers.add(() async => await _di.getAsync<T>());
-
-      _di.registerLazySingletonAsync<T>(
-        () async {
-          final repo = builder(_di.get<Config>(), _di.get);
-
-          await repo.initialize();
-          return repo as T;
-        },
-        dispose: (repo) async {
-          await repo.free();
-        },
-      );
-    });
   }
 
   @override
@@ -235,16 +304,58 @@ abstract class RootModule<RouteType, Config extends Object>
         moduleRegistry: resolve<ModuleRegistryService<RouteType, Config>>(),
       );
 
+  /// Creates the in-memory cache layer service instance.
+  Builder<MemoryCacheLayerService, Config> get memoryCacheLayerServiceBuilder =>
+      (cfg, _) => InMemoryCacheLayerService();
+
+  /// Creates the optional file cache layer service instance.
+  Builder<FileCacheLayerService, Config>? get fileCacheLayerServiceBuilder =>
+      null;
+
+  /// Creates the cache pipeline service instance.
+  Builder<CachePipelineService, Config> get cachePipelineServiceBuilder =>
+      (cfg, resolve) => DefaultCachePipelineService(
+        memoryLayer: resolve<MemoryCacheLayerService>(),
+        fileLayer: fileCacheLayerServiceBuilder == null
+            ? null
+            : resolve<FileCacheLayerService>(),
+      );
+
+  /// Creates the repo snapshot persistence service instance.
+  Builder<RepoStatePersistenceService, Config>
+  get repoStatePersistenceServiceBuilder =>
+      (cfg, _) => NoopRepoStatePersistenceService();
+
+  /// Creates the repo bootstrap orchestrator service instance.
+  Builder<RepoBootstrapService, Config> get repoBootstrapServiceBuilder =>
+      (cfg, resolve) => DefaultRepoBootstrapService(
+        persistenceService: resolve<RepoStatePersistenceService>(),
+      );
+
   @override
   FutureOr<void> initialize() {
     _di.registerSingleton<Config>(cfg);
 
-    _bindInjectable<TelemetryService>(telemetryServiceBuilder);
-    _bindInjectable<AnalyticsService>(analyticsServiceBuilder);
-    _bindInjectable<ModuleRegistryService<RouteType, Config>>(
-      moduleRegistryServiceBuilder,
-    );
-    _bindInjectable<RoutingService<RouteType, Config>>(routingServiceBuilder);
+    _isInitializing = true;
+    try {
+      _bindInjectable<TelemetryService>(telemetryServiceBuilder);
+      _bindInjectable<AnalyticsService>(analyticsServiceBuilder);
+      _bindInjectable<ModuleRegistryService<RouteType, Config>>(
+        moduleRegistryServiceBuilder,
+      );
+      _bindInjectable<RoutingService<RouteType, Config>>(routingServiceBuilder);
+      _bindInjectable<MemoryCacheLayerService>(memoryCacheLayerServiceBuilder);
+      if (fileCacheLayerServiceBuilder != null) {
+        _bindInjectable<FileCacheLayerService>(fileCacheLayerServiceBuilder!);
+      }
+      _bindInjectable<CachePipelineService>(cachePipelineServiceBuilder);
+      _bindInjectable<RepoStatePersistenceService>(
+        repoStatePersistenceServiceBuilder,
+      );
+      _bindInjectable<RepoBootstrapService>(repoBootstrapServiceBuilder);
+    } finally {
+      _isInitializing = false;
+    }
 
     return super.initialize();
   }

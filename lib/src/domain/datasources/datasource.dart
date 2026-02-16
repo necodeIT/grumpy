@@ -4,8 +4,6 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
-// this is the base class.
-// ignore: datasources_must_extend_datasource
 /// A datasource is responsible for providing data from a specific source,
 /// such as a database, API, or local storage.
 @BaseClass(allowedLayers: {.domain, .infra})
