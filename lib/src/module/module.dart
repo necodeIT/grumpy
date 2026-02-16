@@ -13,6 +13,7 @@ export '../presentation/presentation.dart';
 import 'dart:async';
 
 import 'package:get_it/get_it.dart' hide Disposable;
+import 'package:grumpy/src/transactions/infra/services/services.dart';
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
@@ -24,7 +25,6 @@ import 'package:grumpy/src/persistence/infra/services/noop_repo_state_persistenc
 import 'package:grumpy/src/routing/infra/services/routing_kit_routing_service.dart';
 import 'package:grumpy/src/telemetry/infra/services/noop_analytics_service.dart';
 import 'package:grumpy/src/telemetry/infra/services/noop_telemetry_service.dart';
-import 'package:grumpy/src/transactions/infra/services/default_tx_engine_service.dart';
 
 /// A modular unit of functionality within an application.
 abstract class Module<RouteType, Config extends Object>
@@ -347,9 +347,11 @@ abstract class RootModule<RouteType, Config extends Object>
         persistenceService: resolve<RepoStatePersistenceService>(),
       );
 
-  /// Creates the transaction engine service instance.
-  Builder<TxEngineService, Config> get txEngineServiceBuilder =>
-      (cfg, _) => const DefaultTxEngineService();
+  /// Creates the transaction-engine factory service instance.
+  ///
+  /// Override this to customize engine selection/creation strategy.
+  Builder<TxEngineFactoryService, Config> get txEngineFactoryServiceBuilder =>
+      (cfg, _) => DefaultTxEngineFactoryService();
 
   @override
   FutureOr<void> initialize() {
@@ -372,7 +374,7 @@ abstract class RootModule<RouteType, Config extends Object>
         repoStatePersistenceServiceBuilder,
       );
       _bindInjectable<RepoBootstrapService>(repoBootstrapServiceBuilder);
-      _bindInjectable<TxEngineService>(txEngineServiceBuilder);
+      _bindInjectable<TxEngineFactoryService>(txEngineFactoryServiceBuilder);
     } finally {
       _isInitializing = false;
     }

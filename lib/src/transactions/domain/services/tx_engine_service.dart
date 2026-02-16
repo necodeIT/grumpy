@@ -1,18 +1,5 @@
 import 'package:grumpy/grumpy.dart';
-
-/// Factory contract for creating per-repo transaction engines.
-abstract class TxEngineService extends Service {
-  /// Resolves the transaction engine service from DI.
-  factory TxEngineService() => Service.get<TxEngineService>();
-
-  /// Internal constructor for subclasses.
-  const TxEngineService.internal();
-
-  /// Creates a transaction engine seeded with [initial].
-  TxEngine<TState> create<TState>(TState initial);
-  @override
-  String get group => '${super.group}.TxEngineService';
-}
+import 'package:meta/meta.dart';
 
 /// Per-repo transaction state machine with optimistic replay.
 ///
@@ -25,38 +12,33 @@ abstract class TxEngineService extends Service {
 /// - UI-visible state is computed from `confirmed + projected pending`.
 /// - overlapping pending operations are resolved via newer-wins policy.
 /// - on settle, pending list is updated and visible state can be recomputed.
-// ignore: domain_factory_from_di_missing_factory
-class TxEngine<TState> {
-  /// Creates a transaction engine with initial confirmed state.
-  TxEngine(TState initial) : _confirmed = initial;
+abstract class TxEngine<TState> extends Service {
+  /// Resolves a transaction engine from DI.
+  factory TxEngine(TState seed) {
+    final engine = TxEngineFactoryService().create<TState>(seed);
+    engine.oil(seed);
+    return engine;
+  }
 
-  TState _confirmed;
-  int _confirmedVersion = 0;
-  int _nextOrder = 0;
+  /// Internal constructor for concrete implementations.
+  TxEngine.internal() : super();
 
-  final List<TxPending<TState>> _pending = <TxPending<TState>>[];
-  final Map<String, int> _latestSettledOrderByKey = <String, int>{};
+  /// Seeds or reseeds the engine with a confirmed baseline.
+  void oil(TState seed);
 
-  /// Current confirmed state.
-  TState get confirmed => _confirmed;
+  /// Current confirmed state baseline.
+  TState get confirmed;
 
   /// Monotonic confirmed version.
-  int get confirmedVersion => _confirmedVersion;
+  int get confirmedVersion;
 
   /// Read-only pending operations queue.
-  List<TxPending<TState>> get pending => List.unmodifiable(_pending);
+  List<TxPending<TState>> get pending;
 
   /// Computes current visible state by replaying projected pending ops.
   ///
   /// This should be used after enqueue/settle to produce render state.
-  TState computeVisible() {
-    final projected = resolveNewerWins<TState>(_pending);
-    var value = _confirmed;
-    for (final op in projected) {
-      value = op.apply(value);
-    }
-    return value;
-  }
+  TState computeVisible();
 
   /// Enqueues a new optimistic operation.
   ///
@@ -65,16 +47,7 @@ class TxEngine<TState> {
     required String id,
     required Set<String> touchedKeys,
     required TState Function(TState current) apply,
-  }) {
-    final pending = TxPending<TState>(
-      id: id,
-      enqueueOrder: _nextOrder++,
-      touchedKeys: touchedKeys,
-      apply: apply,
-    );
-    _pending.add(pending);
-    return pending;
-  }
+  });
 
   /// Settles operation [id] as success and optionally updates confirmed state.
   ///
@@ -88,37 +61,23 @@ class TxEngine<TState> {
     String id,
     TResult result,
     TState? Function(TState confirmed, TResult result) applyConfirmed,
-  ) {
-    final index = _pending.indexWhere((p) => p.id == id);
-    if (index < 0) return;
-    final settled = _pending.removeAt(index);
-
-    final overshadowed = settled.touchedKeys.any(
-      (key) => (_latestSettledOrderByKey[key] ?? -1) > settled.enqueueOrder,
-    );
-
-    if (overshadowed) {
-      return;
-    }
-
-    final next = applyConfirmed(_confirmed, result);
-    if (next != null) {
-      _confirmed = next;
-      _confirmedVersion++;
-    }
-
-    for (final key in settled.touchedKeys) {
-      final current = _latestSettledOrderByKey[key] ?? -1;
-      if (settled.enqueueOrder > current) {
-        _latestSettledOrderByKey[key] = settled.enqueueOrder;
-      }
-    }
-  }
+  );
 
   /// Settles operation [id] as failure by removing it from pending queue.
   ///
   /// Caller is expected to recompute visible state after this operation.
-  void settleFailure(String id) {
-    _pending.removeWhere((p) => p.id == id);
-  }
+  void settleFailure(String id);
+
+  @override
+  String get group => '${super.group}.TxEngine';
+
+  @override
+  String get logTag => 'TxEngine';
+
+  @override
+  void free();
+
+  @override
+  @nonVirtual
+  bool get singelton => false;
 }

@@ -10,7 +10,6 @@ import 'package:grumpy/grumpy.dart';
 class _Config {}
 
 class _RootModule extends RootModule<String, _Config> {
-
   _RootModule(super.cfg);
   @override
   final List<Route<String, _Config>> routes = [

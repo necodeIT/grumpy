@@ -9,7 +9,7 @@
 - Define retry/optimistic policy models.
 - Define transaction operation and pending/result models.
 - Define conflict resolution utilities (`newer-wins` by touched keys).
-- Define tx engine service contract and default implementation.
+- Define `TxEngine` as the transaction service object.
 - Provide repo mixins for action/mutation/transaction workflows.
 
 ## Key Concepts

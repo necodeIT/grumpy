@@ -2,20 +2,59 @@ import 'dart:async';
 
 import 'package:get_it/get_it.dart';
 import 'package:grumpy/grumpy.dart';
+import 'package:grumpy/src/transactions/infra/services/default_tx_engine_factory_service.dart';
 import 'package:test/test.dart';
+import '../../routing/harness/harness.dart';
 import '../harness/operation_based_mutations_harness.dart';
 
 void main() {
   final di = GetIt.instance;
 
   setUp(() async {
-    await di.reset();
+    await di.reset(dispose: false);
     di.registerSingleton<TelemetryService>(TestTelemetryService());
     di.registerSingleton<AnalyticsService>(TestAnalyticsService());
+    di.registerSingleton<TxEngineFactoryService>(
+      DefaultTxEngineFactoryService(),
+    );
   });
 
   tearDown(() async {
     await di.reset();
+  });
+
+  group('Dependency Injection', () {
+    test('engine is oiled with seed value', () {
+      final engine = TxEngine<int>(10);
+      expect(engine.confirmed, 10);
+    });
+
+    setUp(() async {
+      await di.reset(dispose: false);
+      await RootTestModule(const Cfg('t')).initialize();
+    });
+
+    tearDown(() async {
+      await di.reset(dispose: false);
+    });
+
+    test('supports tx engines of different types at once', () {
+      expect(TxEngine('test'), isNot(throwsException));
+      expect(TxEngine(10), isNot(throwsException));
+
+      final stringEngine = TxEngine('test');
+      final intEngine = TxEngine(10);
+
+      expect(stringEngine, isNot(same(intEngine)));
+      expect(stringEngine, isA<TxEngine<String>>());
+      expect(intEngine, isA<TxEngine<int>>());
+    });
+
+    test('always creates a new instance', () {
+      final engine1 = TxEngine<int>(10);
+      final engine2 = TxEngine<int>(10);
+      expect(engine1, isNot(same(engine2)));
+    });
   });
 
   group('Spec: operation_based_mutations (TxEngine)', () {

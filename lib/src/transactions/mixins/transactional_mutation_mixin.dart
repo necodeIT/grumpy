@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:grumpy_annotations/grumpy_annotations.dart';
 import 'package:grumpy/grumpy.dart';
-import 'package:get_it/get_it.dart';
-import 'package:grumpy/src/transactions/infra/services/default_tx_engine_service.dart';
 
 /// Transaction-based mutation adapter for repos.
 ///
@@ -63,14 +61,6 @@ mixin TransactionalMutationMixin<T>
     return tx;
   }
 
-  TxEngineService get _txEngineService {
-    final di = GetIt.I;
-    if (di.isRegistered<TxEngineService>()) {
-      return di.get<TxEngineService>();
-    }
-    return const DefaultTxEngineService();
-  }
-
   @mustCallInConstructor
   /// Installs lifecycle hooks required for transaction support.
   ///
@@ -80,7 +70,7 @@ mixin TransactionalMutationMixin<T>
     if (_installed) return;
 
     onData((data) {
-      _engine ??= _txEngineService.create<T>(data);
+      _engine ??= TxEngine<T>(data);
     });
 
     _installed = true;
