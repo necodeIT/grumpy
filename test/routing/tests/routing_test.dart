@@ -582,5 +582,28 @@ void main() {
       expect(repoAfterSecondNavigation.state.requireData, 'guarded');
       expect(guardedRoot.guardedModule.initializeCalls, 1);
     });
+
+    test('navigating to a route activates all dependencies', () async {
+      await di.reset(dispose: false);
+      final guardedRoot = RootTestModule(const Cfg('cfg'));
+      await guardedRoot.initialize();
+      await guardedRoot.activate();
+
+      final router = RoutingService<String, Cfg>();
+
+      await router.navigate('/dependent');
+
+      expect(DependentModule.initializeCalls, 1);
+      expect(DependentModule.activateCalls, 1);
+      expect(DependentModule.initialized, true);
+      expect(DependentModule.activated, true);
+      expect(TrackingModule.initializeCalls, 1);
+      expect(TrackingModule.activateCalls, 1);
+      expect(TrackingModule.initialized, true);
+      expect(TrackingModule.activated, true);
+
+      DependentModule.resetTrackers();
+      TrackingModule.resetTrackers();
+    });
   });
 }

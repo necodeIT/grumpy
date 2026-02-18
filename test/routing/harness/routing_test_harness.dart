@@ -108,6 +108,76 @@ class DummyModule extends Module<String, Object> {
   String get logTag => 'DummyModule';
 }
 
+class DependentModule extends Module<String, Cfg> {
+  static int initializeCalls = 0;
+  static int activateCalls = 0;
+  static bool initialized = false;
+  static bool activated = false;
+  @override
+  String get logTag => 'DependentModule';
+
+  @override
+  List<Route<String, Cfg>> get routes => [LeafRoute.root(TestLeaf())];
+
+  @override
+  List<Module<String, Cfg>> get imports => [TrackingModule()];
+
+  @override
+  Future<void> initialize() async {
+    initializeCalls++;
+    await super.initialize();
+    initialized = true;
+  }
+
+  @override
+  FutureOr<void> activate() async {
+    activateCalls++;
+    await super.activate();
+    activated = true;
+  }
+
+  static void resetTrackers() {
+    initializeCalls = 0;
+    activateCalls = 0;
+    initialized = false;
+    activated = false;
+  }
+}
+
+class TrackingModule extends Module<String, Cfg> {
+  static int initializeCalls = 0;
+  static int activateCalls = 0;
+  static bool initialized = false;
+  static bool activated = false;
+
+  static void resetTrackers() {
+    initializeCalls = 0;
+    activateCalls = 0;
+    initialized = false;
+    activated = false;
+  }
+
+  @override
+  Future<void> initialize() async {
+    initializeCalls++;
+    await super.initialize();
+    initialized = true;
+  }
+
+  @override
+  Future<void> activate() async {
+    activateCalls++;
+    await super.activate();
+    activated = true;
+  }
+
+  @override
+  List<Route<String, Cfg>> get routes => const [];
+
+  @override
+  String get logTag => 'TrackingModule';
+}
+
 class TestLeaf extends Leaf<String> {
   int previewCalls = 0;
   int buildCalls = 0;
@@ -203,6 +273,7 @@ class RootTestModule extends RootModule<String, Cfg> {
       middleware: [slowPendingMiddleware],
     ),
     ModuleRoute<String, Cfg>(path: 'module', module: featureModule),
+    ModuleRoute<String, Cfg>(path: 'dependent', module: DependentModule()),
     const Route<String, Cfg>(path: 'idk'),
   ];
 

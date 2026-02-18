@@ -18,6 +18,8 @@ class RoutingKitRoutingService<T, Config extends Object>
   /// Centralized module lifecycle manager.
   final ModuleRegistryService<T, Config> moduleRegistry;
 
+  Future<void> _currentNavigation = Future.value();
+
   RouteContext? _context;
 
   final Map<Uri, (Future<bool>, LeafRoute<T, Config>)> _pendingNavigations = {};
@@ -262,6 +264,7 @@ class RoutingKitRoutingService<T, Config extends Object>
       if (leaf is ModuleRoute<T, Config>) {
         leaf =
             leaf.root ??
+            leaf.module.routes.root ??
             (throw ArgumentError.value(
               path,
               'path',
@@ -283,6 +286,7 @@ class RoutingKitRoutingService<T, Config extends Object>
       final future = _navigate(uri, leaf, skipPreview, handler);
 
       _pendingNavigations[uri] = (future, leaf);
+      _currentNavigation = future;
       await future;
     } catch (e, s) {
       log('Navigation to $path failed with error', e, s);
@@ -356,4 +360,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   @override
   Stream<ViewChangedEvent<T, Config>> get viewStream =>
       _viewChangeController.stream.asBroadcastStream();
+
+  @override
+  Future<void> get currentNavigation => _currentNavigation;
 }

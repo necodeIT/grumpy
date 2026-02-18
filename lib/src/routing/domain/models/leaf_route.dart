@@ -28,4 +28,7 @@ class LeafRoute<T, Config extends Object> extends Route<T, Config> {
   String toString() {
     return 'ViewRoute(path: $path, view: $view, middleware: $middleware, children: $children)';
   }
+
+  /// `true` if this route is the root route.
+  bool get isRoot => path == '/';
 }

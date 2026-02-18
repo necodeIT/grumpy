@@ -6,6 +6,8 @@ class MutationRepo extends Repo<int>
         RepoLifecycleMixin<int>,
         RepoLifecycleHooksMixin<int>,
         TelemetryMixin,
+        /// This is a test case. we will remove this mixin once TransactionalMutationMixin is feature complete.
+        // ignore: deprecated_member_use_from_same_package
         MutationMixins<int> {
   MutationRepo() {
     installMutationHooks();
@@ -41,6 +43,8 @@ class UninitializedMutationRepo extends Repo<int>
         RepoLifecycleMixin<int>,
         RepoLifecycleHooksMixin<int>,
         TelemetryMixin,
+        /// This is a test case. we will remove this mixin once TransactionalMutationMixin is feature complete.
+        // ignore: deprecated_member_use_from_same_package
         MutationMixins<int> {
   @override
   Future<void> activate() async {}

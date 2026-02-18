@@ -57,7 +57,7 @@ class CanonicalModuleRegistryService<T, Config extends Object>
       _modulesByType[module.runtimeType] = module;
     } else if (!identical(existing, module)) {
       log(
-        'Canonicalizing duplicate ${module.runtimeType}.'
+        'Canonicalizing duplicate ${module.logTag}.'
         ' Using existing instance: $existing',
       );
     }
@@ -184,7 +184,7 @@ class CanonicalModuleRegistryService<T, Config extends Object>
     final toDeactivate = _activeModules.difference(required);
 
     log(
-      'Syncing modules: toActivate=$toActivate, toDeactivate=$toDeactivate, required=$required',
+      'Reconciling modules: toActivate=$toActivate, toDeactivate=$toDeactivate, required=$required',
     );
 
     final order = _topological(required);
@@ -196,20 +196,19 @@ class CanonicalModuleRegistryService<T, Config extends Object>
           // This module was mounted through legacy module import mounting.
           // Adopt it so we don't try to create a duplicate DI scope.
           _mountedModules.add(module);
-          log('Adopted externally mounted module: ${module.runtimeType}');
+          log('Adopted externally mounted module: $module');
         } else {
-          log('Initializing ${module.logTag}');
+          log('Initializing $module');
 
           await module.initialize();
-          log('Cock');
           _mountedModules.add(module);
-          log('Mounted module: ${module.runtimeType}');
+          log('Mounted module: $module');
         }
       }
-
+      log('Activating $module');
       await module.activate();
       _activeModules.add(module);
-      log('Activated module: ${module.runtimeType}');
+      log('Activated module: $module');
     }
 
     final deactivateOrder = _topological(_activeModules).reversed;
@@ -218,7 +217,7 @@ class CanonicalModuleRegistryService<T, Config extends Object>
 
       await module.deactivate();
       _activeModules.remove(module);
-      log('Deactivated module: ${module.runtimeType}');
+      log('Deactivated module: $module');
     }
 
     log('Sync complete.');

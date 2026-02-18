@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import 'package:grumpy/grumpy.dart';
+
+/// {@template tx_operation}
 /// Describes a single transaction intent for [TransactionalMutationMixin].
 ///
 /// A transaction operation models one user action end-to-end:
@@ -16,20 +19,32 @@ import 'dart:async';
 /// - `touchedKeys`: coarse conflict scope (for newer-wins overlap handling).
 /// - `commit`: the actual network/database mutation.
 /// - `applyConfirmed`: how server response updates confirmed state.
-abstract interface class TxOperation<TState, TResult> {
+/// {@endtemplate}
+abstract class TxOperation<TState, TResult> implements Model {
+  /// {@macro tx_operation}
+  const TxOperation({
+    required this.name,
+    required this.id,
+    required this.baseVersion,
+    required this.touchedKeys,
+  });
+
+  /// Default rollback policy that treats all errors as rollback-worthy.
+  static bool alwaysRollback(Object _, StackTrace? _) => true;
+
   /// Logical operation name used for telemetry/analytics.
-  String get name;
+  final String name;
 
   /// Unique operation identifier for this enqueue.
   ///
   /// Use [TransactionalMutationMixin.nextTxId] for a repo-scoped unique value.
-  String get id;
+  final String id;
 
   /// Confirmed version observed when this operation was created.
   ///
   /// This is informational in the current engine and is useful for telemetry
   /// or future policy decisions.
-  int get baseVersion;
+  final int baseVersion;
 
   /// Deterministic optimistic transform applied immediately to visible state.
   ///
@@ -37,7 +52,7 @@ abstract interface class TxOperation<TState, TResult> {
   TState optimisticApply(TState current);
 
   /// Performs the remote side effect and returns commit payload.
-  Future<TResult> commit();
+  Future<TResult> commit(TState current);
 
   /// Reconciles commit result into confirmed state.
   ///
@@ -55,83 +70,5 @@ abstract interface class TxOperation<TState, TResult> {
   ///
   /// Overlapping keys participate in newer-wins projection. Disjoint keys can
   /// be composed together.
-  Set<String> get touchedKeys;
-}
-
-/// Callback-based implementation of [TxOperation].
-///
-/// Useful for concise repo APIs:
-///
-/// ```dart
-/// Future<TxResult<SettingsState>> setTheme(String theme) {
-///   return transact<SettingsState>(
-///     SimpleTxOperation<SettingsState, SettingsState>(
-///       name: 'setTheme',
-///       id: nextTxId(),
-///       baseVersion: 0,
-///       touchedKeys: const {'settings.theme'},
-///       optimisticApply: (s) => s.copyWith(theme: theme),
-///       commit: () => _ds.setTheme(theme),
-///       applyConfirmed: (confirmed, result) => result,
-///     ),
-///   );
-/// }
-/// ```
-class SimpleTxOperation<TState, TResult>
-    implements TxOperation<TState, TResult> {
-  /// Creates a callback-based transaction operation.
-  const SimpleTxOperation({
-    required this.name,
-    required this.id,
-    required this.baseVersion,
-    required TState Function(TState current) optimisticApply,
-    required Future<TResult> Function() commit,
-    required TState? Function(TState confirmed, TResult result) applyConfirmed,
-    this.shouldRollbackOnError = _alwaysRollback,
-    this.touchedKeys = const <String>{'*'},
-  }) : _optimisticApply = optimisticApply,
-       _commit = commit,
-       _applyConfirmed = applyConfirmed;
-
-  static bool _alwaysRollback(Object _, StackTrace? _) => true;
-
-  @override
-  final String name;
-
-  @override
-  final String id;
-
-  @override
-  final int baseVersion;
-
-  final TState Function(TState current) _optimisticApply;
-
-  final Future<TResult> Function() _commit;
-
-  final TState? Function(TState confirmed, TResult result) _applyConfirmed;
-
-  /// Failure rollback callback.
-  ///
-  /// Defaults to always true.
-  final bool Function(Object error, StackTrace? stackTrace)
-  shouldRollbackOnError;
-
-  @override
   final Set<String> touchedKeys;
-
-  @override
-  TState optimisticApply(TState current) => _optimisticApply(current);
-
-  @override
-  Future<TResult> commit() => _commit();
-
-  @override
-  TState? applyConfirmed(TState confirmed, TResult result) {
-    return _applyConfirmed(confirmed, result);
-  }
-
-  @override
-  bool shouldRollback(Object error, StackTrace? stackTrace) {
-    return shouldRollbackOnError(error, stackTrace);
-  }
 }

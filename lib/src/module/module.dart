@@ -182,8 +182,6 @@ abstract class Module<RouteType, Config extends Object>
 
     log('Initializing...');
 
-    return;
-
     _isInitializing = true;
 
     try {
@@ -248,6 +246,9 @@ abstract class Module<RouteType, Config extends Object>
 
   /// The routes provided by this module.
   List<Route<RouteType, Config>> get routes;
+
+  @override
+  String toString() => '$logTag<$RouteType,$Config>';
 }
 
 /// A function that binds a [Builder] for a specific [Base] type with a given [Config].

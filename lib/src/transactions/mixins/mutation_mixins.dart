@@ -4,6 +4,10 @@ import 'package:grumpy/grumpy.dart';
 import 'package:grumpy_annotations/grumpy_annotations.dart';
 
 /// A mixin that provides mutation capabilities to a [Repo].
+
+@Deprecated(
+  'Use TransactionalMutationMixin instead for a more robust transaction-based mutation system.',
+)
 mixin MutationMixins<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   bool _installed = false;
   int _stateVersion = 0;

@@ -146,13 +146,13 @@ mixin TransactionalMutationMixin<T>
   }
 
   Future<Ret> _runWithRetries<Ret>(
-    FutureOr<Ret> Function() operation,
+    FutureOr<Ret> Function(T) operation,
     RetryPolicy retryPolicy,
     String spanName,
   ) async {
     for (var i = 0; i < retryPolicy.maxAttempts; i++) {
       try {
-        return await trace('try_$i', () async => operation());
+        return await trace('try_$i', () async => operation(_tx.confirmed));
       } catch (e) {
         if (i == retryPolicy.maxAttempts - 1) {
           log(

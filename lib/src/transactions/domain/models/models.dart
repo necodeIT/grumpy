@@ -1,4 +1,9 @@
 export 'retry_policy.dart';
 export 'optimistic_policy.dart';
-export 'tx_models.dart';
+export 'tx_pending.dart';
 export 'tx_operation.dart';
+export 'tx_result.dart';
+export 'simple_tx_operation.dart';
+export 'list_add_element_tx_operation.dart';
+export 'list_remove_element_tx_operation.dart';
+export 'list_update_element_tx_operation.dart';

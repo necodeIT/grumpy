@@ -10,3 +10,4 @@ pubspec.lock
 .fvm/
 custom_lint.log
 grumpy_lints.log
+build/

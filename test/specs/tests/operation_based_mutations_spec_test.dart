@@ -57,7 +57,7 @@ void main() {
     });
   });
 
-  group('Spec: operation_based_mutations (TxEngine)', () {
+  group('Spec: TxEngine', () {
     test('replays disjoint pending operations together', () {
       final engine = TxEngine<int>(10);
       engine.enqueue(
@@ -74,8 +74,7 @@ void main() {
       expect(
         engine.computeVisible(),
         36,
-        reason:
-            'Spec: operation_based_mutations §7 requires disjoint touched keys to compose naturally.',
+        reason: 'Spec: §7 requires disjoint touched keys to compose naturally.',
       );
     });
 
@@ -96,7 +95,7 @@ void main() {
         engine.computeVisible(),
         9,
         reason:
-            'Spec: operation_based_mutations §7 defines newer-wins optimistic projection for overlapping keys.',
+            'Spec: §7 defines newer-wins optimistic projection for overlapping keys.',
       );
     });
 
@@ -116,19 +115,19 @@ void main() {
           engine.confirmed,
           11,
           reason:
-              'Spec: operation_based_mutations §8.2 requires applyConfirmed output to update confirmed state.',
+              'Spec: §8.2 requires applyConfirmed output to update confirmed state.',
         );
         expect(
           engine.confirmedVersion,
           1,
           reason:
-              'Spec: operation_based_mutations §8.2 requires monotonic confirmed version increments on confirmed updates.',
+              'Spec: §8.2 requires monotonic confirmed version increments on confirmed updates.',
         );
         expect(
           engine.pending,
           isEmpty,
           reason:
-              'Spec: operation_based_mutations §8.2 removes settled operation from the pending queue.',
+              'Spec: §8.2 removes settled operation from the pending queue.',
         );
       },
     );
@@ -149,13 +148,13 @@ void main() {
           engine.confirmed,
           7,
           reason:
-              'Spec: operation_based_mutations §6.1 allows applyConfirmed to return null to keep confirmed unchanged.',
+              'Spec: §6.1 allows applyConfirmed to return null to keep confirmed unchanged.',
         );
         expect(
           engine.confirmedVersion,
           0,
           reason:
-              'Spec: operation_based_mutations §8.2 only increments confirmed version when confirmed state changes.',
+              'Spec: §8.2 only increments confirmed version when confirmed state changes.',
         );
       },
     );
@@ -180,7 +179,7 @@ void main() {
         engine.confirmed,
         20,
         reason:
-            'Spec: operation_based_mutations §7 requires newer overlapping intent to remain authoritative after settlement.',
+            'Spec: §7 requires newer overlapping intent to remain authoritative after settlement.',
       );
     });
 
@@ -205,19 +204,19 @@ void main() {
           engine.pending.map((e) => e.id).toList(),
           ['second'],
           reason:
-              'Spec: operation_based_mutations §8.3 requires failed operation removal from pending queue.',
+              'Spec: §8.3 requires failed operation removal from pending queue.',
         );
         expect(
           engine.computeVisible(),
           20,
           reason:
-              'Spec: operation_based_mutations §5 and §8.3 require visible replay from confirmed plus remaining pending ops.',
+              'Spec: §5 and §8.3 require visible replay from confirmed plus remaining pending ops.',
         );
       },
     );
   });
 
-  group('Spec: operation_based_mutations (TransactionalMutationMixin)', () {
+  group('Spec: TransactionalMutationMixin', () {
     test('throws when transaction hooks are not installed', () async {
       final repo = UninstalledTxRepo();
       repo.data(1);
@@ -228,12 +227,12 @@ void main() {
             name: 'x',
             id: 'x',
             optimistic: (v) => v + 1,
-            commit: () async => 2,
+            commit: (_) async => 2,
           ),
         ),
         throwsA(isA<StateError>()),
         reason:
-            'Spec: operation_based_mutations §6.3 requires lifecycle-installed transaction hooks before using transact.',
+            'Spec: §6.3 requires lifecycle-installed transaction hooks before using transact.',
       );
 
       await repo.free();
@@ -248,7 +247,7 @@ void main() {
           name: 'increment',
           id: repo.nextTxId(),
           optimistic: (value) => value + 1,
-          commit: () => commit.future,
+          commit: (_) => commit.future,
           applyConfirmed: (_, result) => result,
         ),
       );
@@ -258,7 +257,7 @@ void main() {
         repo.state.requireData,
         4,
         reason:
-            'Spec: operation_based_mutations §1 and §8.1 require immediate optimistic projection on enqueue.',
+            'Spec: §1 and §8.1 require immediate optimistic projection on enqueue.',
       );
 
       commit.complete(4);
@@ -267,14 +266,13 @@ void main() {
       expect(
         result.success,
         isTrue,
-        reason:
-            'Spec: operation_based_mutations §8.2 requires success outcome for successful commit.',
+        reason: 'Spec: §8.2 requires success outcome for successful commit.',
       );
       expect(
         repo.state.requireData,
         4,
         reason:
-            'Spec: operation_based_mutations §5 requires visible state to match replayed confirmed state after settlement.',
+            'Spec: §5 requires visible state to match replayed confirmed state after settlement.',
       );
     });
 
@@ -287,7 +285,7 @@ void main() {
           name: 'retrying',
           id: repo.nextTxId(),
           optimistic: (value) => value + 1,
-          commit: () async {
+          commit: (_) async {
             attempts++;
             if (attempts < 3) throw StateError('retry');
             return 3;
@@ -301,19 +299,19 @@ void main() {
         attempts,
         3,
         reason:
-            'Spec: operation_based_mutations §8.4 requires commit retries to respect RetryPolicy max attempts.',
+            'Spec: §8.4 requires commit retries to respect RetryPolicy max attempts.',
       );
       expect(
         result.success,
         isTrue,
         reason:
-            'Spec: operation_based_mutations §8.4 keeps optimistic op active across retries until commit succeeds.',
+            'Spec: §8.4 keeps optimistic op active across retries until commit succeeds.',
       );
       expect(
         repo.state.requireData,
         3,
         reason:
-            'Spec: operation_based_mutations §8.2 requires confirmed update after eventual successful retry.',
+            'Spec: §8.2 requires confirmed update after eventual successful retry.',
       );
     });
 
@@ -325,27 +323,25 @@ void main() {
           name: 'failing',
           id: repo.nextTxId(),
           optimistic: (value) => value + 5,
-          commit: () async => throw StateError('boom'),
+          commit: (_) async => throw StateError('boom'),
         ),
       );
 
       expect(
         result.success,
         isFalse,
-        reason:
-            'Spec: operation_based_mutations §8.3 requires failure outcome when commit fails.',
+        reason: 'Spec: §8.3 requires failure outcome when commit fails.',
       );
       expect(
         result.error,
         isA<StateError>(),
-        reason:
-            'Spec: operation_based_mutations §12 requires failure payload to be returned to caller.',
+        reason: 'Spec: §12 requires failure payload to be returned to caller.',
       );
       expect(
         repo.state.requireData,
         9,
         reason:
-            'Spec: operation_based_mutations §8.3 requires rollback by removing failed pending op and replaying remaining queue.',
+            'Spec: §8.3 requires rollback by removing failed pending op and replaying remaining queue.',
       );
     });
 
@@ -359,7 +355,7 @@ void main() {
         first == second,
         isFalse,
         reason:
-            'Spec: operation_based_mutations §6.1 requires each operation id to be unique per enqueue.',
+            'Spec: §6.1 requires each operation id to be unique per enqueue.',
       );
 
       await repo.free();
@@ -371,7 +367,7 @@ SimpleTxOperation<int, int> _op({
   required String name,
   required String id,
   required int Function(int current) optimistic,
-  required Future<int> Function() commit,
+  required Future<int> Function(int) commit,
   int? Function(int confirmed, int result)? applyConfirmed,
 }) {
   return SimpleTxOperation<int, int>(

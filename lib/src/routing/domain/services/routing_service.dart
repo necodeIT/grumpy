@@ -75,6 +75,10 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   /// A stream of all view change events.
   Stream<ViewChangedEvent<T, Config>> get viewStream;
 
+  /// Waits until the current route is ready and the view has been rendered.
+  @visibleForTesting
+  Future<void> get currentNavigation;
+
   @override
   bool get singelton => true;
 }
