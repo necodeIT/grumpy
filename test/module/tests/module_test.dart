@@ -32,7 +32,7 @@ void main() {
     await module.initialize();
     await module.activate();
 
-    expect(importModule.initializeCount, 1);
+    expect(importModule.initializeCount, 0);
     expect(importModule.disposeCount, 0);
 
     final externalA = di.get<ExternalDependency>();
@@ -104,7 +104,7 @@ void main() {
     final repo = await di.getAsync<FakeRepo>();
     await module.free();
 
-    expect(importModule.disposeCount, 1);
+    expect(importModule.disposeCount, 0);
     expect(repo.deactivateCount, greaterThanOrEqualTo(0));
     expect(repo.disposed, isTrue);
     expect(di.isRegistered<ExternalDependency>(), isFalse);

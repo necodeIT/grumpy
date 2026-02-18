@@ -50,13 +50,11 @@ abstract class Module<RouteType, Config extends Object>
   final Set<LifecycleMixin> _activeInjectableSet = {};
   final Set<LifecycleMixin> _initializedInjectables = {};
 
-  /// Override this getter to import other modules.
+  /// Override this getter to declare module dependencies.
   ///
-  /// Each imported module will be initialized and disposed of
-  /// along with this module - unless they were already mounted by another module.
+  /// Dependency mounting and activation are orchestrated by
+  /// [ModuleRegistryService].
   List<Module<RouteType, Config>> get imports => const [];
-
-  String? _firstImportScope;
 
   /// Override this method to bind external dependencies, such as dio configurations,
   /// http clients, or other third-party services.
@@ -78,22 +76,6 @@ abstract class Module<RouteType, Config extends Object>
   ///
   /// Called after [bindDatasources] during module initialization.
   void bindRepos(Bind<Repo, Config> bind) {}
-
-  Future<void> _mount(Module<RouteType, Config> module) async {
-    if (_di.hasScope(module.runtimeType.toString())) {
-      log('${module.runtimeType} is already mounted. Skipping.');
-      return;
-    }
-
-    log('Mounting module: ${module.runtimeType}');
-
-    _firstImportScope ??= module.runtimeType.toString();
-
-    await module.initialize();
-    await module.activate();
-
-    log('${module.runtimeType} mounted successfully.');
-  }
 
   void _bindInjectable<T extends Injectable>(Builder<T, Config> builder) {
     final probe = builder(_di.get<Config>(), _di.get);
@@ -132,10 +114,6 @@ abstract class Module<RouteType, Config extends Object>
   @override
   FutureOr<void> activate() async {
     if (_isActive) return;
-
-    for (final module in imports) {
-      await module.activate();
-    }
 
     _isActivating = true;
     try {
@@ -181,9 +159,6 @@ abstract class Module<RouteType, Config extends Object>
     _activeInjectables.clear();
     _activeInjectableSet.clear();
 
-    for (final module in imports.reversed) {
-      await module.deactivate();
-    }
     _isActive = false;
   }
 
@@ -203,26 +178,33 @@ abstract class Module<RouteType, Config extends Object>
   @mustCallSuper
   @override
   FutureOr<void> initialize() async {
-    _isInitializing = true;
-    try {
-      for (final module in imports) {
-        await _mount(module);
-      }
+    if (_isInitializing) return;
 
+    log('Initializing...');
+
+    return;
+
+    _isInitializing = true;
+
+    try {
       _di.pushNewScope(scopeName: runtimeType.toString(), dispose: free);
 
+      log('Binding external dependencies');
       bindExternalDeps(<T extends Object>(builder) {
         _di.registerSingleton<T>(builder(_di.get<Config>(), _di.get));
       });
 
+      log('Binding services');
       bindServices(<T extends Service>(Builder<T, Config> builder) {
         _bindInjectable<T>(builder);
       });
 
+      log('Binding datasources');
       bindDatasources(<T extends Datasource>(Builder<T, Config> builder) {
         _bindInjectable<T>(builder);
       });
 
+      log('Binding repositories');
       bindRepos(<T extends Repo>(Builder<Repo, Config> builder) {
         _repoResolvers.add(() async => await _di.getAsync<T>());
 
@@ -238,8 +220,16 @@ abstract class Module<RouteType, Config extends Object>
           },
         );
       });
+    } catch (e, s) {
+      log('Error during initialization', e, s);
+      if (_di.hasScope(runtimeType.toString())) {
+        _disposed = true;
+        await _di.popScopesTill(runtimeType.toString());
+      }
+      rethrow;
     } finally {
       _isInitializing = false;
+      log('Initialization complete.');
     }
   }
 
@@ -251,8 +241,8 @@ abstract class Module<RouteType, Config extends Object>
 
     await super.free();
 
-    if (_firstImportScope != null) {
-      await _di.popScopesTill(_firstImportScope!);
+    if (_di.hasScope(runtimeType.toString())) {
+      await _di.popScopesTill(runtimeType.toString());
     }
   }
 

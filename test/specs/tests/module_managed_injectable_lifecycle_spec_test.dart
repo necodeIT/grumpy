@@ -15,7 +15,7 @@ void main() {
   });
 
   group('Spec: module_managed_injectable_lifecycle', () {
-    test('activation order is imports then managed injectables then repos', () async {
+    test('activation order is managed injectables then repos', () async {
       final events = <String>[];
       final module = HostModule(
         events: events,
@@ -25,21 +25,14 @@ void main() {
         await module.initialize();
         await module.activate();
 
-        final importedActivate = events.indexOf('import.activate');
         final serviceActivate = events.indexOf('service.activate');
         final repoActivate = events.indexOf('repo.activate');
 
         expect(
-          importedActivate >= 0,
+          serviceActivate >= 0,
           isTrue,
           reason:
-              'Spec: module_managed_injectable_lifecycle §6.3 requires imported modules to activate first.',
-        );
-        expect(
-          serviceActivate > importedActivate,
-          isTrue,
-          reason:
-              'Spec: module_managed_injectable_lifecycle §6.3 requires managed injectables to activate after imports.',
+              'Spec: module_managed_injectable_lifecycle §6.3 requires managed injectables to activate.',
         );
         expect(
           repoActivate > serviceActivate,
@@ -52,48 +45,43 @@ void main() {
       }
     });
 
-    test(
-      'deactivation order is repos then managed injectables then imports',
-      () async {
-        final events = <String>[];
-        final module = HostModule(
-          events: events,
-          import: ImportedModule(events: events),
+    test('deactivation order is repos then managed injectables', () async {
+      final events = <String>[];
+      final module = HostModule(
+        events: events,
+        import: ImportedModule(events: events),
+      );
+      try {
+        await module.initialize();
+        await module.activate();
+        events.clear();
+
+        await module.deactivate();
+
+        final repoDeactivate = events.indexOf('repo.deactivate');
+        final serviceDeactivate = events.indexOf('service.deactivate');
+        expect(
+          repoDeactivate >= 0,
+          isTrue,
+          reason:
+              'Spec: module_managed_injectable_lifecycle §6.3 requires repos to deactivate first.',
         );
-        try {
-          await module.initialize();
-          await module.activate();
-          events.clear();
-
-          await module.deactivate();
-
-          final repoDeactivate = events.indexOf('repo.deactivate');
-          final serviceDeactivate = events.indexOf('service.deactivate');
-          final importDeactivate = events.indexOf('import.deactivate');
-
-          expect(
-            repoDeactivate >= 0,
-            isTrue,
-            reason:
-                'Spec: module_managed_injectable_lifecycle §6.3 requires repos to deactivate first.',
-          );
-          expect(
-            serviceDeactivate > repoDeactivate,
-            isTrue,
-            reason:
-                'Spec: module_managed_injectable_lifecycle §6.3 requires managed injectables to deactivate after repos.',
-          );
-          expect(
-            importDeactivate > serviceDeactivate,
-            isTrue,
-            reason:
-                'Spec: module_managed_injectable_lifecycle §6.3 requires imported modules to deactivate last.',
-          );
-        } finally {
-          await module.free();
-        }
-      },
-    );
+        expect(
+          serviceDeactivate > repoDeactivate,
+          isTrue,
+          reason:
+              'Spec: module_managed_injectable_lifecycle §6.3 requires managed injectables to deactivate after repos.',
+        );
+        expect(
+          serviceDeactivate >= 0,
+          isTrue,
+          reason:
+              'Spec: module_managed_injectable_lifecycle §6.3 requires managed injectables to deactivate after repos.',
+        );
+      } finally {
+        await module.free();
+      }
+    });
 
     test(
       'dependenciesChanged is delivered to active injectables before repos',

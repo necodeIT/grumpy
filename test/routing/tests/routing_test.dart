@@ -560,25 +560,27 @@ void main() {
       },
     );
 
-    test(
-      'does not reinitialize routed module that was already mounted via imports',
-      () async {
-        await di.reset(dispose: false);
-        final guardedRoot = GuardedRootModule(const Cfg('cfg'));
-        await guardedRoot.initialize();
-        await guardedRoot.activate();
-        final guardedRouting = di.get<RoutingService<String, Cfg>>();
+    test('lazy-mounts routed module and does not reinitialize it', () async {
+      await di.reset(dispose: false);
+      final guardedRoot = GuardedRootModule(const Cfg('cfg'));
+      await guardedRoot.initialize();
+      await guardedRoot.activate();
+      final guardedRouting = di.get<RoutingService<String, Cfg>>();
 
-        final repoBeforeNavigation = await di.getAsync<GuardedRepo>();
-        expect(repoBeforeNavigation.state.requireData, 'module repo data');
-        expect(guardedRoot.guardedModule.initializeCalls, 1);
+      expect(di.isRegistered<GuardedRepo>(), isFalse);
+      expect(guardedRoot.guardedModule.initializeCalls, 0);
 
-        await guardedRouting.navigate('/guarded/screen');
+      await guardedRouting.navigate('/guarded/screen');
 
-        final repoAfterNavigation = await di.getAsync<GuardedRepo>();
-        expect(repoAfterNavigation.state.requireData, 'guarded');
-        expect(guardedRoot.guardedModule.initializeCalls, 1);
-      },
-    );
+      final repoAfterFirstNavigation = await di.getAsync<GuardedRepo>();
+      expect(repoAfterFirstNavigation.state.requireData, 'guarded');
+      expect(guardedRoot.guardedModule.initializeCalls, 1);
+
+      await guardedRouting.navigate('/guarded/screen');
+
+      final repoAfterSecondNavigation = await di.getAsync<GuardedRepo>();
+      expect(repoAfterSecondNavigation.state.requireData, 'guarded');
+      expect(guardedRoot.guardedModule.initializeCalls, 1);
+    });
   });
 }

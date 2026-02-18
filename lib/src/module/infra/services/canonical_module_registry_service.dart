@@ -134,25 +134,32 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   @override
   Future<void> forceDispose(Module<T, Config> module) {
     final canonical = canonicalize(module);
-    return _pending = _pending.then((_) async {
-      _requiredRootModules.remove(canonical);
-      _activeModules.remove(canonical);
-      _mountedModules.remove(canonical);
-      _modulesByType.remove(canonical.runtimeType);
-      _dependencyGraph.remove(canonical);
-      for (final deps in _dependencyGraph.values) {
-        deps.remove(canonical);
-      }
+    return _pending = _pending.then(
+      (_) async {
+        _requiredRootModules.remove(canonical);
+        _activeModules.remove(canonical);
+        _mountedModules.remove(canonical);
+        _modulesByType.remove(canonical.runtimeType);
+        _dependencyGraph.remove(canonical);
+        for (final deps in _dependencyGraph.values) {
+          deps.remove(canonical);
+        }
 
-      await canonical.free();
-    }, onError: (_, _) {});
+        await canonical.free();
+      },
+      onError: (e, s) {
+        log('Error during forceDispose', e, s);
+      },
+    );
   }
 
   @override
   Future<void> sync(Iterable<Module<T, Config>> requiredModules) {
+    log('Syncing modules: $requiredModules');
     if (requiredModules.isEmpty &&
         _requiredRootModules.isEmpty &&
         _activeModules.isEmpty) {
+      log('No modules to sync.');
       return Future<void>.value();
     }
 
@@ -163,13 +170,22 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   }
 
   Future<void> _enqueueSync() {
-    return _pending = _pending.then((_) => _reconcile(), onError: (_, _) {});
+    log('Enqueuing sync...');
+    return _pending = () async {
+      log('Waiting for previous sync to complete...');
+      await _pending;
+      await _reconcile();
+    }();
   }
 
   Future<void> _reconcile() async {
     final required = resolveDependencies(_requiredRootModules);
     final toActivate = required.difference(_activeModules);
     final toDeactivate = _activeModules.difference(required);
+
+    log(
+      'Syncing modules: toActivate=$toActivate, toDeactivate=$toDeactivate, required=$required',
+    );
 
     final order = _topological(required);
     for (final module in order) {
@@ -182,7 +198,10 @@ class CanonicalModuleRegistryService<T, Config extends Object>
           _mountedModules.add(module);
           log('Adopted externally mounted module: ${module.runtimeType}');
         } else {
+          log('Initializing ${module.logTag}');
+
           await module.initialize();
+          log('Cock');
           _mountedModules.add(module);
           log('Mounted module: ${module.runtimeType}');
         }
@@ -201,6 +220,8 @@ class CanonicalModuleRegistryService<T, Config extends Object>
       _activeModules.remove(module);
       log('Deactivated module: ${module.runtimeType}');
     }
+
+    log('Sync complete.');
   }
 
   List<Module<T, Config>> _topological(Set<Module<T, Config>> modules) {
