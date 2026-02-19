@@ -98,7 +98,7 @@ class _RecordingRepoStatePersistenceService
   Future<void> free() async {}
 
   @override
-  String get logTag => 'RecordingRepoStatePersistenceService';
+  String get logTag => '_RecordingRepoStatePersistenceService';
 }
 
 class _NoopRepoBootstrapService extends RepoBootstrapService {
@@ -120,7 +120,7 @@ class _NoopRepoBootstrapService extends RepoBootstrapService {
   Future<void> free() async {}
 
   @override
-  String get logTag => 'NoopRepoBootstrapServiceForTests';
+  String get logTag => '_NoopRepoBootstrapService';
 }
 
 class _NullableStringCodec implements SerializationCodec<String?, String> {
@@ -167,5 +167,5 @@ class _NullablePersistentRepo extends Repo<String?>
   Future<String?> syncFromRemote() async => null;
 
   @override
-  String get logTag => 'NullablePersistentRepo';
+  String get logTag => '_NullablePersistentRepo';
 }

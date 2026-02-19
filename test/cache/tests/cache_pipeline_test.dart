@@ -105,7 +105,7 @@ class _ThrowingMemoryBackfillLayer extends MemoryCacheLayerService {
   Future<void> free() async {}
 
   @override
-  String get logTag => 'ThrowingMemoryBackfillLayer';
+  String get logTag => '_ThrowingMemoryBackfillLayer';
 }
 
 class _SeededFileLayer extends FileCacheLayerService {
@@ -136,7 +136,7 @@ class _SeededFileLayer extends FileCacheLayerService {
   Future<void> free() async {}
 
   @override
-  String get logTag => 'SeededFileLayer';
+  String get logTag => '_SeededFileLayer';
 }
 
 class _StaticMemoryLayer extends MemoryCacheLayerService {
@@ -170,7 +170,7 @@ class _StaticMemoryLayer extends MemoryCacheLayerService {
   Future<void> free() async {}
 
   @override
-  String get logTag => 'StaticMemoryLayer';
+  String get logTag => '_StaticMemoryLayer';
 }
 
 class _StaticFileLayer extends FileCacheLayerService {
@@ -204,5 +204,5 @@ class _StaticFileLayer extends FileCacheLayerService {
   Future<void> free() async {}
 
   @override
-  String get logTag => 'StaticFileLayer';
+  String get logTag => '_StaticFileLayer';
 }
