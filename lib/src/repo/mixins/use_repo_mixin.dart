@@ -9,9 +9,10 @@ import 'package:grumpy/grumpy.dart';
 mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   final _subs = <StreamSubscription>[];
   final _watchedRepos = <Type, Repo>{};
+  final _pendingRepoResolutions = <Type, Future<Repo<dynamic>>>{};
 
   bool _installed = false;
-  bool _handlingStateChange = false;
+  int _stateChangeVersion = 0;
 
   D? _lastData;
   E? _lastError;
@@ -21,22 +22,27 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     log(
       'Detected state change in dependencies (${changedRepo.runtimeType}). Re-evaluating...',
     );
+    final version = ++_stateChangeVersion;
+    await _rebuildDependencyState(version);
+  }
 
-    if (_handlingStateChange) return;
-    _handlingStateChange = true;
-    bool anyLoading = false;
+  Future<void> _rebuildDependencyState(int version) async {
+    var anyLoading = false;
     RepoErrorState? firstError;
+
+    D? nextData = _lastData;
+    E? nextError = _lastError;
+    L? nextLoading = _lastLoading;
 
     for (final repo in _watchedRepos.values) {
       if (repo.state.hasError) {
         log(
           'Dependency of type ${repo.runtimeType} has error. Rebuilding error state...',
         );
-        final errorState = repo.state.asError;
-
-        firstError = errorState;
+        firstError = repo.state.asError;
         break;
-      } else if (repo.state.isLoading) {
+      }
+      if (repo.state.isLoading) {
         log(
           'Dependency of type ${repo.runtimeType} is loading. Rebuilding loading state...',
         );
@@ -46,32 +52,49 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 
     final allDataReady = !anyLoading && firstError == null;
 
-    _lastError = firstError != null
-        ? await onDependencyError(firstError.error, firstError.stackTrace)
-        : null;
-    _lastLoading = anyLoading ? onDependenciesLoading() : null;
-
     try {
-      if (allDataReady) log('All dependencies are ready. Rebuilding data...');
-      _lastData = allDataReady ? await onDependenciesReady() : null;
-      if (allDataReady) log('Dependencies ready, obtained new data.');
+      if (firstError != null) {
+        nextError = await onDependencyError(
+          firstError.error,
+          firstError.stackTrace,
+        );
+        nextLoading = null;
+        nextData = null;
+      } else if (anyLoading) {
+        nextError = null;
+        nextLoading = onDependenciesLoading();
+        nextData = null;
+      } else if (allDataReady) {
+        log('All dependencies are ready. Rebuilding data...');
+        nextError = null;
+        nextLoading = null;
+        nextData = await onDependenciesReady();
+        log('Dependencies ready, obtained new data.');
+      }
     } on NoRepoDataError catch (e, st) {
       if (e.state.isLoading) {
-        _lastLoading = onDependenciesLoading();
-        _lastData = null;
+        nextError = null;
+        nextLoading = onDependenciesLoading();
+        nextData = null;
       } else {
-        _lastError = await onDependencyError(e, st);
-        _lastData = null;
+        nextError = await onDependencyError(e, st);
+        nextLoading = null;
+        nextData = null;
       }
     } catch (e, st) {
-      _lastError = await onDependencyError(e, st);
-      _lastData = null;
+      nextError = await onDependencyError(e, st);
+      nextLoading = null;
+      nextData = null;
     }
+
+    if (version != _stateChangeVersion) return;
+
+    _lastData = nextData;
+    _lastError = nextError;
+    _lastLoading = nextLoading;
 
     log('State rebuilt, notifying listeners...');
     await dependenciesChanged();
-
-    _handlingStateChange = false;
   }
 
   Future<void> _discover() async {
@@ -142,17 +165,41 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       return (repo.state.requireData, repo);
     }
 
-    final repo = await GetIt.I.getAsync<R>();
+    final pending = _pendingRepoResolutions[R];
+    if (pending != null) {
+      final repo = await pending as R;
+      return (repo.state.requireData, repo);
+    }
 
-    log('Discovered new dependency. Now watching repo of type $R');
+    final resolveAndWatch = (() async {
+      final repo = await GetIt.I.getAsync<R>();
+      if (_watchedRepos.containsKey(R)) {
+        return _watchedRepos[R] as R;
+      }
 
-    _watchedRepos[R] = repo;
+      log('Discovered new dependency. Now watching repo of type $R');
+      _watchedRepos[R] = repo;
 
-    final sub = repo.stream.listen((_) async {
-      await _onWatchedRepoStateChange(repo);
-    });
+      var ignoredInitialReplay = false;
+      final sub = repo.stream.listen((_) async {
+        if (!ignoredInitialReplay) {
+          ignoredInitialReplay = true;
+          return;
+        }
+        await _onWatchedRepoStateChange(repo);
+      });
 
-    _subs.add(sub);
+      _subs.add(sub);
+      return repo;
+    })();
+
+    _pendingRepoResolutions[R] = resolveAndWatch;
+    late final R repo;
+    try {
+      repo = await resolveAndWatch;
+    } finally {
+      await _pendingRepoResolutions.remove(R);
+    }
 
     return (repo.state.requireData, repo);
   }

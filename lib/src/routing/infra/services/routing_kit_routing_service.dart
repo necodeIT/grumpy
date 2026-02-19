@@ -43,9 +43,13 @@ class RoutingKitRoutingService<T, Config extends Object>
   RouteContext? get currentContext => _context;
 
   @override
-  FutureOr<void> free() {
-    super.free();
+  FutureOr<void> free() async {
+    await super.free();
     _listeners.clear();
+    _pendingNavigations.clear();
+    if (!_viewChangeController.isClosed) {
+      await _viewChangeController.close();
+    }
   }
 
   @override
@@ -81,8 +85,8 @@ class RoutingKitRoutingService<T, Config extends Object>
     _context = null;
     _listeners.clear();
     _moduleCache.clear();
+    _pendingNavigations.clear();
     await moduleRegistry.sync(<Module<T, Config>>[]);
-    await _viewChangeController.close();
   }
 
   @override
@@ -359,7 +363,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
   @override
   Stream<ViewChangedEvent<T, Config>> get viewStream =>
-      _viewChangeController.stream.asBroadcastStream();
+      _viewChangeController.stream;
 
   @override
   Future<void> get currentNavigation => _currentNavigation;

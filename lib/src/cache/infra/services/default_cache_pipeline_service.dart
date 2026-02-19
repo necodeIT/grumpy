@@ -31,48 +31,74 @@ class DefaultCachePipelineService extends CachePipelineService {
     required CachePolicy<Serialized> policy,
     SerializationCodec<T, Serialized>? codec,
   }) async {
-    CacheEntry<T>? fileEntry;
+    final layers =
+        <
+          ({
+            CacheSource source,
+            int priority,
+            Future<CacheEntry<T>?> Function() read,
+            Future<void> Function(CacheEntry<T> entry) write,
+          })
+        >[];
 
     if (policy.useMemory && _memoryLayer != null) {
-      try {
-        final memoryEntry = await _memoryLayer.read<T, Serialized>(
-          key,
-          codec: codec,
-        );
-        if (memoryEntry != null) {
-          return CacheResult<T>(
-            value: memoryEntry.value,
-            source: CacheSource.memory,
-            isStale: false,
-          );
-        }
-      } catch (e) {
-        if (policy.strictLayerErrors) rethrow;
-        log('Memory layer read failed for ${key.asStorageKey()}', e);
-      }
+      layers.add((
+        source: CacheSource.memory,
+        priority: _memoryLayer.priority,
+        read: () => _memoryLayer.read<T, Serialized>(key, codec: codec),
+        write: (entry) =>
+            _memoryLayer.write<T, Serialized>(key, entry, codec: codec),
+      ));
     }
 
     if (policy.useFile && _fileLayer != null) {
+      layers.add((
+        source: CacheSource.file,
+        priority: _fileLayer.priority,
+        read: () => _fileLayer.read<T, Serialized>(key, codec: codec),
+        write: (entry) =>
+            _fileLayer.write<T, Serialized>(key, entry, codec: codec),
+      ));
+    }
+
+    layers.sort((a, b) => a.priority.compareTo(b.priority));
+
+    for (final layer in layers) {
+      CacheEntry<T>? entry;
       try {
-        fileEntry = await _fileLayer.read<T, Serialized>(key, codec: codec);
+        entry = await layer.read();
       } catch (e) {
         if (policy.strictLayerErrors) rethrow;
-        log('File layer read failed for ${key.asStorageKey()}', e);
-      }
-
-      if (fileEntry != null) {
-        if (policy.backfillHigherLayers &&
-            policy.useMemory &&
-            _memoryLayer != null) {
-          await _memoryLayer.write<T, Serialized>(key, fileEntry, codec: codec);
-        }
-
-        return CacheResult<T>(
-          value: fileEntry.value,
-          source: CacheSource.file,
-          isStale: fileEntry.isExpired,
+        log(
+          '${layer.source == CacheSource.memory ? 'Memory' : 'File'} layer read failed for ${key.asStorageKey()}',
+          e,
         );
+        continue;
       }
+
+      if (entry == null) continue;
+
+      if (policy.backfillHigherLayers) {
+        for (final higherLayer in layers) {
+          if (higherLayer.priority >= layer.priority) continue;
+
+          try {
+            await higherLayer.write(entry);
+          } catch (e) {
+            if (policy.strictLayerErrors) rethrow;
+            log(
+              '${higherLayer.source == CacheSource.memory ? 'Memory' : 'File'} layer backfill failed for ${key.asStorageKey()}',
+              e,
+            );
+          }
+        }
+      }
+
+      return CacheResult<T>(
+        value: entry.value,
+        source: layer.source,
+        isStale: layer.source == CacheSource.file ? entry.isExpired : false,
+      );
     }
 
     return null;

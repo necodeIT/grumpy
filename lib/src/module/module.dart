@@ -50,6 +50,21 @@ abstract class Module<RouteType, Config extends Object>
   final Set<LifecycleMixin> _activeInjectableSet = {};
   final Set<LifecycleMixin> _initializedInjectables = {};
 
+  /// `true` if the module is active and ready to serve its functionality.
+  bool get isActive => _isActive;
+
+  /// `true` if the module is in the process of initializing.
+  bool get isInitializing => _isInitializing;
+
+  /// `true` if the module is in the process of activating.
+  bool get isActivating => _isActivating;
+
+  /// `true` if the module has been disposed and should no longer be used.
+  bool get isDisposed => _disposed;
+
+  /// `true` if the module is active and not in the process of initializing or activating.
+  bool get isReady => isActive && !isInitializing && !isActivating;
+
   /// Override this getter to declare module dependencies.
   ///
   /// Dependency mounting and activation are orchestrated by
@@ -135,11 +150,47 @@ abstract class Module<RouteType, Config extends Object>
           _activeRepos.add(repo);
         }
       }
+      _isActive = true;
+    } catch (e, s) {
+      await _rollbackFailedActivation(e, s);
+      rethrow;
     } finally {
       _isActivating = false;
     }
+  }
 
-    _isActive = true;
+  Future<void> _rollbackFailedActivation(Object error, StackTrace stack) async {
+    log(
+      'Activation failed. Rolling back activated dependencies.',
+      error,
+      stack,
+    );
+
+    for (final repo in _activeRepos.reversed) {
+      try {
+        await repo.deactivate();
+      } catch (e, s) {
+        log('Rollback deactivate failed for repo ${repo.runtimeType}', e, s);
+      }
+    }
+    _activeRepos.clear();
+    _activeRepoSet.clear();
+
+    for (final injectable in _activeInjectables.reversed) {
+      try {
+        await injectable.deactivate();
+      } catch (e, s) {
+        log(
+          'Rollback deactivate failed for injectable ${injectable.runtimeType}',
+          e,
+          s,
+        );
+      }
+    }
+    _activeInjectables.clear();
+    _activeInjectableSet.clear();
+
+    _isActive = false;
   }
 
   @mustCallSuper

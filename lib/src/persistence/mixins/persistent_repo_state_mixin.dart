@@ -71,6 +71,9 @@ mixin PersistentRepoStateMixin<T, Serialized extends Object>
       if (!persistencePolicy.enabled || !persistencePolicy.persistOnData) {
         return;
       }
+      if (!persistencePolicy.saveNullData && value == null) {
+        return;
+      }
 
       _persistDebounce?.cancel();
       _persistDebounce = Timer(persistencePolicy.persistDebounce, () async {
@@ -107,6 +110,10 @@ mixin PersistentRepoStateMixin<T, Serialized extends Object>
   }
 
   Future<void> _saveSnapshot(T value) async {
+    if (!persistencePolicy.saveNullData && value == null) {
+      return;
+    }
+
     final now = DateTime.now();
     await RepoStatePersistenceService().save<T, Serialized>(
       snapshotKey,
