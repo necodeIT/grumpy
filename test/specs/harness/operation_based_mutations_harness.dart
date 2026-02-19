@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'package:grumpy/grumpy.dart';
+import '../../shared/harness/harness.dart';
 
 class TxRepo extends Repo<int>
     with
@@ -25,41 +25,12 @@ class UninstalledTxRepo extends Repo<int>
   String get logTag => 'UninstalledTxRepo';
 }
 
-class TestTelemetryService extends TelemetryService {
-  TestTelemetryService() : super.internal();
-
-  @override
-  Future<T> runSpan<T>(
-    String name,
-    FutureOr<T> Function() operation, {
-    Map<String, dynamic>? attributes,
-  }) async {
-    return await operation();
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    return null;
-  }
-
+class TestTelemetryService extends RecordingTelemetryService {
   @override
   String get logTag => 'TestTelemetryService';
 }
 
-class TestAnalyticsService extends AnalyticsService {
-  TestAnalyticsService() : super.internal();
-
-  @override
-  Future<void> trackEvent(
-    String name, {
-    Map<String, dynamic>? properties,
-  }) async {}
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    return Future<void>.value();
-  }
-
+class TestAnalyticsService extends RecordingAnalyticsService {
   @override
   String get logTag => 'TestAnalyticsService';
 }

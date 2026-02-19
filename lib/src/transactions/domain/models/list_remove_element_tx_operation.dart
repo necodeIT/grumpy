@@ -19,7 +19,7 @@ class ListRemoveElementTxOperation<Element, TResult>
   }) : super(touchedKeys: const <String>{});
 
   @override
-  Set<String> get touchedKeys => {removeElement.toString()};
+  Set<String> get touchedKeys => {element.toString()};
 
   /// The element to be removed.
   final Element element;

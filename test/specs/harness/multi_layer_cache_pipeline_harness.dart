@@ -1,4 +1,5 @@
 import 'package:grumpy/grumpy.dart';
+import '../../shared/harness/harness.dart' as shared;
 
 class MemoryLayer extends MemoryCacheLayerService {
   MemoryLayer() : super.internal();
@@ -100,21 +101,7 @@ class FileLayer extends FileCacheLayerService {
   String get logTag => 'FileLayer';
 }
 
-class TestKey<T> implements CacheKey<T> {
-  const TestKey(this.namespace, this.primaryKey);
-
-  @override
-  final String namespace;
-
-  @override
-  final String primaryKey;
-
-  @override
-  String get schemaId => 'cache-schema-v1';
-
-  @override
-  int? get compatVersion => null;
-
-  @override
-  String asStorageKey() => '$namespace|$schemaId|$primaryKey';
+class TestKey<T> extends shared.TestKey<T> {
+  const TestKey(super.namespace, super.primaryKey)
+    : super(schemaId: 'cache-schema-v1');
 }

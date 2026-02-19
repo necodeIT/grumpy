@@ -1,5 +1,5 @@
-import 'dart:async';
 import 'package:grumpy/grumpy.dart';
+import '../../shared/harness/harness.dart';
 
 class TestQueryRepo extends Repo<List<TestItem>>
     with
@@ -72,48 +72,9 @@ class UninitializedQueryRepo extends Repo<List<TestItem>>
   String get logTag => 'UninitializedQueryRepo';
 }
 
-class TestTelemetryService extends TelemetryService {
-  TestTelemetryService() : super.internal();
+class TestTelemetryService extends RecordingTelemetryService {
+  Map<String, dynamic> get spanAttributes => spanAttributesMerged;
 
-  int runSpanCalls = 0;
-  final List<String> runSpanNames = [];
-  final Map<String, dynamic> spanAttributes = {};
-
-  @override
-  Future<void> recordEvent(
-    String name, {
-    Map<String, dynamic>? attributes,
-  }) async {}
-
-  @override
-  Future<void> recordException(
-    Object error, [
-    StackTrace? stackTrace,
-    Map<String, dynamic>? attributes,
-  ]) async {}
-
-  @override
-  Future<T> runSpan<T>(
-    String name,
-    FutureOr<T> Function() callback, {
-    Map<String, dynamic>? attributes,
-  }) async {
-    runSpanCalls++;
-    runSpanNames.add(name);
-    if (attributes != null) {
-      spanAttributes.addAll(attributes);
-    }
-
-    return await callback();
-  }
-
-  @override
-  void addSpanAttribute(String key, String value) {
-    spanAttributes[key] = value;
-  }
-
-  @override
-  FutureOr<void> free() {}
   @override
   String get logTag => 'TestTelemetryService';
 }
@@ -143,53 +104,7 @@ final seedItems = <TestItem>[
   ),
 ];
 
-class TestAnalyticsService extends AnalyticsService {
-  TestAnalyticsService() : super.internal();
-
-  int trackEventCalls = 0;
-  final List<String> trackedEventNames = [];
-  final List<Map<String, dynamic>?> trackedEventProperties = [];
-
-  @override
-  FutureOr<void> free() {}
-
-  @override
-  Future<void> groupUser(String groupId, {Map<String, dynamic>? traits}) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> identifyUser(String userId, {Map<String, dynamic>? traits}) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> recordNavigation(
-    String from,
-    String to, {
-    Map<String, dynamic>? properties,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> recordPageView(
-    String pageName, {
-    Map<String, dynamic>? properties,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> trackEvent(
-    String name, {
-    Map<String, dynamic>? properties,
-  }) async {
-    trackEventCalls++;
-    trackedEventNames.add(name);
-    trackedEventProperties.add(properties);
-  }
-
+class TestAnalyticsService extends RecordingAnalyticsService {
   @override
   String get logTag => 'TestAnalyticsService';
 }

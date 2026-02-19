@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:grumpy/grumpy.dart';
+export '../../shared/harness/harness.dart' show StringCodec;
 
 class InMemorySnapshotPersistence extends RepoStatePersistenceService {
   InMemorySnapshotPersistence() : super.internal();
@@ -51,14 +52,4 @@ class InMemorySnapshotPersistence extends RepoStatePersistenceService {
 class TestRepo extends Repo<String> {
   @override
   String get logTag => 'TestRepo';
-}
-
-class StringCodec implements SerializationCodec<String, String> {
-  const StringCodec();
-
-  @override
-  String decode(String payload) => payload;
-
-  @override
-  String encode(String value) => value;
 }
