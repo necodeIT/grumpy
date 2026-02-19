@@ -369,6 +369,42 @@ void main() {
       },
     );
 
+    test(
+      'suppresses sync failure emission when failureBehavior is silent',
+      () async {
+        final persistence = InMemorySnapshotPersistence()
+          ..stored = RepoSnapshot<String>(
+            data: 'local',
+            savedAt: DateTime.now(),
+          );
+        final service = DefaultRepoBootstrapService(
+          persistenceService: persistence,
+        );
+        final emittedData = <String>[];
+        final emittedErrors = <Object>[];
+
+        await service.bootstrap<String, String>(
+          repo: TestRepo(),
+          key: const RepoSnapshotKey(
+            namespace: 'repo',
+            primaryKey: 'users',
+            schemaId: 'v1',
+          ),
+          codec: const StringCodec(),
+          persistencePolicy: const RepoPersistencePolicy<String>(enabled: true),
+          bootstrapPolicy: const RepoBootstrapPolicy(
+            failureBehavior: SyncFailureBehavior.silent,
+          ),
+          sync: () async => throw StateError('sync failed'),
+          emitData: emittedData.add,
+          emitError: (error, st) => emittedErrors.add(error),
+        );
+
+        expect(emittedData, ['local']);
+        expect(emittedErrors, isEmpty);
+      },
+    );
+
     test('applies sync timeout and follows failure policy', () async {
       final persistence = InMemorySnapshotPersistence();
       final service = DefaultRepoBootstrapService(

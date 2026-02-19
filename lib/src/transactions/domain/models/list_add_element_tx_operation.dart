@@ -13,7 +13,7 @@ class ListAddElementTxOperation<Element, TResult>
     required this.element,
     required this.createElement,
     required this.apply,
-    this.shouldRollbackOnError = TxOperation.alwaysRollback,
+    super.shouldRollbackOnError = TxOperation.alwaysRollback,
   }) : super(touchedKeys: const <String>{});
 
   @override
@@ -27,10 +27,6 @@ class ListAddElementTxOperation<Element, TResult>
 
   /// Applies commit result to the optimistic element and returns the confirmed element.
   final Element Function(Element optimisticElement, TResult createResult) apply;
-
-  /// {@macro shouldRollbackOnError}
-  final bool Function(Object error, StackTrace? stackTrace)
-  shouldRollbackOnError;
 
   @override
   List<Element>? applyConfirmed(List<Element> confirmed, TResult result) {
@@ -47,6 +43,5 @@ class ListAddElementTxOperation<Element, TResult>
   }
 
   @override
-  bool shouldRollback(Object error, StackTrace? stackTrace) =>
-      shouldRollbackOnError(error, stackTrace);
+  String get logTag => 'ListAddElementTxOperation';
 }

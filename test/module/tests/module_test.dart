@@ -195,4 +195,25 @@ void main() {
       expect(() => module.initialize(), throwsA(isA<StateError>()));
     });
   });
+
+  group('Activation failure edge cases', () {
+    test(
+      'deactivates already-activated injectables after activation failure',
+      () async {
+        final module = ActivationFailureModule();
+        await module.initialize();
+
+        await expectLater(module.activate(), throwsA(isA<StateError>()));
+
+        final trackingService = di.get<TrackingLifecycleService>();
+        expect(trackingService.initializeCalls, 1);
+        expect(trackingService.activateCalls, 1);
+
+        await module.deactivate();
+        expect(trackingService.deactivateCalls, 1);
+
+        await module.free();
+      },
+    );
+  });
 }

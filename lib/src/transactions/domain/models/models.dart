@@ -7,3 +7,7 @@ export 'simple_tx_operation.dart';
 export 'list_add_element_tx_operation.dart';
 export 'list_remove_element_tx_operation.dart';
 export 'list_update_element_tx_operation.dart';
+export 'map_put_entry_tx_operation.dart';
+export 'map_remove_entry_tx_operation.dart';
+export 'map_update_entry_tx_operation.dart';
+export 'map_change_key_tx_operation.dart';

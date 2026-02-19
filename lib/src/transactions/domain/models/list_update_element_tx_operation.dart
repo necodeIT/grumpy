@@ -17,7 +17,7 @@ class ListUpdateElementTxOperation<Element, TResult>
     required this.apply,
     required this.optimisticUpdate,
     required this.updateElement,
-    this.shouldRollbackOnError = TxOperation.alwaysRollback,
+    super.shouldRollbackOnError = TxOperation.alwaysRollback,
   }) : super(touchedKeys: touchedElementKeys);
 
   @override
@@ -35,10 +35,6 @@ class ListUpdateElementTxOperation<Element, TResult>
 
   /// Updates the element on the remote and returns the commit result.
   final Future<TResult> Function(Element element) updateElement;
-
-  /// {@macro shouldRollbackOnError}
-  final bool Function(Object error, StackTrace? stackTrace)
-  shouldRollbackOnError;
 
   /// Applies commit result to the optimistic element and returns the confirmed element.
   final Element Function(Element optimisticElement, TResult result) apply;
@@ -73,6 +69,5 @@ class ListUpdateElementTxOperation<Element, TResult>
   }
 
   @override
-  bool shouldRollback(Object error, StackTrace? stackTrace) =>
-      shouldRollbackOnError(error, stackTrace);
+  String get logTag => 'ListUpdateElementTxOperation';
 }

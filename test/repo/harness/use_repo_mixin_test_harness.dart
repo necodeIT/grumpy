@@ -41,6 +41,48 @@ class UseRepoConsumer
   String get logTag => 'UseRepoConsumer';
 }
 
+class SlowSnapshotUseRepoConsumer
+    with
+        Disposable,
+        LogMixin,
+        LifecycleMixin,
+        LifecycleHooksMixin,
+        UseRepoMixin<String, String, String> {
+  SlowSnapshotUseRepoConsumer({this.delay = const Duration(milliseconds: 30)}) {
+    installUseRepoHooks();
+    initialize();
+  }
+
+  final Duration delay;
+  int readyCalls = 0;
+  String? lastSnapshot;
+  final Completer<void> firstSnapshotCaptured = Completer<void>();
+
+  @override
+  FutureOr<String> onDependenciesReady() async {
+    readyCalls++;
+    final (count, _) = await useRepo<int, IntRepo>();
+    final (label, _) = await useRepo<String, StringRepo>();
+    final snapshot = '$count-$label';
+    lastSnapshot = snapshot;
+    if (!firstSnapshotCaptured.isCompleted) {
+      firstSnapshotCaptured.complete();
+    }
+    await Future<void>.delayed(delay);
+    return snapshot;
+  }
+
+  @override
+  FutureOr<String> onDependencyError(Object error, StackTrace? _) =>
+      'error:${error.toString()}';
+
+  @override
+  String onDependenciesLoading() => 'loading';
+
+  @override
+  String get logTag => 'SlowSnapshotUseRepoConsumer';
+}
+
 // for testing uninitialized usage
 // ignore: missing_required_constructor_call
 class UninitializedConsumer

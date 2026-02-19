@@ -365,3 +365,84 @@ class FactoryLifecycleDatasource extends Datasource with LifecycleMixin {
   @override
   String get logTag => 'FactoryLifecycleDatasource';
 }
+
+class TrackingLifecycleService extends Service with LifecycleMixin {
+  int initializeCalls = 0;
+  int activateCalls = 0;
+  int deactivateCalls = 0;
+
+  @override
+  bool get singelton => true;
+
+  @override
+  Future<void> activate() async {
+    activateCalls++;
+  }
+
+  @override
+  Future<void> deactivate() async {
+    deactivateCalls++;
+  }
+
+  @override
+  Future<void> dependenciesChanged() async {}
+
+  @override
+  Future<void> initialize() async {
+    initializeCalls++;
+  }
+
+  @override
+  // Lifecycle test double: this intentionally skips super.free() to isolate
+  // activation/deactivation behavior.
+  // ignore: must_call_super
+  Future<void> free() async {}
+
+  @override
+  String get logTag => 'TrackingLifecycleService';
+}
+
+class ThrowingActivateLifecycleService extends Service with LifecycleMixin {
+  int activateCalls = 0;
+
+  @override
+  bool get singelton => true;
+
+  @override
+  Future<void> activate() async {
+    activateCalls++;
+    throw StateError('synthetic activate failure');
+  }
+
+  @override
+  Future<void> deactivate() async {}
+
+  @override
+  Future<void> dependenciesChanged() async {}
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  // Lifecycle test double: this intentionally skips super.free() to isolate
+  // activation failure behavior.
+  // ignore: must_call_super
+  Future<void> free() async {}
+
+  @override
+  String get logTag => 'ThrowingActivateLifecycleService';
+}
+
+class ActivationFailureModule extends Module<int, TestConfig> {
+  @override
+  void bindServices(Bind<Service, TestConfig> bind) {
+    bind((cfg, resolve) => TrackingLifecycleService());
+    bind((cfg, resolve) => ThrowingActivateLifecycleService());
+  }
+
+  @override
+  List<Route<int, TestConfig>> get routes => const [];
+
+  @override
+  String get logTag => 'ActivationFailureModule';
+}

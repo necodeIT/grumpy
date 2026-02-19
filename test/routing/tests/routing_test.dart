@@ -605,5 +605,18 @@ void main() {
       DependentModule.resetTrackers();
       TrackingModule.resetTrackers();
     });
+
+    test('supports navigation after warm deactivate/activate cycle', () async {
+      await (routing as LifecycleMixin).deactivate();
+      await (routing as LifecycleMixin).activate();
+
+      final results = <String>[];
+      await routing.navigate(
+        '/feature/child',
+        callback: (result, _) => results.add(result),
+      );
+
+      expect(results, ['preview:/feature/child', 'built:/feature/child']);
+    });
   });
 }

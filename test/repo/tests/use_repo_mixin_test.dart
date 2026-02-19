@@ -147,6 +147,39 @@ void main() {
 
       await setup.consumer.free();
     });
+
+    test(
+      'processes latest dependency update after overlapping emissions',
+      () async {
+        final intRepo = IntRepo();
+        final stringRepo = StringRepo();
+        di.registerSingletonAsync<IntRepo>(() async => intRepo);
+        di.registerSingletonAsync<StringRepo>(() async => stringRepo);
+
+        final consumer = SlowSnapshotUseRepoConsumer();
+        addTearDown(() async => consumer.free());
+        await settle();
+
+        intRepo.setData(0);
+        stringRepo.setData('ready');
+        await settle();
+        await Future<void>.delayed(const Duration(milliseconds: 40));
+
+        intRepo.setData(1);
+        await consumer.firstSnapshotCaptured.future;
+        intRepo.setData(2);
+        await Future<void>.delayed(const Duration(milliseconds: 60));
+
+        final state = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(state, equals('2-ready'));
+        expect(consumer.readyCalls, greaterThanOrEqualTo(3));
+      },
+    );
   });
 
   group('DeferredRepoMixin', () {
