@@ -65,7 +65,7 @@ abstract class ModuleRegistryService<T, Config extends Object> extends Service {
   /// Forcefully disposes [module], bypassing warm deactivation.
   ///
   /// This should be used only when a hard teardown is required.
-  /// Implementations should call [Module.free] instead of only deactivating.
+  /// Implementations should call [Module.destroy] instead of only deactivating.
   Future<void> forceDispose(Module<T, Config> module);
 
   /// Computes the transitive dependency set for [modules].

@@ -10,7 +10,7 @@ abstract class MemoryCacheLayerService extends CacheLayerService {
   }
 
   /// Internal constructor for concrete memory-layer implementations.
-  MemoryCacheLayerService.internal() : super.internal();
+  const MemoryCacheLayerService.internal() : super.internal();
 
   @override
   int get priority => 0;

@@ -145,7 +145,7 @@ class CanonicalModuleRegistryService<T, Config extends Object>
           deps.remove(canonical);
         }
 
-        await canonical.free();
+        await canonical.destroy();
       },
       onError: (e, s) {
         log('Error during forceDispose', e, s);
@@ -269,9 +269,9 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   FutureOr<void> initialize() {}
 
   @override
-  FutureOr<void> free() async {
+  FutureOr<void> destroy() async {
     await deactivate();
-    await super.free();
+    await super.destroy();
   }
 
   @override

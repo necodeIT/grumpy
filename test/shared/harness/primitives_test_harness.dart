@@ -10,7 +10,7 @@ class StringCodec implements SerializationCodec<String, String> {
   String encode(String value) => value;
 }
 
-class TestKey<T> implements CacheKey<T> {
+class TestKey<T> implements StorageKey {
   const TestKey(
     this.namespace,
     this.primaryKey, {
@@ -31,5 +31,27 @@ class TestKey<T> implements CacheKey<T> {
   final int? compatVersion;
 
   @override
-  String asStorageKey() => '$namespace|$schemaId|$primaryKey';
+  $StorageKeyCopyWith<StorageKey> get copyWith => StorageKey(
+    namespace: namespace,
+    primaryKey: primaryKey,
+    schemaId: schemaId,
+    compatVersion: compatVersion,
+  ).copyWith;
+
+  @override
+  Map<String, dynamic> toJson() => <String, dynamic>{
+    'namespace': namespace,
+    'primaryKey': primaryKey,
+    'schemaId': schemaId,
+    'compatVersion': compatVersion,
+  };
+
+  String asStorageKey() {
+    return StorageKey(
+      namespace: namespace,
+      primaryKey: primaryKey,
+      schemaId: schemaId,
+      compatVersion: compatVersion,
+    ).asStorageKey();
+  }
 }

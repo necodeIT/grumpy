@@ -61,9 +61,9 @@ class ImportModule extends Module<int, TestConfig> {
   }
 
   @override
-  Future<void> free() async {
+  Future<void> destroy() async {
     disposeCount++;
-    await super.free();
+    await super.destroy();
   }
 
   @override
@@ -97,7 +97,7 @@ class FakeService extends Service {
   final TestConfig config;
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'FakeService';
@@ -112,7 +112,7 @@ class SingletonFakeService extends Service {
   bool get singelton => true;
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'SingletonFakeService';
@@ -124,7 +124,7 @@ class FakeDatasource extends Datasource {
   final TestConfig config;
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'FakeDatasource';
@@ -139,7 +139,7 @@ class SingletonFakeDatasource extends Datasource {
   bool get singelton => true;
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'SingletonFakeDatasource';
@@ -181,8 +181,8 @@ class FakeRepo extends Repo<int> {
   Future<void> dependenciesChanged() async {}
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
   }
 
   @override
@@ -272,7 +272,7 @@ class LifecycleService extends Service with LifecycleMixin {
   // Lifecycle test double: this intentionally skips super.free() to avoid
   // disposal side effects that are irrelevant to the assertion scope.
   // ignore: must_call_super
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'LifecycleService';
@@ -308,7 +308,7 @@ class LifecycleDatasource extends Datasource with LifecycleMixin {
   // Lifecycle test double: this intentionally skips super.free() to avoid
   // disposal side effects that are irrelevant to the assertion scope.
   // ignore: must_call_super
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'LifecycleDatasource';
@@ -334,7 +334,7 @@ class FactoryLifecycleService extends Service with LifecycleMixin {
   // Lifecycle test double: this intentionally skips super.free() to validate
   // registration-time lifecycle constraints in isolation.
   // ignore: must_call_super
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'FactoryLifecycleService';
@@ -360,7 +360,7 @@ class FactoryLifecycleDatasource extends Datasource with LifecycleMixin {
   // Lifecycle test double: this intentionally skips super.free() to validate
   // registration-time lifecycle constraints in isolation.
   // ignore: must_call_super
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'FactoryLifecycleDatasource';
@@ -396,7 +396,7 @@ class TrackingLifecycleService extends Service with LifecycleMixin {
   // Lifecycle test double: this intentionally skips super.free() to isolate
   // activation/deactivation behavior.
   // ignore: must_call_super
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'TrackingLifecycleService';
@@ -427,7 +427,7 @@ class ThrowingActivateLifecycleService extends Service with LifecycleMixin {
   // Lifecycle test double: this intentionally skips super.free() to isolate
   // activation failure behavior.
   // ignore: must_call_super
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'ThrowingActivateLifecycleService';

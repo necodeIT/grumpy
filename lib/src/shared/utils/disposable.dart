@@ -5,9 +5,9 @@ import 'package:meta/meta.dart';
 /// An interface for disposable resources.
 mixin Disposable on Object implements get_it.Disposable {
   /// Disposes of the resource.
-  FutureOr<void> free();
+  FutureOr<void> destroy();
 
   @override
   @nonVirtual
-  FutureOr<dynamic> onDispose() => free();
+  FutureOr<dynamic> onDispose() => destroy();
 }

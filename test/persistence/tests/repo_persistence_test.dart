@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:get_it/get_it.dart';
 import 'package:grumpy/grumpy.dart';
-import 'package:grumpy/src/persistence/infra/services/file_repo_state_persistence_service.dart';
 import 'package:test/test.dart';
 import '../harness/repo_persistence_test_harness.dart';
 
@@ -18,10 +16,9 @@ void main() {
     await di.reset();
   });
 
-  test('file repo persistence save/load roundtrip', () async {
-    final dir = await Directory.systemTemp.createTemp('grumpy_repo_test_');
-    final service = FileRepoStatePersistenceService(baseDir: dir);
-    const key = RepoSnapshotKey(
+  test('repo persistence save/load roundtrip', () async {
+    final service = _InMemoryRepoStatePersistenceService();
+    const key = StorageKey(
       namespace: 'repo',
       primaryKey: 'users',
       schemaId: 'v1',
@@ -40,8 +37,6 @@ void main() {
 
     expect(loaded, isNotNull);
     expect(loaded!.data, 'hello');
-
-    await dir.delete(recursive: true);
   });
 
   group('Issue coverage: persistence policy wiring', () {
@@ -53,7 +48,7 @@ void main() {
         di.registerSingleton<RepoBootstrapService>(_NoopRepoBootstrapService());
 
         final repo = _NullablePersistentRepo();
-        addTearDown(() async => repo.free());
+        addTearDown(() async => repo.destroy());
 
         repo.data(null);
         await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -74,13 +69,13 @@ class _RecordingRepoStatePersistenceService
 
   @override
   Future<RepoSnapshot<T>?> load<T, Serialized extends Object>(
-    RepoSnapshotKey key, {
+    StorageKey key, {
     required SerializationCodec<T, Serialized> codec,
   }) async => null;
 
   @override
   Future<void> save<T, Serialized extends Object>(
-    RepoSnapshotKey key,
+    StorageKey key,
     RepoSnapshot<T> snapshot, {
     required SerializationCodec<T, Serialized> codec,
   }) async {
@@ -89,16 +84,62 @@ class _RecordingRepoStatePersistenceService
   }
 
   @override
-  Future<void> delete(RepoSnapshotKey key) async {}
+  Future<void> delete(StorageKey key) async {}
 
   @override
   Future<void> clearNamespace(String namespace) async {}
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => '_RecordingRepoStatePersistenceService';
+}
+
+class _InMemoryRepoStatePersistenceService extends RepoStatePersistenceService {
+  _InMemoryRepoStatePersistenceService() : super.internal();
+
+  final Map<String, RepoSnapshot<Object?>> _storage =
+      <String, RepoSnapshot<Object?>>{};
+
+  @override
+  Future<RepoSnapshot<T>?> load<T, Serialized extends Object>(
+    StorageKey key, {
+    required SerializationCodec<T, Serialized> codec,
+  }) async {
+    final snapshot = _storage[key.asStorageKey()];
+    return snapshot as RepoSnapshot<T>?;
+  }
+
+  @override
+  Future<void> save<T, Serialized extends Object>(
+    StorageKey key,
+    RepoSnapshot<T> snapshot, {
+    required SerializationCodec<T, Serialized> codec,
+  }) async {
+    _storage[key.asStorageKey()] = snapshot as RepoSnapshot<Object?>;
+  }
+
+  @override
+  Future<void> delete(StorageKey key) async {
+    _storage.remove(key.asStorageKey());
+  }
+
+  @override
+  Future<void> clearNamespace(String namespace) async {
+    _storage.removeWhere((encodedKey, _) {
+      final parsed = StorageKey.parseOrNull(encodedKey);
+      return parsed?.namespace == namespace;
+    });
+  }
+
+  @override
+  Future<void> destroy() async {
+    _storage.clear();
+  }
+
+  @override
+  String get logTag => '_InMemoryRepoStatePersistenceService';
 }
 
 class _NoopRepoBootstrapService extends RepoBootstrapService {
@@ -107,7 +148,7 @@ class _NoopRepoBootstrapService extends RepoBootstrapService {
   @override
   Future<void> bootstrap<T, Serialized extends Object>({
     required Repo<T> repo,
-    required RepoSnapshotKey key,
+    required StorageKey key,
     required SerializationCodec<T, Serialized> codec,
     required RepoPersistencePolicy<Serialized> persistencePolicy,
     required RepoBootstrapPolicy bootstrapPolicy,
@@ -117,7 +158,7 @@ class _NoopRepoBootstrapService extends RepoBootstrapService {
   }) async {}
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => '_NoopRepoBootstrapService';
@@ -153,7 +194,7 @@ class _NullablePersistentRepo extends Repo<String?>
       );
 
   @override
-  RepoSnapshotKey get snapshotKey => const RepoSnapshotKey(
+  StorageKey get snapshotKey => const StorageKey(
     namespace: 'repo',
     primaryKey: 'nullable',
     schemaId: 'v1',

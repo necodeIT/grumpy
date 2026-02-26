@@ -109,5 +109,5 @@ class DefaultTxEngine<TState> extends TxEngine<TState> {
   String get logTag => 'DefaultTxEngine';
 
   @override
-  void free() {}
+  void destroy() {}
 }

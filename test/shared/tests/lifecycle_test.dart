@@ -20,7 +20,7 @@ void main() {
       await target.activate();
       await target.deactivate();
       await target.dependenciesChanged();
-      await target.free();
+      await target.destroy();
 
       expect(target.initializeCalls, 1);
       expect(target.activateCalls, 1);
@@ -28,7 +28,7 @@ void main() {
       expect(target.dependenciesChangedCalls, 1);
       expect(target.disposed, isTrue);
 
-      expect(() => target.free(), throwsA(isA<StateError>()));
+      expect(() => target.destroy(), throwsA(isA<StateError>()));
     });
   });
 
@@ -47,7 +47,7 @@ void main() {
       await lifecycle.activate();
       await lifecycle.deactivate();
       await lifecycle.dependenciesChanged();
-      await lifecycle.free();
+      await lifecycle.destroy();
 
       expect(calls, [
         'initialize',
@@ -70,10 +70,10 @@ void main() {
       lifecycle.onDisposed(() => calls.add('dispose'));
 
       await lifecycle.activate();
-      await lifecycle.free();
+      await lifecycle.destroy();
 
       expect(calls, ['asyncActivate', 'dispose']);
-      expect(() => lifecycle.free(), throwsA(isA<StateError>()));
+      expect(() => lifecycle.destroy(), throwsA(isA<StateError>()));
     });
   });
 
@@ -97,7 +97,7 @@ void main() {
       expect(loadingCalls, 1);
       expect(errorCalls.single, same(exception));
 
-      await repo.free();
+      await repo.destroy();
     });
   });
 }

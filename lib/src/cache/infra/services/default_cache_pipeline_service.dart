@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:grumpy/grumpy.dart';
 
 /// Default cache pipeline implementation.
@@ -26,10 +28,10 @@ class DefaultCachePipelineService extends CachePipelineService {
   ///
   /// Returns `null` when no enabled layer contains data.
   @override
-  Future<CacheResult<T>?> get<T, Serialized extends Object>({
-    required CacheKey<T> key,
-    required CachePolicy<Serialized> policy,
-    SerializationCodec<T, Serialized>? codec,
+  Future<CacheResult<T>?> get<T>({
+    required StorageKey key,
+    required CachePolicy<Uint8List> policy,
+    SerializationCodec<T, Uint8List>? codec,
   }) async {
     final layers =
         <
@@ -45,9 +47,8 @@ class DefaultCachePipelineService extends CachePipelineService {
       layers.add((
         source: CacheSource.memory,
         priority: _memoryLayer.priority,
-        read: () => _memoryLayer.read<T, Serialized>(key, codec: codec),
-        write: (entry) =>
-            _memoryLayer.write<T, Serialized>(key, entry, codec: codec),
+        read: () => _memoryLayer.read<T>(key, codec: codec),
+        write: (entry) => _memoryLayer.write<T>(key, entry, codec: codec),
       ));
     }
 
@@ -55,9 +56,8 @@ class DefaultCachePipelineService extends CachePipelineService {
       layers.add((
         source: CacheSource.file,
         priority: _fileLayer.priority,
-        read: () => _fileLayer.read<T, Serialized>(key, codec: codec),
-        write: (entry) =>
-            _fileLayer.write<T, Serialized>(key, entry, codec: codec),
+        read: () => _fileLayer.read<T>(key, codec: codec),
+        write: (entry) => _fileLayer.write<T>(key, entry, codec: codec),
       ));
     }
 
@@ -106,11 +106,11 @@ class DefaultCachePipelineService extends CachePipelineService {
 
   /// Performs write-through to configured layers according to [policy].
   @override
-  Future<void> put<T, Serialized extends Object>(
-    CacheKey<T> key,
+  Future<void> put<T>(
+    StorageKey key,
     T value, {
-    required CachePolicy<Serialized> policy,
-    SerializationCodec<T, Serialized>? codec,
+    required CachePolicy<Uint8List> policy,
+    SerializationCodec<T, Uint8List>? codec,
   }) async {
     if (!policy.writeThrough) return;
     if (!policy.cacheNullResults && value == null) return;
@@ -124,7 +124,7 @@ class DefaultCachePipelineService extends CachePipelineService {
         expiresAt: policy.memoryTtl == null ? null : now.add(policy.memoryTtl!),
       );
       try {
-        await _memoryLayer.write<T, Serialized>(key, entry, codec: codec);
+        await _memoryLayer.write<T>(key, entry, codec: codec);
       } catch (e) {
         if (policy.strictLayerErrors) rethrow;
         log('Memory layer write failed for ${key.asStorageKey()}', e);
@@ -138,7 +138,7 @@ class DefaultCachePipelineService extends CachePipelineService {
         expiresAt: policy.fileTtl == null ? null : now.add(policy.fileTtl!),
       );
       try {
-        await _fileLayer.write<T, Serialized>(key, entry, codec: codec);
+        await _fileLayer.write<T>(key, entry, codec: codec);
       } catch (e) {
         if (policy.strictLayerErrors) rethrow;
         log('File layer write failed for ${key.asStorageKey()}', e);
@@ -147,19 +147,23 @@ class DefaultCachePipelineService extends CachePipelineService {
   }
 
   @override
-  Future<void> invalidate<T>(CacheKey<T> key) async {
-    await _memoryLayer?.invalidate<T>(key);
-    await _fileLayer?.invalidate<T>(key);
+  Future<void> invalidate(StorageKey key) async {
+    await Future.wait([
+      if (_memoryLayer != null) _memoryLayer.invalidate(key),
+      if (_fileLayer != null) _fileLayer.invalidate(key),
+    ]);
   }
 
   @override
   Future<void> clearNamespace(String namespace) async {
-    await _memoryLayer?.clearNamespace(namespace);
-    await _fileLayer?.clearNamespace(namespace);
+    await Future.wait([
+      if (_memoryLayer != null) _memoryLayer.clearNamespace(namespace),
+      if (_fileLayer != null) _fileLayer.clearNamespace(namespace),
+    ]);
   }
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'DefaultCachePipelineService';

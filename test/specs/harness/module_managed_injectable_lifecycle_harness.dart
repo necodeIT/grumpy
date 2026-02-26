@@ -114,8 +114,8 @@ class FailingLifecycleService extends Service with LifecycleMixin {
   Future<void> dependenciesChanged() async {}
 
   @override
-  Future<void> free() async {
-    super.free();
+  Future<void> destroy() async {
+    super.destroy();
   }
 
   @override

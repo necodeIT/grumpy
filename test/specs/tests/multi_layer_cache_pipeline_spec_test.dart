@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:grumpy/grumpy.dart';
 import 'package:grumpy/src/cache/infra/services/default_cache_pipeline_service.dart';
 import 'package:test/test.dart';
@@ -21,9 +23,9 @@ void main() {
         fileLayer: file,
       );
 
-      final result = await pipeline.get<String, Object>(
+      final result = await pipeline.get<String>(
         key: const TestKey<String>('cache', 'hit'),
-        policy: const CachePolicy<Object>(useMemory: true, useFile: true),
+        policy: const CachePolicy<Uint8List>(useMemory: true, useFile: true),
       );
 
       expect(
@@ -64,9 +66,9 @@ void main() {
         fileLayer: file,
       );
 
-      final result = await pipeline.get<String, Object>(
+      final result = await pipeline.get<String>(
         key: const TestKey<String>('cache', 'fallback'),
-        policy: const CachePolicy<Object>(
+        policy: const CachePolicy<Uint8List>(
           useMemory: true,
           useFile: true,
           backfillHigherLayers: true,
@@ -112,9 +114,9 @@ void main() {
         fileLayer: file,
       );
 
-      final result = await pipeline.get<String, Object>(
+      final result = await pipeline.get<String>(
         key: const TestKey<String>('cache', 'stale'),
-        policy: const CachePolicy<Object>(useMemory: true, useFile: true),
+        policy: const CachePolicy<Uint8List>(useMemory: true, useFile: true),
       );
 
       expect(
@@ -143,9 +145,9 @@ void main() {
         fileLayer: file,
       );
 
-      final result = await pipeline.get<String, Object>(
+      final result = await pipeline.get<String>(
         key: const TestKey<String>('cache', 'non-strict'),
-        policy: const CachePolicy<Object>(
+        policy: const CachePolicy<Uint8List>(
           useMemory: true,
           useFile: true,
           strictLayerErrors: false,
@@ -171,9 +173,9 @@ void main() {
       final pipeline = DefaultCachePipelineService(memoryLayer: memory);
 
       expect(
-        () => pipeline.get<String, Object>(
+        () => pipeline.get<String>(
           key: const TestKey<String>('cache', 'strict'),
-          policy: const CachePolicy<Object>(
+          policy: const CachePolicy<Uint8List>(
             useMemory: true,
             strictLayerErrors: true,
           ),
@@ -192,10 +194,10 @@ void main() {
         fileLayer: file,
       );
 
-      await pipeline.put<String, Object>(
+      await pipeline.put<String>(
         const TestKey<String>('cache', 'no-write-through'),
         'value',
-        policy: const CachePolicy<Object>(
+        policy: const CachePolicy<Uint8List>(
           useMemory: true,
           useFile: true,
           writeThrough: false,
@@ -224,10 +226,10 @@ void main() {
         fileLayer: file,
       );
 
-      await pipeline.put<String?, Object>(
+      await pipeline.put<String?>(
         const TestKey<String?>('cache', 'null'),
         null,
-        policy: const CachePolicy<Object>(
+        policy: const CachePolicy<Uint8List>(
           useMemory: true,
           useFile: true,
           cacheNullResults: false,
@@ -256,10 +258,10 @@ void main() {
         fileLayer: file,
       );
 
-      await pipeline.put<String, Object>(
+      await pipeline.put<String>(
         const TestKey<String>('cache', 'ttl'),
         'value',
-        policy: const CachePolicy<Object>(
+        policy: const CachePolicy<Uint8List>(
           useMemory: true,
           useFile: true,
           memoryTtl: Duration(seconds: 20),
@@ -296,7 +298,7 @@ void main() {
         fileLayer: file,
       );
 
-      await pipeline.invalidate<String>(key);
+      await pipeline.invalidate(key);
 
       expect(
         memory.invalidatedKeys,

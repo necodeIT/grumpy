@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:get_it/get_it.dart';
 import 'package:logging/logging.dart';
 import 'package:grumpy/grumpy.dart';
+import 'package:grumpy/src/cache/infra/services/default_cache_pipeline_service.dart';
 import 'package:test/test.dart';
 import '../harness/query_mixins_test_harness.dart';
 
@@ -49,11 +50,14 @@ void main() {
     analytics = TestAnalyticsService();
     di.registerSingleton<AnalyticsService>(analytics);
     di.registerSingleton<TelemetryService>(telemetry);
+    di.registerSingleton<CachePipelineService>(
+      DefaultCachePipelineService(memoryLayer: TestMemoryCacheLayer()),
+    );
   });
 
   tearDown(() async {
     for (final repo in repos) {
-      await repo.free();
+      await repo.destroy();
     }
     repos.clear();
     await di.reset();
@@ -66,7 +70,7 @@ void main() {
       final result = await repo.query<int>(
         'countItems',
         (data) => data.length,
-        cacheKey: 'count',
+        queryParams: const {'cacheKey': 'count'},
       );
 
       expect(result, isNull);
@@ -85,13 +89,13 @@ void main() {
       final first = await repo.query<int>(
         'countItems',
         compute,
-        cacheKey: 'count',
+        queryParams: const {'cacheKey': 'count'},
       );
 
       final second = await repo.query<int>(
         'countItems',
         compute,
-        cacheKey: 'count',
+        queryParams: const {'cacheKey': 'count'},
       );
 
       repo.setItems([
@@ -106,7 +110,7 @@ void main() {
       final third = await repo.query<int>(
         'countItems',
         compute,
-        cacheKey: 'count',
+        queryParams: const {'cacheKey': 'count'},
       );
 
       expect(first, equals(2));
@@ -128,13 +132,13 @@ void main() {
       final first = await repo.query<TestItem?>(
         'findMissing',
         compute,
-        cacheKey: 'missing',
+        queryParams: const {'cacheKey': 'missing'},
       );
 
       final second = await repo.query<TestItem?>(
         'findMissing',
         compute,
-        cacheKey: 'missing',
+        queryParams: const {'cacheKey': 'missing'},
       );
 
       expect(first, isNull);
@@ -151,9 +155,17 @@ void main() {
         return null;
       }
 
-      await repo.query<TestItem?>('findMissing', compute, cacheKey: 'missing');
+      await repo.query<TestItem?>(
+        'findMissing',
+        compute,
+        queryParams: const {'cacheKey': 'missing'},
+      );
 
-      await repo.query<TestItem?>('findMissing', compute, cacheKey: 'missing');
+      await repo.query<TestItem?>(
+        'findMissing',
+        compute,
+        queryParams: const {'cacheKey': 'missing'},
+      );
 
       expect(computeCalls, 2);
       expect(telemetry.runSpanCalls, 2);
@@ -197,12 +209,12 @@ void main() {
   });
 
   group('FuzzyFindQueryMixin', () {
-    test('performs fuzzy search and caches by normalized key', () async {
+    test('performs fuzzy search and caches by query params key', () async {
       final repo = createRepo()..setItems(seedItems);
 
       final first = await repo.fuzzyFind('rd apple');
 
-      final second = await repo.fuzzyFind('RD APPLE');
+      final second = await repo.fuzzyFind('rd apple');
 
       expect(first, hasLength(1));
       expect(first.first.name, equals('Red Apple'));

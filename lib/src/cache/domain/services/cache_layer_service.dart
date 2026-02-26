@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:grumpy/grumpy.dart';
 
 /// Shared cache layer surface.
@@ -10,30 +12,30 @@ abstract class CacheLayerService extends Service {
   }
 
   /// Internal constructor for concrete layer implementations.
-  CacheLayerService.internal() : super();
+  const CacheLayerService.internal() : super();
 
   /// Layer ordering priority. Lower values are read earlier.
   int get priority;
 
   /// Reads a cached entry for [key], or `null` on miss.
-  Future<CacheEntry<T>?> read<T, Serialized extends Object>(
-    CacheKey<T> key, {
+  Future<CacheEntry<T>?> read<T>(
+    StorageKey key, {
 
     /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Serialized>? codec,
+    SerializationCodec<T, Uint8List>? codec,
   });
 
   /// Writes [entry] for [key].
-  Future<void> write<T, Serialized extends Object>(
-    CacheKey<T> key,
+  Future<void> write<T>(
+    StorageKey key,
     CacheEntry<T> entry, {
 
     /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Serialized>? codec,
+    SerializationCodec<T, Uint8List>? codec,
   });
 
   /// Invalidates a single key from this layer.
-  Future<void> invalidate<T>(CacheKey<T> key);
+  Future<void> invalidate<T>(StorageKey key);
 
   /// Clears all entries under [namespace].
   Future<void> clearNamespace(String namespace);

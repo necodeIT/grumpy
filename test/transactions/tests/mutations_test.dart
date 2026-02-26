@@ -31,7 +31,7 @@ void main() {
   });
 
   tearDown(() async {
-    await repo.free();
+    await repo.destroy();
     await di.reset();
   });
   group('OptimisticPolicy', () {
@@ -102,7 +102,7 @@ void main() {
         throwsA(isA<StateError>()),
       );
 
-      await uninitialized.free();
+      await uninitialized.destroy();
     });
 
     test('mutate updates state and records telemetry/analytics', () async {

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:grumpy/grumpy.dart';
 import '../../shared/harness/harness.dart';
 
@@ -42,6 +44,10 @@ class TestQueryRepo extends Repo<List<TestItem>>
 
   @override
   bool get cacheNullResults => _cacheNullResults ?? super.cacheNullResults;
+
+  @override
+  CachePolicy<Uint8List> get defaultCachePolicy =>
+      CachePolicy<Uint8List>(cacheNullResults: cacheNullResults);
 
   @override
   List<String Function(TestItem item)> get fuzzySelectors => [
@@ -107,4 +113,60 @@ final seedItems = <TestItem>[
 class TestAnalyticsService extends RecordingAnalyticsService {
   @override
   String get logTag => 'TestAnalyticsService';
+}
+
+class TestMemoryCacheLayer extends MemoryCacheLayerService {
+  TestMemoryCacheLayer() : super.internal();
+
+  final Map<String, CacheEntry<Object?>> _entries =
+      <String, CacheEntry<Object?>>{};
+
+  @override
+  Future<CacheEntry<T>?> read<T>(
+    StorageKey key, {
+    SerializationCodec<T, Uint8List>? codec,
+  }) async {
+    final entry = _entries[key.asStorageKey()];
+    if (entry == null) return null;
+
+    return CacheEntry<T>(
+      value: entry.value as T,
+      createdAt: entry.createdAt,
+      expiresAt: entry.expiresAt,
+    );
+  }
+
+  @override
+  Future<void> write<T>(
+    StorageKey key,
+    CacheEntry<T> entry, {
+    SerializationCodec<T, Uint8List>? codec,
+  }) async {
+    _entries[key.asStorageKey()] = CacheEntry<Object?>(
+      value: entry.value,
+      createdAt: entry.createdAt,
+      expiresAt: entry.expiresAt,
+    );
+  }
+
+  @override
+  Future<void> invalidate<T>(StorageKey key) async {
+    _entries.remove(key.asStorageKey());
+  }
+
+  @override
+  Future<void> clearNamespace(String namespace) async {
+    _entries.removeWhere((encodedKey, _) {
+      final parsed = StorageKey.parseOrNull(encodedKey);
+      return parsed?.namespace == namespace;
+    });
+  }
+
+  @override
+  Future<void> destroy() async {
+    _entries.clear();
+  }
+
+  @override
+  String get logTag => 'TestMemoryCacheLayer';
 }

@@ -59,7 +59,7 @@ void main() {
     expect(repo.initializeHookRan, isTrue);
     expect(repo.activateCount, 1);
 
-    await module.free();
+    await module.destroy();
   });
 
   group('Injectables', () {
@@ -75,7 +75,7 @@ void main() {
       final datasourceB = di.get<FakeDatasource>();
       expect(datasourceA, isNot(same(datasourceB)));
 
-      await module.free();
+      await module.destroy();
     });
 
     test(
@@ -92,7 +92,7 @@ void main() {
         final datasourceB = di.get<SingletonFakeDatasource>();
         expect(datasourceA, same(datasourceB));
 
-        await module.free();
+        await module.destroy();
       },
     );
   });
@@ -102,7 +102,7 @@ void main() {
     final module = TestModule(importModule);
     await module.initialize();
     final repo = await di.getAsync<FakeRepo>();
-    await module.free();
+    await module.destroy();
 
     expect(importModule.disposeCount, 0);
     expect(repo.deactivateCount, greaterThanOrEqualTo(0));
@@ -134,7 +134,7 @@ void main() {
     expect(repo.initializeCallCount, 1);
     expect(repo.activateCount, 2);
 
-    await module.free();
+    await module.destroy();
     expect(repo.disposed, isTrue);
   });
 
@@ -163,7 +163,7 @@ void main() {
         await module.dependenciesChanged();
         expect(service.dependenciesChangedCalls, 1);
 
-        await module.free();
+        await module.destroy();
       },
     );
 
@@ -181,7 +181,7 @@ void main() {
         await module.deactivate();
         expect(datasource.deactivateCalls, 1);
 
-        await module.free();
+        await module.destroy();
       },
     );
 
@@ -212,7 +212,7 @@ void main() {
         await module.deactivate();
         expect(trackingService.deactivateCalls, 1);
 
-        await module.free();
+        await module.destroy();
       },
     );
   });

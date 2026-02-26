@@ -35,7 +35,7 @@ abstract class RepoBootstrapService extends Service {
     required Repo<T> repo,
 
     /// Storage key used for snapshot operations.
-    required RepoSnapshotKey key,
+    required StorageKey key,
 
     /// Codec used to decode/encode snapshots.
     required SerializationCodec<T, Serialized> codec,

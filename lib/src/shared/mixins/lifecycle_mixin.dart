@@ -13,7 +13,7 @@ import 'package:grumpy/grumpy.dart';
 ///   returning from the background).
 /// - [deactivate]: Called when the object is deactivated.
 /// - [dependenciesChanged]: Called when the object's dependencies have changed.
-/// - [free]: Called when the object is being disposed of.
+/// - [destroy]: Called when the object is being disposed of.
 abstract mixin class LifecycleMixin implements Disposable {
   bool _isDisposed = false;
 
@@ -45,10 +45,10 @@ abstract mixin class LifecycleMixin implements Disposable {
   /// Disposes of the object and releases any resources.
   /// This method should be overridden to perform cleanup tasks.
   ///
-  /// You can safely assume that [free] will be called only once.
+  /// You can safely assume that [destroy] will be called only once.
   @override
   @mustCallSuper
-  FutureOr<void> free() async {
+  FutureOr<void> destroy() async {
     if (_isDisposed) {
       throw StateError('Resource has already been disposed.');
     }
@@ -58,7 +58,7 @@ abstract mixin class LifecycleMixin implements Disposable {
 
   @override
   @nonVirtual
-  FutureOr<void> onDispose() => free();
+  FutureOr<void> onDispose() => destroy();
 }
 
 /// Mixin that adds lifecycle callbacks to a [Repo].

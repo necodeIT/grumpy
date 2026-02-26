@@ -39,7 +39,7 @@ mixin PersistentRepoStateMixin<T, Serialized extends Object>
   /// Snapshot key used for persistence operations.
   ///
   /// Keep this stable across app launches for same repo scope.
-  RepoSnapshotKey get snapshotKey;
+  StorageKey get snapshotKey;
 
   /// Codec used for snapshot serialization.
   ///

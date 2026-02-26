@@ -1,20 +1,22 @@
+import 'dart:typed_data';
+
 import 'package:grumpy/grumpy.dart';
 import 'package:grumpy/src/cache/infra/services/default_cache_pipeline_service.dart';
-import 'package:grumpy/src/cache/infra/services/memory_cache_layer_service.dart';
 import 'package:test/test.dart';
 import '../harness/cache_pipeline_test_harness.dart';
 import '../harness/harness.dart';
 
 void main() {
   test('pipeline reads memory hit', () async {
-    final memory = InMemoryCacheLayerService();
-    final pipeline = DefaultCachePipelineService(memoryLayer: memory);
+    final pipeline = DefaultCachePipelineService(
+      memoryLayer: StaticMemoryLayer(
+        CacheEntry<String>(value: 'value', createdAt: DateTime.now()),
+        priority: 0,
+      ),
+    );
     const key = TestKey<String>('ns', 'k1');
-    const policy = CachePolicy<Object>(useMemory: true);
-
-    await pipeline.put<String, Object>(key, 'value', policy: policy);
-
-    final result = await pipeline.get<String, Object>(key: key, policy: policy);
+    const policy = CachePolicy<Uint8List>(useMemory: true);
+    final result = await pipeline.get<String>(key: key, policy: policy);
 
     expect(result, isNotNull);
     expect(result!.source, CacheSource.memory);
@@ -30,17 +32,14 @@ void main() {
         ),
       );
       const key = TestKey<String>('ns', 'k2');
-      const policy = CachePolicy<Object>(
+      const policy = CachePolicy<Uint8List>(
         useMemory: true,
         useFile: true,
         strictLayerErrors: false,
         backfillHigherLayers: true,
       );
 
-      final result = await pipeline.get<String, Object>(
-        key: key,
-        policy: policy,
-      );
+      final result = await pipeline.get<String>(key: key, policy: policy);
 
       expect(result, isNotNull);
       expect(result!.source, CacheSource.file);
@@ -63,12 +62,9 @@ void main() {
           ),
         );
         const key = TestKey<String>('ns', 'k3');
-        const policy = CachePolicy<Object>(useMemory: true, useFile: true);
+        const policy = CachePolicy<Uint8List>(useMemory: true, useFile: true);
 
-        final result = await pipeline.get<String, Object>(
-          key: key,
-          policy: policy,
-        );
+        final result = await pipeline.get<String>(key: key, policy: policy);
 
         expect(result, isNotNull);
         expect(result!.source, CacheSource.file);

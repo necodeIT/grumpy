@@ -93,8 +93,8 @@ class DummyModule extends Module<String, Object> {
   Future<void> dependenciesChanged() async {}
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
   }
 
   @override
@@ -226,8 +226,8 @@ class FeatureModule extends Module<String, Cfg> {
   }
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
   }
 
   @override

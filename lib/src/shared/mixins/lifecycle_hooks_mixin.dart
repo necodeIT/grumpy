@@ -47,7 +47,7 @@ mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
     _dependenciesChangedHooks.add(hook);
   }
 
-  /// Registers a hook to be called in [free].
+  /// Registers a hook to be called in [destroy].
   ///
   /// Note: It is unsafe to access the same variables in multiple hooks
   /// registered via this method, as the order of execution is not guaranteed.
@@ -95,8 +95,8 @@ mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
 
   @override
   @mustCallSuper
-  FutureOr<void> free() async {
-    await super.free();
+  FutureOr<void> destroy() async {
+    await super.destroy();
 
     _initializeHooks.clear();
     _activateHooks.clear();

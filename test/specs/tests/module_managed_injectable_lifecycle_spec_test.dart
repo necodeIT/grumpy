@@ -41,7 +41,7 @@ void main() {
               'Spec: module_managed_injectable_lifecycle §6.3 requires repos to activate after managed injectables.',
         );
       } finally {
-        await module.free();
+        await module.destroy();
       }
     });
 
@@ -79,7 +79,7 @@ void main() {
               'Spec: module_managed_injectable_lifecycle §6.3 requires managed injectables to deactivate after repos.',
         );
       } finally {
-        await module.free();
+        await module.destroy();
       }
     });
 
@@ -114,7 +114,7 @@ void main() {
                 'Spec: module_managed_injectable_lifecycle §6.3 defines managed injectable dependency updates before repos.',
           );
         } finally {
-          await module.free();
+          await module.destroy();
         }
       },
     );
@@ -136,7 +136,7 @@ void main() {
                 'Spec: module_managed_injectable_lifecycle §6.1.1 enforces readiness only after module activation completes.',
           );
         } finally {
-          await module.free();
+          await module.destroy();
         }
       },
     );
@@ -153,7 +153,7 @@ void main() {
               'Spec: module_managed_injectable_lifecycle §10 requires async lifecycle failures to fail fast and bubble.',
         );
       } finally {
-        await module.free();
+        await module.destroy();
       }
     });
   });

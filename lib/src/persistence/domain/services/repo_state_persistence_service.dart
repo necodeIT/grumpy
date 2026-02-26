@@ -11,19 +11,19 @@ abstract class RepoStatePersistenceService extends Service {
 
   /// Loads a snapshot for [key], returning `null` on miss.
   Future<RepoSnapshot<T>?> load<T, Serialized extends Object>(
-    RepoSnapshotKey key, {
+    StorageKey key, {
     required SerializationCodec<T, Serialized> codec,
   });
 
   /// Saves [snapshot] for [key].
   Future<void> save<T, Serialized extends Object>(
-    RepoSnapshotKey key,
+    StorageKey key,
     RepoSnapshot<T> snapshot, {
     required SerializationCodec<T, Serialized> codec,
   });
 
   /// Deletes a snapshot by [key].
-  Future<void> delete(RepoSnapshotKey key);
+  Future<void> delete(StorageKey key);
 
   /// Clears all snapshots in [namespace].
   Future<void> clearNamespace(String namespace);

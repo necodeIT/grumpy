@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:grumpy/grumpy.dart';
 import '../../shared/harness/harness.dart' as shared;
 
@@ -14,9 +16,9 @@ class MemoryLayer extends MemoryCacheLayerService {
   final List<String> clearedNamespaces = <String>[];
 
   @override
-  Future<CacheEntry<T>?> read<T, Serialized extends Object>(
-    CacheKey<T> key, {
-    SerializationCodec<T, Serialized>? codec,
+  Future<CacheEntry<T>?> read<T>(
+    StorageKey key, {
+    SerializationCodec<T, Uint8List>? codec,
   }) async {
     readCalls++;
     if (readError != null) throw readError!;
@@ -24,10 +26,10 @@ class MemoryLayer extends MemoryCacheLayerService {
   }
 
   @override
-  Future<void> write<T, Serialized extends Object>(
-    CacheKey<T> key,
+  Future<void> write<T>(
+    StorageKey key,
     CacheEntry<T> entry, {
-    SerializationCodec<T, Serialized>? codec,
+    SerializationCodec<T, Uint8List>? codec,
   }) async {
     writeCalls++;
     if (writeError != null) throw writeError!;
@@ -35,7 +37,7 @@ class MemoryLayer extends MemoryCacheLayerService {
   }
 
   @override
-  Future<void> invalidate<T>(CacheKey<T> key) async {
+  Future<void> invalidate<T>(StorageKey key) async {
     invalidatedKeys.add(key.asStorageKey());
   }
 
@@ -45,7 +47,7 @@ class MemoryLayer extends MemoryCacheLayerService {
   }
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'MemoryLayer';
@@ -64,9 +66,9 @@ class FileLayer extends FileCacheLayerService {
   final List<String> clearedNamespaces = <String>[];
 
   @override
-  Future<CacheEntry<T>?> read<T, Serialized extends Object>(
-    CacheKey<T> key, {
-    SerializationCodec<T, Serialized>? codec,
+  Future<CacheEntry<T>?> read<T>(
+    StorageKey key, {
+    SerializationCodec<T, Uint8List>? codec,
   }) async {
     readCalls++;
     if (readError != null) throw readError!;
@@ -74,10 +76,10 @@ class FileLayer extends FileCacheLayerService {
   }
 
   @override
-  Future<void> write<T, Serialized extends Object>(
-    CacheKey<T> key,
+  Future<void> write<T>(
+    StorageKey key,
     CacheEntry<T> entry, {
-    SerializationCodec<T, Serialized>? codec,
+    SerializationCodec<T, Uint8List>? codec,
   }) async {
     writeCalls++;
     if (writeError != null) throw writeError!;
@@ -85,7 +87,7 @@ class FileLayer extends FileCacheLayerService {
   }
 
   @override
-  Future<void> invalidate<T>(CacheKey<T> key) async {
+  Future<void> invalidate<T>(StorageKey key) async {
     invalidatedKeys.add(key.asStorageKey());
   }
 
@@ -95,7 +97,7 @@ class FileLayer extends FileCacheLayerService {
   }
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'FileLayer';

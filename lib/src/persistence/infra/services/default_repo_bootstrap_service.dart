@@ -24,7 +24,7 @@ class DefaultRepoBootstrapService extends RepoBootstrapService {
   @override
   Future<void> bootstrap<T, Serialized extends Object>({
     required Repo<T> repo,
-    required RepoSnapshotKey key,
+    required StorageKey key,
     required SerializationCodec<T, Serialized> codec,
     required RepoPersistencePolicy<Serialized> persistencePolicy,
     required RepoBootstrapPolicy bootstrapPolicy,
@@ -120,7 +120,7 @@ class DefaultRepoBootstrapService extends RepoBootstrapService {
   }
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'DefaultRepoBootstrapService';

@@ -580,7 +580,7 @@ void main() {
         });
 
         tearDown(() async {
-          await repo.free();
+          await repo.destroy();
         });
 
         test(

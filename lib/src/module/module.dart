@@ -18,13 +18,14 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 import 'package:grumpy/src/cache/infra/services/default_cache_pipeline_service.dart';
-import 'package:grumpy/src/cache/infra/services/memory_cache_layer_service.dart';
 import 'package:grumpy/src/module/infra/services/canonical_module_registry_service.dart';
 import 'package:grumpy/src/persistence/infra/services/default_repo_bootstrap_service.dart';
 import 'package:grumpy/src/persistence/infra/services/noop_repo_state_persistence_service.dart';
 import 'package:grumpy/src/routing/infra/services/routing_kit_routing_service.dart';
 import 'package:grumpy/src/telemetry/infra/services/noop_analytics_service.dart';
 import 'package:grumpy/src/telemetry/infra/services/noop_telemetry_service.dart';
+import 'package:grumpy/src/cache/infra/services/no_op_memory_cache_layer_service.dart';
+import 'package:grumpy/src/cache/infra/services/no_op_file_cache_layer_service.dart';
 
 /// A modular unit of functionality within an application.
 abstract class Module<RouteType, Config extends Object>
@@ -236,7 +237,7 @@ abstract class Module<RouteType, Config extends Object>
     _isInitializing = true;
 
     try {
-      _di.pushNewScope(scopeName: runtimeType.toString(), dispose: free);
+      _di.pushNewScope(scopeName: runtimeType.toString(), dispose: destroy);
 
       log('Binding external dependencies');
       bindExternalDeps(<T extends Object>(builder) {
@@ -265,7 +266,7 @@ abstract class Module<RouteType, Config extends Object>
             return repo as T;
           },
           dispose: (repo) async {
-            await repo.free();
+            await repo.destroy();
           },
         );
       });
@@ -284,11 +285,11 @@ abstract class Module<RouteType, Config extends Object>
 
   @override
   @mustCallSuper
-  FutureOr<void> free() async {
+  FutureOr<void> destroy() async {
     if (_disposed) return;
     _disposed = true;
 
-    await super.free();
+    await super.destroy();
 
     if (_di.hasScope(runtimeType.toString())) {
       await _di.popScopesTill(runtimeType.toString());
@@ -363,11 +364,11 @@ abstract class RootModule<RouteType, Config extends Object>
 
   /// Creates the in-memory cache layer service instance.
   Builder<MemoryCacheLayerService, Config> get memoryCacheLayerServiceBuilder =>
-      (cfg, _) => InMemoryCacheLayerService();
+      (_, _) => const NoOpMemoryCacheLayerService();
 
   /// Creates the optional file cache layer service instance.
   Builder<FileCacheLayerService, Config>? get fileCacheLayerServiceBuilder =>
-      null;
+      (_, _) => const NoOpFileCacheLayerService();
 
   /// Creates the cache pipeline service instance.
   Builder<CachePipelineService, Config> get cachePipelineServiceBuilder =>
@@ -431,7 +432,7 @@ abstract class RootModule<RouteType, Config extends Object>
   @override
   // if the root module is disposed, something is very wrong.
   // ignore: must_call_super
-  FutureOr<void> free() {
+  FutureOr<void> destroy() {
     throw StateError(
       'RootModule should not be disposed. It lives throughout the application lifecycle.',
     );

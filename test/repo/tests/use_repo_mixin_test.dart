@@ -79,7 +79,7 @@ void main() {
         throwsA(isA<StateError>()),
       );
 
-      await consumer.free();
+      await consumer.destroy();
     });
 
     test('rebuilds data when dependencies become ready', () async {
@@ -122,7 +122,7 @@ void main() {
         equals(baselineChanges + 2),
       );
 
-      await setup.consumer.free();
+      await setup.consumer.destroy();
     });
 
     test('surfaces dependency errors', () async {
@@ -145,7 +145,7 @@ void main() {
       expect(setup.consumer.lastError, same(error));
       expect(setup.consumer.errorCalls, equals(1));
 
-      await setup.consumer.free();
+      await setup.consumer.destroy();
     });
 
     test(
@@ -157,7 +157,7 @@ void main() {
         di.registerSingletonAsync<StringRepo>(() async => stringRepo);
 
         final consumer = SlowSnapshotUseRepoConsumer();
-        addTearDown(() async => consumer.free());
+        addTearDown(() async => consumer.destroy());
         await settle();
 
         intRepo.setData(0);
@@ -185,7 +185,7 @@ void main() {
   group('DeferredRepoMixin', () {
     test('builds data when dependencies are ready', () async {
       final setup = await setupDeferredRepo();
-      addTearDown(() async => setup.repo.free());
+      addTearDown(() async => setup.repo.destroy());
 
       expect(setup.repo.state.isLoading, isTrue);
 
@@ -208,7 +208,7 @@ void main() {
 
     test('propagates dependency errors and recovers', () async {
       final setup = await setupDeferredRepo();
-      addTearDown(() async => setup.repo.free());
+      addTearDown(() async => setup.repo.destroy());
 
       setup.intRepo.setData(1);
       setup.stringRepo.setData('ok');

@@ -28,8 +28,8 @@ class MutationRepo extends Repo<int>
   }
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
   }
 
   @override
@@ -61,8 +61,8 @@ class UninitializedMutationRepo extends Repo<int>
   }
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
   }
 
   @override

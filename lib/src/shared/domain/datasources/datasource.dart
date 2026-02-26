@@ -14,7 +14,6 @@ abstract class Datasource
   /// such as a database, API, or local storage.
   const Datasource();
 
-  @nonVirtual
   @override
   String get group => 'Datasource';
 

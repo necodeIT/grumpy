@@ -210,9 +210,9 @@ class ScopedMountedModule extends Module<int, Cfg> {
   }
 
   @override
-  Future<void> free() async {
+  Future<void> destroy() async {
     freeCalls++;
-    await super.free();
+    await super.destroy();
   }
 
   @override

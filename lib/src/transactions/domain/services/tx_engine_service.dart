@@ -75,7 +75,7 @@ abstract class TxEngine<TState> extends Service {
   String get logTag => 'TxEngine';
 
   @override
-  void free();
+  void destroy();
 
   @override
   @nonVirtual

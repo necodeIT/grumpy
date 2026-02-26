@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:grumpy/grumpy.dart';
 
 /// Orchestrates multi-layer cache access.
@@ -22,12 +24,12 @@ abstract class CachePipelineService extends Service {
   /// - `null` when all enabled layers miss
   ///
   /// [codec] is used when a layer stores serialized payloads.
-  Future<CacheResult<T>?> get<T, Serialized extends Object>({
-    required CacheKey<T> key,
-    required CachePolicy<Serialized> policy,
+  Future<CacheResult<T>?> get<T>({
+    required StorageKey key,
+    required CachePolicy<Uint8List> policy,
 
     /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Serialized>? codec,
+    SerializationCodec<T, Uint8List>? codec,
   });
 
   /// Writes [value] for [key] according to [policy].
@@ -37,17 +39,17 @@ abstract class CachePipelineService extends Service {
   /// - per-layer TTL values
   /// - `cacheNullResults`
   /// - strict vs isolated layer errors
-  Future<void> put<T, Serialized extends Object>(
-    CacheKey<T> key,
+  Future<void> put<T>(
+    StorageKey key,
     T value, {
-    required CachePolicy<Serialized> policy,
+    required CachePolicy<Uint8List> policy,
 
     /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Serialized>? codec,
+    SerializationCodec<T, Uint8List>? codec,
   });
 
   /// Invalidates [key] across all configured layers.
-  Future<void> invalidate<T>(CacheKey<T> key);
+  Future<void> invalidate(StorageKey key);
 
   /// Clears [namespace] across all configured layers.
   Future<void> clearNamespace(String namespace);

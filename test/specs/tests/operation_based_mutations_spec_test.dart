@@ -244,7 +244,7 @@ void main() {
               'Spec: §6.3 requires lifecycle-installed transaction hooks before using transact.',
         );
 
-        await repo.free();
+        await repo.destroy();
       });
 
       test('applies optimistic state immediately before commit settles', () async {
@@ -371,7 +371,7 @@ void main() {
               'Spec: §6.1 requires each operation id to be unique per enqueue.',
         );
 
-        await repo.free();
+        await repo.destroy();
       });
     });
   });

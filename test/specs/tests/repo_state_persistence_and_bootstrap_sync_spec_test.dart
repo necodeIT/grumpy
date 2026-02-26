@@ -21,7 +21,7 @@ void main() {
         final service = DefaultRepoBootstrapService(
           persistenceService: persistence,
         );
-        const key = RepoSnapshotKey(
+        const key = StorageKey(
           namespace: 'repo',
           primaryKey: 'users',
           schemaId: 'v1',
@@ -81,7 +81,7 @@ void main() {
 
         await service.bootstrap<String, String>(
           repo: repo,
-          key: const RepoSnapshotKey(
+          key: const StorageKey(
             namespace: 'repo',
             primaryKey: 'users',
             schemaId: 'v1',
@@ -126,7 +126,7 @@ void main() {
 
       await service.bootstrap<String, String>(
         repo: TestRepo(),
-        key: const RepoSnapshotKey(
+        key: const StorageKey(
           namespace: 'repo',
           primaryKey: 'users',
           schemaId: 'v1',
@@ -168,7 +168,7 @@ void main() {
 
       await service.bootstrap<String, String>(
         repo: TestRepo(),
-        key: const RepoSnapshotKey(
+        key: const StorageKey(
           namespace: 'repo',
           primaryKey: 'users',
           schemaId: 'v1',
@@ -208,7 +208,7 @@ void main() {
 
       await service.bootstrap<String, String>(
         repo: repo,
-        key: const RepoSnapshotKey(
+        key: const StorageKey(
           namespace: 'repo',
           primaryKey: 'users',
           schemaId: 'v1',
@@ -256,7 +256,7 @@ void main() {
 
         await service.bootstrap<String, String>(
           repo: TestRepo(),
-          key: const RepoSnapshotKey(
+          key: const StorageKey(
             namespace: 'repo',
             primaryKey: 'users',
             schemaId: 'v1',
@@ -295,7 +295,7 @@ void main() {
 
         await service.bootstrap<String, String>(
           repo: TestRepo(),
-          key: const RepoSnapshotKey(
+          key: const StorageKey(
             namespace: 'repo',
             primaryKey: 'users',
             schemaId: 'v1',
@@ -341,7 +341,7 @@ void main() {
 
         await service.bootstrap<String, String>(
           repo: TestRepo(),
-          key: const RepoSnapshotKey(
+          key: const StorageKey(
             namespace: 'repo',
             primaryKey: 'users',
             schemaId: 'v1',
@@ -385,7 +385,7 @@ void main() {
 
         await service.bootstrap<String, String>(
           repo: TestRepo(),
-          key: const RepoSnapshotKey(
+          key: const StorageKey(
             namespace: 'repo',
             primaryKey: 'users',
             schemaId: 'v1',
@@ -414,7 +414,7 @@ void main() {
 
       await service.bootstrap<String, String>(
         repo: TestRepo(),
-        key: const RepoSnapshotKey(
+        key: const StorageKey(
           namespace: 'repo',
           primaryKey: 'users',
           schemaId: 'v1',

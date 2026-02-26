@@ -58,7 +58,7 @@ class TestTelemetryService extends TelemetryService
   }
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
   @override
   String get logTag => 'TestTelemetryService';
 }

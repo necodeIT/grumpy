@@ -43,8 +43,8 @@ class RoutingKitRoutingService<T, Config extends Object>
   RouteContext? get currentContext => _context;
 
   @override
-  FutureOr<void> free() async {
-    await super.free();
+  FutureOr<void> destroy() async {
+    await super.destroy();
     _listeners.clear();
     _pendingNavigations.clear();
     if (!_viewChangeController.isClosed) {

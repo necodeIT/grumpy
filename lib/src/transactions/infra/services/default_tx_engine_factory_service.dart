@@ -16,5 +16,5 @@ class DefaultTxEngineFactoryService extends TxEngineFactoryService {
   String get logTag => 'DefaultTxEngineFactoryService';
 
   @override
-  void free() {}
+  void destroy() {}
 }

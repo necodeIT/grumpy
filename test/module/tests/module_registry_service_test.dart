@@ -227,7 +227,7 @@ void main() {
       final feature = FeatureModule('feature', events: events, deps: [dep]);
 
       await registry.sync([feature]);
-      await registry.free();
+      await registry.destroy();
 
       expect(registry.activeModules, isEmpty);
       expect(feature.deactivateCalls, 1);

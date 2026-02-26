@@ -48,7 +48,7 @@ class RecordingTelemetryService extends TelemetryService {
   }
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'RecordingTelemetryService';
@@ -103,7 +103,7 @@ class RecordingAnalyticsService extends AnalyticsService {
   }) async {}
 
   @override
-  Future<void> free() async {}
+  Future<void> destroy() async {}
 
   @override
   String get logTag => 'RecordingAnalyticsService';

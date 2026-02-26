@@ -31,8 +31,8 @@ class LifecycleTarget with Disposable, LifecycleMixin {
   }
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
     disposed = true;
   }
 }
@@ -50,8 +50,8 @@ class HookedLifecycle
   }
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
     disposed = true;
   }
 
@@ -71,8 +71,8 @@ class HookedRepo extends Repo<int>
   Future<void> dependenciesChanged() async {}
 
   @override
-  Future<void> free() async {
-    await super.free();
+  Future<void> destroy() async {
+    await super.destroy();
   }
 
   @override

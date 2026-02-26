@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:fuzzy_bolt/fuzzy_bolt.dart';
 import 'package:get_it/get_it.dart';
@@ -39,7 +41,8 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
 
   /// Legacy in-memory cache used when pipeline is unavailable.
   final cache = MemoryCache();
-  final Map<String, Future<Object?>> _inflight = <String, Future<Object?>>{};
+  final Map<StorageKey, Future<Object?>> _inflight =
+      <StorageKey, Future<Object?>>{};
 
   /// Default cache expiration for legacy memory-cache mode.
   ///
@@ -60,14 +63,31 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
 
   /// Namespace used when pipeline-backed keys are built.
   ///
-  /// Override this for stable cross-repo key grouping.
-  String get cacheNamespace => runtimeType.toString();
+  /// Defaults to 'cache/repo-name'.
+  String get cacheNamespace => 'cache/$logTag';
 
   /// Default cache policy used when no per-query policy is supplied.
-  CachePolicy<Object> get defaultCachePolicy => const CachePolicy<Object>();
+  CachePolicy<Uint8List> get defaultCachePolicy =>
+      const CachePolicy<Uint8List>();
 
   /// Enables cache pipeline integration when service is registered.
   bool get enableCachePipeline => true;
+
+  StorageKey _buildStorageKey(String name, Map<String, dynamic>? queryParams) {
+    final jsonStr = jsonEncode({
+      'name': name,
+      'dataVersion': _dataVersion,
+      'queryParams': queryParams,
+    });
+    final bytes = utf8.encode(jsonStr);
+    final key = base64Url.encode(bytes);
+
+    return StorageKey(
+      namespace: cacheNamespace,
+      primaryKey: key,
+      schemaId: 'query_mixin_v1',
+    );
+  }
 
   /// Installs query cache lifecycle hooks.
   ///
@@ -127,9 +147,9 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   Future<QueryResult?> query<QueryResult>(
     String name,
     FutureOr<QueryResult> Function(T data) query, {
-    Object? cacheKey,
-    CachePolicy<Object>? cachePolicy,
-    SerializationCodec<QueryResult, Object>? codec,
+    Map<String, dynamic>? queryParams,
+    CachePolicy<Uint8List>? cachePolicy,
+    SerializationCodec<QueryResult, Uint8List>? codec,
     Duration? ttl,
     Map<String, String>? telemetryAttributes,
     String? analyticsAction,
@@ -160,10 +180,9 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
       return null;
     }
 
-    final fullKey = _buildCacheKey(name, cacheKey);
-    final inflightKey = fullKey ?? '$name|no-key';
+    final key = _buildStorageKey(name, queryParams);
 
-    final pending = _inflight[inflightKey];
+    final pending = _inflight[key];
     if (pending != null) {
       return await pending as QueryResult?;
     }
@@ -171,46 +190,36 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     final future = _queryInternal<QueryResult>(
       name,
       query,
-      cacheKey: cacheKey,
-      fullKey: fullKey,
-      ttl: ttl,
-      cachePolicy: cachePolicy,
+      key: key,
+      cachePolicy: cachePolicy ?? defaultCachePolicy,
       codec: codec,
       telemetryAttributes: telemetryAttributes,
     );
 
-    _inflight[inflightKey] = future;
+    _inflight[key] = future;
     try {
       return await future;
     } finally {
-      await _inflight.remove(inflightKey);
+      await _inflight.remove(key);
     }
   }
 
   Future<QueryResult?> _queryInternal<QueryResult>(
     String name,
     FutureOr<QueryResult> Function(T data) query, {
-    required Object? cacheKey,
-    required String? fullKey,
-    required Duration? ttl,
-    required CachePolicy<Object>? cachePolicy,
-    required SerializationCodec<QueryResult, Object>? codec,
+    required StorageKey key,
+    required CachePolicy<Uint8List> cachePolicy,
+    required SerializationCodec<QueryResult, Uint8List>? codec,
     required Map<String, String>? telemetryAttributes,
   }) async {
     final pipeline = _resolvePipeline();
 
     QueryResult? staleFallback;
 
-    if (cacheKey != null && pipeline != null) {
-      final key = _QueryCacheKey<QueryResult>(
-        namespace: cacheNamespace,
-        primaryKey: fullKey!,
-      );
-
-      final policy = cachePolicy ?? _policyFromLegacy(ttl);
-      final cached = await pipeline.get<QueryResult, Object>(
+    if (pipeline != null) {
+      final cached = await pipeline.get<QueryResult>(
         key: key,
-        policy: policy,
+        policy: cachePolicy,
         codec: codec,
       );
 
@@ -227,27 +236,19 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
           () => query(state.requireData),
           attributes: telemetryAttributes,
         );
-        await pipeline.put<QueryResult, Object>(
+        await pipeline.put<QueryResult>(
           key,
           result,
-          policy: policy,
+          policy: cachePolicy,
           codec: codec,
         );
         return result;
       } catch (e, st) {
         log('$name: Error during query execution', e, st);
-        if (staleFallback != null && policy.allowStaleFileOnQueryError) {
+        if (staleFallback != null && cachePolicy.allowStaleFileOnQueryError) {
           return staleFallback;
         }
         return null;
-      }
-    }
-
-    if (fullKey != null && cache.contains(fullKey)) {
-      final cachedResult = cache.read<QueryResult>(fullKey);
-      if (cachedResult != null || cacheNullResults) {
-        log('$name: Returning cached result ($fullKey)');
-        return cachedResult;
       }
     }
 
@@ -263,8 +264,6 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
       result = null;
     }
 
-    _cacheResult<QueryResult>(fullKey, result, ttl);
-
     return result;
   }
 
@@ -273,52 +272,6 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     if (!GetIt.I.isRegistered<CachePipelineService>()) return null;
     return CachePipelineService();
   }
-
-  CachePolicy<Object> _policyFromLegacy(Duration? ttl) {
-    if (ttl == null) return defaultCachePolicy;
-    return CachePolicy<Object>(
-      useMemory: true,
-      useFile: false,
-      memoryTtl: ttl,
-      cacheNullResults: cacheNullResults,
-    );
-  }
-
-  @pragma('vm:prefer-inline')
-  void _cacheResult<R>(String? key, R? result, Duration? ttl) {
-    if (key == null) return;
-    if (result != null || cacheNullResults) {
-      cache.create(key, result, expiry: ttl ?? cacheExpiry);
-      log('Cached result for key: $key (ttl=${ttl ?? cacheExpiry})');
-    }
-  }
-
-  @pragma('vm:prefer-inline')
-  String? _buildCacheKey(String name, Object? key) {
-    if (key == null) return null;
-
-    final h = Object.hash(name, _dataVersion, key);
-    return '$name|v=$_dataVersion|h=$h';
-  }
-}
-
-class _QueryCacheKey<T> implements CacheKey<T> {
-  const _QueryCacheKey({required this.namespace, required this.primaryKey});
-
-  @override
-  final String namespace;
-
-  @override
-  final String primaryKey;
-
-  @override
-  String get schemaId => 'query_v1';
-
-  @override
-  int? get compatVersion => null;
-
-  @override
-  String asStorageKey() => '$namespace|$schemaId|$primaryKey';
 }
 
 /// Adds convenience ID-based query lookup behavior.
@@ -330,7 +283,8 @@ mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
     ID id, {
     String? analyticsAction,
     Map<String, dynamic>? analyticsProperties,
-    Duration? ttl,
+    CachePolicy<Uint8List>? cachePolicy,
+    SerializationCodec<T, Uint8List>? codec,
   }) async {
     return query<T?>(
       'queryById',
@@ -342,10 +296,11 @@ mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
           return null;
         }
       },
-      cacheKey: id,
-      ttl: ttl,
+      queryParams: {'id': id.toString()},
       telemetryAttributes: {'id': id.toString()},
       analyticsAction: analyticsAction,
+      cachePolicy: cachePolicy,
+      codec: codec,
       analyticsProperties: {
         'id': id.toString(),
         ...?analyticsProperties?.map((k, v) => MapEntry(k, '$v')),
@@ -367,7 +322,8 @@ mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
     String query, {
     String? analyticsAction,
     Map<String, dynamic>? analyticsProperties,
-    Duration? ttl,
+    CachePolicy<Uint8List>? cachePolicy,
+    SerializationCodec<List<T>, Uint8List>? codec,
   }) async {
     final result = await this.query<List<T>>(
       'fuzzyFind',
@@ -381,9 +337,10 @@ mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
 
         return r.map<T>(extractResult).toList();
       },
-      cacheKey: query.toLowerCase(),
+      queryParams: {'fuzzy_query': query},
       telemetryAttributes: {'query': query},
-      ttl: ttl,
+      cachePolicy: cachePolicy,
+      codec: codec,
       analyticsAction: analyticsAction,
       analyticsProperties: {
         'query': query,
