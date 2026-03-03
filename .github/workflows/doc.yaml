@@ -1,4 +1,4 @@
-name: Linting
+name: Doc Check
 
 on:
   push:
