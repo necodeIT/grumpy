@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Persisted repo state envelope.
+///
+/// {@category persistence}
+
 class RepoSnapshot<T> extends Model {
   /// Creates a serialized repo snapshot envelope.
   const RepoSnapshot({

@@ -34,6 +34,9 @@ import 'package:grumpy/grumpy.dart';
 ///   );
 /// }
 /// ```
+///
+/// {@category cache}
+
 mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   bool _installed = false;
 
@@ -277,6 +280,9 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
 /// Adds convenience ID-based query lookup behavior.
 ///
 /// Useful for list-backed repos where items have stable identifiers.
+///
+/// {@category cache}
+
 mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
   /// Returns an item by [id], or `null` when not found.
   Future<T?> getById(
@@ -316,6 +322,9 @@ mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
 ///
 /// This mixin delegates scoring to `fuzzy_bolt` and keeps caching/telemetry
 /// behavior consistent with [QueryMixin.query].
+///
+/// {@category cache}
+
 mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
   /// Performs a fuzzy search and returns ranked results.
   Future<List<T>> fuzzyFind(

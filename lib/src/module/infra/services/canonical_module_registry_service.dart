@@ -9,6 +9,9 @@ import 'package:grumpy/grumpy.dart';
 /// This registry guarantees one canonical [Module] instance per runtime type.
 /// Any alias instances are reconciled to the canonical instance before
 /// lifecycle operations are executed.
+///
+/// {@category module}
+
 class CanonicalModuleRegistryService<T, Config extends Object>
     extends ModuleRegistryService<T, Config>
     with LifecycleMixin {

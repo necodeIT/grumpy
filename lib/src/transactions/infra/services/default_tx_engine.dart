@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Default concrete transaction engine implementation.
+///
+/// {@category transactions}
+
 class DefaultTxEngine<TState> extends TxEngine<TState> {
   /// Creates a default transaction engine.
   DefaultTxEngine() : super.internal();

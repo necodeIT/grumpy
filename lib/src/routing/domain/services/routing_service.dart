@@ -9,6 +9,9 @@ import 'package:meta/meta.dart';
 ///
 /// [T] represents the type of the presentation (e.g., Widget).
 /// [Config] represents the configuration type used in modules.
+///
+/// {@category routing}
+
 abstract class RoutingService<T, Config extends Object> extends Service {
   /// Returns the DI-registered implementation of [RoutingService].
   ///
@@ -84,6 +87,9 @@ abstract class RoutingService<T, Config extends Object> extends Service {
 }
 
 /// An event representing a change in the view rendered by the [RoutingService].
+///
+/// {@category routing}
+
 typedef ViewChangedEvent<T, Config> = ({
   T view,
   bool isPreview,

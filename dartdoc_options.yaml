@@ -1,0 +1,31 @@
+dartdoc:
+  categories:
+    module:
+      displayName: Modules
+      markdown: lib/src/module/README.md
+    routing:
+      displayName: Routing
+      markdown: lib/src/routing/README.md
+    repo:
+      displayName: Repositories 
+      markdown: lib/src/repo/README.md
+    cache:
+      displayName: Caching
+      markdown: lib/src/cache/README.md
+    persistence:
+      displayName: Persistence
+      markdown: lib/src/persistence/README.md
+    transactions:
+      displayName: Transactions
+      markdown: lib/src/transactions/README.md
+    telemetry:
+      displayName: Telemetry & Analytics
+      markdown: lib/src/telemetry/README.md
+    presentation:
+      displayName: Presentation Layer
+      markdown: lib/src/presentation/README.md
+    shared:
+      displayName: Shared Primitives
+      markdown: lib/src/shared/README.md
+  categoryOrder: [Shared Primitives, Modules,Presentation Layer, Repositories, Routing, Caching, Persistence, Transactions, Telemetry & Analytics]
+  showUndocumentedCategories: true

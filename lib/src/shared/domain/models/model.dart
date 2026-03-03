@@ -3,6 +3,9 @@
 import 'package:grumpy_annotations/grumpy_annotations.dart';
 
 /// Marker class for all models used in the grumpy.
+///
+/// {@category shared}
+
 @BaseClass(allowedLayers: {.domain}, forceSuffix: false)
 abstract class Model {
   /// Marker class for all models used in the grumpy.

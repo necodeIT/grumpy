@@ -5,6 +5,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// To update the value of an entry without changing the key, use [MapUpdateEntryTxOperation] instead.
 /// {@endtemplate}
+///
+/// {@category transactions}
+
 class MapChangeKeyTxOperation<Key, Value, TResult>
     extends TxOperation<Map<Key, Value>, TResult> {
   /// {@macro map_change_key_tx_operation}
@@ -96,6 +99,9 @@ class MapChangeKeyTxOperation<Key, Value, TResult>
 }
 
 /// Conflict resolution strategies for [MapChangeKeyTxOperation].
+///
+/// {@category transactions}
+
 enum MapChangeKeyConflictResolution {
   /// The operation will be rolled back if the new key already exists in the confirmed state.
   rollback,

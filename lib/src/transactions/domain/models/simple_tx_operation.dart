@@ -21,6 +21,9 @@ import 'package:grumpy/src/transactions/domain/models/tx_operation.dart';
 ///   );
 /// }
 /// ```
+///
+/// {@category transactions}
+
 class SimpleTxOperation<TState, TResult> extends TxOperation<TState, TResult> {
   /// Creates a callback-based transaction operation.
   const SimpleTxOperation({

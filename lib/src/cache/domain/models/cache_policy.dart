@@ -12,6 +12,9 @@ import 'package:grumpy/grumpy.dart';
 ///   `CachePolicy(useMemory: true, useFile: true, fileTtl: ...)`
 /// - Strict debugging mode:
 ///   `CachePolicy(strictLayerErrors: true)`
+///
+/// {@category cache}
+
 class CachePolicy<Serialized extends Object> extends Model {
   /// Creates cache behavior options for a query read/write cycle.
   const CachePolicy({

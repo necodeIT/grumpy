@@ -3,6 +3,9 @@ import 'package:grumpy/grumpy.dart';
 /// {@template map_put_entry_tx_operation}
 /// A [TxOperation] for putting an entry in a map.
 /// {@endtemplate}
+///
+/// {@category transactions}
+
 class MapPutEntryTxOperation<Key, Value, TResult>
     extends TxOperation<Map<Key, Value>, TResult> {
   /// {@macro map_put_entry_tx_operation}

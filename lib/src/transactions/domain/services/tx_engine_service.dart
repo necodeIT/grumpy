@@ -12,6 +12,9 @@ import 'package:meta/meta.dart';
 /// - UI-visible state is computed from `confirmed + projected pending`.
 /// - overlapping pending operations are resolved via newer-wins policy.
 /// - on settle, pending list is updated and visible state can be recomputed.
+///
+/// {@category transactions}
+
 abstract class TxEngine<TState> extends Service {
   /// Resolves a transaction engine from DI.
   factory TxEngine(TState seed) {

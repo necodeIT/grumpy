@@ -8,7 +8,7 @@ part 'telemetry_context.freezed.dart';
 /// Each [TelemetryContext] holds the active backend-specific span and
 /// associated metadata for the current tracing zone.
 ///
-/// Contexts are stored inside [Zone]s using the [`TelemetryZoneMixin`].
+/// Contexts are stored inside [Zone]s using the [TelemetryZoneMixin].
 /// This allows automatic propagation of telemetry information across
 /// asynchronous boundaries without having to manually pass objects around.
 ///
@@ -34,9 +34,12 @@ part 'telemetry_context.freezed.dart';
 ///
 ///
 /// ## Zone ownership
-/// Each context tracks the [ownerType] of the service that created it.
+/// Each context tracks the [TelemetryContext.ownerType] of the service that created it.
 /// This prevents nested spans from different telemetry backends from
 /// accidentally attaching to each other.
+///
+/// {@category telemetry}
+
 @freezed
 abstract class TelemetryContext<T> extends Model with _$TelemetryContext<T> {
   /// Creates a new [TelemetryContext].

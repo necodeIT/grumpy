@@ -3,6 +3,9 @@ import 'package:get_it/get_it.dart' as get_it;
 import 'package:meta/meta.dart';
 
 /// An interface for disposable resources.
+///
+/// {@category shared}
+
 mixin Disposable on Object implements get_it.Disposable {
   /// Disposes of the resource.
   FutureOr<void> destroy();

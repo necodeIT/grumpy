@@ -83,6 +83,9 @@ import 'package:grumpy/grumpy.dart';
 /// - [TelemetryZoneMixin] — for zone-based tracing
 /// - [TelemetryContext] — for span execution context
 ///
+///
+/// {@category telemetry}
+
 abstract class AnalyticsService extends Service {
   /// Returns the DI-registered implementation of [AnalyticsService].
   ///

@@ -10,6 +10,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// Repos typically do not call this service directly. Prefer [QueryMixin],
 /// which integrates this pipeline automatically when registered.
+///
+/// {@category cache}
+
 abstract class CachePipelineService extends Service {
   /// Returns the DI-registered cache pipeline.
   factory CachePipelineService() => Service.get<CachePipelineService>();

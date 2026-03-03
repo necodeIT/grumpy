@@ -28,6 +28,9 @@ import 'package:grumpy/src/cache/infra/services/no_op_memory_cache_layer_service
 import 'package:grumpy/src/cache/infra/services/no_op_file_cache_layer_service.dart';
 
 /// A modular unit of functionality within an application.
+///
+/// {@category module}
+
 abstract class Module<RouteType, Config extends Object>
     with LifecycleMixin, LogMixin, Disposable {
   GetIt get _di => GetIt.instance;
@@ -304,20 +307,32 @@ abstract class Module<RouteType, Config extends Object>
 }
 
 /// A function that binds a [Builder] for a specific [Base] type with a given [Config].
+///
+/// {@category module}
+
 typedef Bind<Base extends Object, Config extends Object> =
     void Function<T extends Base>(Builder<T, Config> builder);
 
 /// A function that builds an instance of type [T] using the provided [Config] and [Resolver].
+///
+/// {@category module}
+
 typedef Builder<T, Config extends Object> =
     T Function(Config cfg, Resolver resolve);
 
 /// A function that resolves an instance of type [T].
+///
+/// {@category module}
+
 typedef Resolver = T Function<T extends Object>();
 
 /// The root module of any Grumpy application.
 ///
 /// As the root module, it is responsible for providing the application-wide
 /// configuration ([Config]) as well as setting up core services like telemetry and analytics.
+///
+/// {@category module}
+
 abstract class RootModule<RouteType, Config extends Object>
     extends Module<RouteType, Config> {
   /// Creates a new [RootModule] with the given [cfg].

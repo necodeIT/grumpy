@@ -62,6 +62,9 @@ abstract mixin class LifecycleMixin implements Disposable {
 }
 
 /// Mixin that adds lifecycle callbacks to a [Repo].
+///
+/// {@category shared}
+
 mixin RepoLifecycleMixin<T> on Repo<T> {
   /// Called when a new data value is emitted.
   void onEmitData(T data) {}

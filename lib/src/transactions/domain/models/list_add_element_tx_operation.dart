@@ -3,6 +3,9 @@ import 'package:grumpy/grumpy.dart';
 /// {@template list_add_element_tx_operation}
 /// A [TxOperation] for adding an element to a list.
 /// {@endtemplate}
+///
+/// {@category transactions}
+
 class ListAddElementTxOperation<Element, TResult>
     extends TxOperation<List<Element>, TResult> {
   /// {@macro list_add_element_tx_operation}

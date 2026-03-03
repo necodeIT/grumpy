@@ -11,6 +11,9 @@ import 'package:get_it/get_it.dart' hide Disposable;
 /// [Module.bindServices] and [Module.bindDatasources] through [singelton]:
 /// if `true`, modules register them as lazy singletons; if `false`, modules
 /// register them as factories.
+///
+/// {@category shared}
+
 abstract class Injectable {
   /// Creates an injectable DI contract.
   const Injectable();

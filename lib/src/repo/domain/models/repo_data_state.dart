@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Represents a data state in a [Repo] indicating successful data retrieval.
+///
+/// {@category repo}
+
 class RepoDataState<T> extends RepoState<T> {
   /// Creates a [RepoDataState] with the given [value].
   const RepoDataState(this.value);

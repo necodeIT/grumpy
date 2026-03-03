@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Stored cache entry with optional expiry metadata.
+///
+/// {@category cache}
+
 class CacheEntry<T> extends Model {
   /// Creates a cache entry.
   const CacheEntry({

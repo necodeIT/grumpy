@@ -2,6 +2,9 @@ import 'dart:async';
 import 'package:grumpy/grumpy.dart';
 
 /// Details about a stored payload/schema mismatch.
+///
+/// {@category persistence}
+
 class SchemaMismatchContext<Serialized extends Object> extends Model {
   /// Creates schema mismatch context details.
   const SchemaMismatchContext({
@@ -44,6 +47,9 @@ class SchemaMismatchContext<Serialized extends Object> extends Model {
 }
 
 /// Resolver outcome for mismatched payloads.
+///
+/// {@category persistence}
+
 class SchemaMismatchDecision<Serialized extends Object> extends Model {
   /// Creates the resolver decision for a schema mismatch.
   const SchemaMismatchDecision({
@@ -74,6 +80,9 @@ class SchemaMismatchDecision<Serialized extends Object> extends Model {
 }
 
 /// Async mismatch resolver hook.
+///
+/// {@category persistence}
+
 typedef SchemaMismatchResolver<Serialized extends Object> =
     FutureOr<SchemaMismatchDecision<Serialized>> Function(
       SchemaMismatchContext<Serialized> context,

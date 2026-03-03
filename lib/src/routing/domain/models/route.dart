@@ -10,6 +10,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// The type parameter [T] usually corresponds to the concrete presentation type
 /// produced by the route (e.g. a `Widget` in Flutter).
+///
+/// {@category routing}
+
 class Route<T, Config extends Object> extends Model {
   /// Creates a [Route] with the given [path], optional [children] and [middleware].
   const Route({
@@ -31,8 +34,8 @@ class Route<T, Config extends Object> extends Model {
 
   /// Guards that must all pass before this route can be activated.
   ///
-  /// If any [Middleware.canActivate] returns `false`, the route is considered
-  /// not accessible and the navigation should be aborted or redirected if [Middleware.redirectTo] is set.
+  /// If any [Middleware.call] throws, the route is considered
+  /// not accessible and the navigation should be aborted.
   final List<Middleware<T, Config>> middleware;
 
   /// Child routes that are matched relative to this route's [path].

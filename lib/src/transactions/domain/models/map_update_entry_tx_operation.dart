@@ -5,6 +5,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// Note: To change the key of an entry, use [MapChangeKeyTxOperation] instead.
 /// {@endtemplate}
+///
+/// {@category transactions}
+
 class MapUpdateEntryTxOperation<Key, Value, TResult>
     extends TxOperation<Map<Key, Value>, TResult> {
   /// {@macro map_update_entry_tx_operation}

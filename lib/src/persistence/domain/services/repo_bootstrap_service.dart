@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:grumpy/grumpy.dart';
 
 /// Async callback that fetches latest remote repo state.
+///
+/// {@category persistence}
+
 typedef RepoSyncLoader<T> = Future<T?> Function();
 
 /// Coordinates repo hydration + sync sequence.
@@ -16,6 +19,9 @@ typedef RepoSyncLoader<T> = Future<T?> Function();
 ///
 /// Most repos should use this via [PersistentRepoStateMixin] instead of
 /// invoking it directly.
+///
+/// {@category persistence}
+
 abstract class RepoBootstrapService extends Service {
   /// Returns the DI-registered repo bootstrap service.
   factory RepoBootstrapService() => Service.get<RepoBootstrapService>();

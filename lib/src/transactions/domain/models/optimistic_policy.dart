@@ -9,6 +9,9 @@ part 'optimistic_policy.freezed.dart';
 /// what snapshot to revert to on failure, and when to revert based on errors.
 /// This is useful for implementing optimistic UI updates in applications,
 /// allowing for a responsive user experience while handling potential failures.
+///
+/// {@category transactions}
+
 @freezed
 abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
   /// Creates an [OptimisticPolicy] with the given parameters.
@@ -18,12 +21,7 @@ abstract class OptimisticPolicy<T> extends Model with _$OptimisticPolicy<T> {
 
     /// A function to determine whether to revert based on the error.
     ///
-    /// If this function returns `true`, the operation will revert to the
-    /// [snapshotValue].
-    ///
-    /// If it returns `false`, the optimistic update is retained despite the error
-    /// when [propagateError] is `false`. If [propagateError] is `true`, the error is still thrown
-    /// but the optimistic update is not reverted.
+    /// If this function returns `true`, the changes from [optimisticValue] will be reverted.
     required bool Function(Object? error) shouldRevert,
   }) = _OptimisticPolicy;
   const OptimisticPolicy._();

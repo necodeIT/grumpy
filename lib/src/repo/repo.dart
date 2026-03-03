@@ -9,6 +9,9 @@ import 'package:rxdart/rxdart.dart';
 /// filter, sorting, and CRUD operations that can be easily bound by consumers.
 ///
 /// See [RepoState] for more details on the possible states.
+///
+/// {@category repo}
+
 abstract class Repo<T>
     with LogMixin, LifecycleMixin, LifecycleHooksMixin, Disposable
     implements Injectable {

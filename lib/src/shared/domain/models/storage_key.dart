@@ -7,6 +7,9 @@ part 'storage_key.freezed.dart';
 part 'storage_key.g.dart';
 
 /// Stable storage key contract shared by cache and snapshot persistence layers.
+///
+/// {@category shared}
+
 @freezed
 abstract class StorageKey with _$StorageKey implements Model {
   /// Stable storage key contract shared by cache and snapshot persistence layers.

@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:grumpy/grumpy.dart';
 
 /// A no-operation implementation of [TelemetryService].
+///
+/// {@category telemetry}
+
 class NoopTelemetryService extends TelemetryService {
   /// A no-operation implementation of [TelemetryService].
   NoopTelemetryService() : super.internal();

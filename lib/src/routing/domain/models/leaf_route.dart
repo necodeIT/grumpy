@@ -4,10 +4,13 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// Use [LeafRoute] for leaf routes that don't require their own [Module]
 /// and can be satisfied by a single [Leaf].
+///
+/// {@category routing}
+
 class LeafRoute<T, Config extends Object> extends Route<T, Config> {
   /// Creates a [LeafRoute] for the given [path] and [view].
   ///
-  /// - [guards] are evaluated before [view] is built.
+  /// - [middleware] are evaluated before [view] is built.
   /// - [children] allow this view to act as a parent in a nested route tree.
   const LeafRoute({
     required super.path,
@@ -26,7 +29,7 @@ class LeafRoute<T, Config extends Object> extends Route<T, Config> {
 
   @override
   String toString() {
-    return 'ViewRoute(path: $path, view: $view, middleware: $middleware, children: $children)';
+    return 'LeafRoute(path: $path, view: $view, middleware: $middleware, children: $children)';
   }
 
   /// `true` if this route is the root route.

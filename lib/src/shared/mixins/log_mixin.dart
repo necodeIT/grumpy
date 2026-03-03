@@ -2,6 +2,9 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 
 /// A mixin that provides logging capabilities to a class.
+///
+/// {@category shared}
+
 mixin class LogMixin {
   Logger get _logger => Logger('${group.isNotEmpty ? '$group.' : ''}$logTag');
 

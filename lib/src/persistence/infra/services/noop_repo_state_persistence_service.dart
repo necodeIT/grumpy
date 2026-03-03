@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// No-op repo snapshot persistence.
+///
+/// {@category persistence}
+
 class NoopRepoStatePersistenceService extends RepoStatePersistenceService {
   /// Creates a no-op persistence service.
   NoopRepoStatePersistenceService() : super.internal();

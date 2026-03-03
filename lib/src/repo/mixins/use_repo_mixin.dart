@@ -6,6 +6,9 @@ import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
 /// A mixin that provides functionality to watch and use multiple [Repo] instances.
+///
+/// {@category repo}
+
 mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   final _subs = <StreamSubscription>[];
   final _watchedRepos = <Type, Repo>{};
@@ -265,6 +268,9 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 /// ```dart
 /// final (user, userRepo) = await useRepo<User, UserRepo>();
 /// ```
+///
+/// {@category repo}
+
 typedef UseRepo = Future<(T, R)> Function<T, R extends Repo<T>>();
 
 /// A mixin that provides a deferred repository implementation using [UseRepoMixin].
@@ -274,6 +280,9 @@ typedef UseRepo = Future<(T, R)> Function<T, R extends Repo<T>>();
 /// [UseRepoMixin] to watch and react to changes in the dependent repositories.
 ///
 /// Dependent repositories are lazyly discovered during the initialization phase.
+///
+/// {@category repo}
+
 mixin DeferredRepoMixin<T> on Repo<T>, UseRepoMixin<void, void, void> {
   @mustCallSuper
   @override

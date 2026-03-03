@@ -5,6 +5,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 ///  Note [Element] must properly implement equality for this operation to work correctly.
 /// {@endtemplate}
+///
+/// {@category transactions}
+
 class ListRemoveElementTxOperation<Element, TResult>
     extends TxOperation<List<Element>, TResult> {
   /// {@macro list_remove_element_tx_operation}

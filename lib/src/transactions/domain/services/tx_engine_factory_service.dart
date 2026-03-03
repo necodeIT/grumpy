@@ -21,6 +21,9 @@ import 'package:meta/meta.dart';
 ///
 /// Implementations should return non-singleton engines because each repo
 /// instance owns its own transactional timeline.
+///
+/// {@category transactions}
+
 abstract class TxEngineFactoryService extends Service {
   /// Resolves the configured transaction-engine factory from DI.
   factory TxEngineFactoryService() => Service.get<TxEngineFactoryService>();

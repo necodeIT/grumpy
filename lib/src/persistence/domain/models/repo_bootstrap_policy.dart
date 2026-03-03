@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Startup bootstrap order.
+///
+/// {@category persistence}
+
 enum BootstrapHydrationMode {
   /// Try snapshot hydration first, then synchronize from remote.
   hydrateThenSync,
@@ -16,6 +19,9 @@ enum BootstrapHydrationMode {
 }
 
 /// Sync-failure behavior when hydration already succeeded.
+///
+/// {@category persistence}
+
 enum SyncFailureBehavior {
   /// Keep hydrated data visible and suppress repo error state.
   keepHydratedData,
@@ -39,6 +45,9 @@ enum SyncFailureBehavior {
 ///   `RepoBootstrapPolicy(mode: BootstrapHydrationMode.syncThenHydrate)`
 /// - local-only mode:
 ///   `RepoBootstrapPolicy(mode: BootstrapHydrationMode.hydrateOnly)`
+///
+/// {@category persistence}
+
 class RepoBootstrapPolicy extends Model {
   /// Creates bootstrap behavior options for startup hydration/sync.
   const RepoBootstrapPolicy({

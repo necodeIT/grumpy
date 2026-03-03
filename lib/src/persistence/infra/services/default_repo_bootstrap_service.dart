@@ -9,6 +9,9 @@ import 'package:grumpy/grumpy.dart';
 /// - sync remote data based on mode
 /// - persist synced data when persistence is enabled
 /// - emit errors only when failure policy requires it
+///
+/// {@category persistence}
+
 class DefaultRepoBootstrapService extends RepoBootstrapService {
   /// Creates a default bootstrap service.
   DefaultRepoBootstrapService({RepoStatePersistenceService? persistenceService})

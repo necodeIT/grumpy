@@ -17,12 +17,7 @@ mixin _$OptimisticPolicy<T> {
 /// The function to generate the optimistic value based on the current value.
  T Function(T) get optimisticValue;/// A function to determine whether to revert based on the error.
 ///
-/// If this function returns `true`, the operation will revert to the
-/// [snapshotValue].
-///
-/// If it returns `false`, the optimistic update is retained despite the error
-/// when [propagateError] is `false`. If [propagateError] is `true`, the error is still thrown
-/// but the optimistic update is not reverted.
+/// If this function returns `true`, the changes from [optimisticValue] will be reverted.
  bool Function(Object? error) get shouldRevert;
 /// Create a copy of OptimisticPolicy
 /// with the given fields replaced by the non-null parameter values.
@@ -223,12 +218,7 @@ class _OptimisticPolicy<T> extends OptimisticPolicy<T> {
 @override final  T Function(T) optimisticValue;
 /// A function to determine whether to revert based on the error.
 ///
-/// If this function returns `true`, the operation will revert to the
-/// [snapshotValue].
-///
-/// If it returns `false`, the optimistic update is retained despite the error
-/// when [propagateError] is `false`. If [propagateError] is `true`, the error is still thrown
-/// but the optimistic update is not reverted.
+/// If this function returns `true`, the changes from [optimisticValue] will be reverted.
 @override final  bool Function(Object? error) shouldRevert;
 
 /// Create a copy of OptimisticPolicy

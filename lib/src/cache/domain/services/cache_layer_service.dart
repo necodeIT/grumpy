@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'package:grumpy/grumpy.dart';
 
 /// Shared cache layer surface.
+///
+/// {@category cache}
+
 abstract class CacheLayerService extends Service {
   /// Returns the DI-registered implementation of [CacheLayerService].
   ///

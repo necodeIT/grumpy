@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'package:grumpy/grumpy.dart';
 
 /// No-op memory cache layer service.
+///
+/// {@category cache}
+
 class NoOpMemoryCacheLayerService extends MemoryCacheLayerService {
   /// No-op memory cache layer service.
   const NoOpMemoryCacheLayerService() : super.internal();

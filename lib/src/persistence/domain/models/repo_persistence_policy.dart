@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Repo snapshot persistence controls.
+///
+/// {@category persistence}
+
 class RepoPersistencePolicy<Serialized extends Object> extends Model {
   /// Creates repo snapshot persistence options.
   const RepoPersistencePolicy({

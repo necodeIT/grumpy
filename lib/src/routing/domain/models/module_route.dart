@@ -4,6 +4,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// Use [ModuleRoute] for feature- or domain-level entry points that should
 /// mount a dedicated [Module] (and its dependency graph) on navigation.
+///
+/// {@category routing}
+
 class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
   /// Creates a [ModuleRoute] for the given [path] and [module].
   ///

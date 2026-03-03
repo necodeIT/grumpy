@@ -3,6 +3,9 @@ import 'package:grumpy/grumpy.dart';
 /// {@template map_remove_entry_tx_operation}
 /// A [TxOperation] that removes an entry from a [Map].
 /// {@endtemplate}
+///
+/// {@category transactions}
+
 class MapRemoveEntryTxOperation<Key, Value, TResult>
     extends TxOperation<Map<Key, Value>, TResult> {
   /// {@macro map_remove_entry_tx_operation}

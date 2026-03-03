@@ -1,7 +1,13 @@
 /// JSON-like payload map.
+///
+/// {@category shared}
+
 typedef JsonMap = Map<String, Object?>;
 
 /// Converts between runtime data and serialized wire payload.
+///
+/// {@category shared}
+
 abstract class SerializationCodec<Data, Serialized extends Object> {
   /// Converts between runtime data and serialized wire payload.
   const SerializationCodec();

@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// L1 in-memory cache layer.
+///
+/// {@category cache}
+
 abstract class MemoryCacheLayerService extends CacheLayerService {
   /// Returns the DI-registered implementation of [MemoryCacheLayerService].
   ///

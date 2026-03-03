@@ -8,6 +8,9 @@ import 'package:grumpy/grumpy.dart';
 // ignore: services_must_extend_service
 /// A service is responsible for IO operations, such as making network requests
 /// or reading/writing files.
+///
+/// {@category shared}
+
 @BaseClass(allowedLayers: {.domain, .infra})
 abstract class Service
     with LogMixin, Disposable, TelemetryMixin

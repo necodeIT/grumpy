@@ -4,6 +4,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// [success] indicates whether commit eventually succeeded.
 /// [visibleState] is the repo state after settlement + replay.
+///
+/// {@category transactions}
+
 class TxResult<TState> implements Model {
   /// Creates a transaction result payload.
   const TxResult({

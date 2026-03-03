@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Source used to satisfy a cache lookup.
+///
+/// {@category cache}
+
 enum CacheSource {
   /// Value came from the memory layer.
   memory,
@@ -13,6 +16,9 @@ enum CacheSource {
 }
 
 /// Returned cache value with source metadata.
+///
+/// {@category cache}
+
 class CacheResult<T> extends Model {
   /// Creates a cache lookup result.
   const CacheResult({

@@ -5,6 +5,9 @@ part 'route_context.freezed.dart';
 part 'route_context.g.dart';
 
 /// Contextual information about the current routing state.
+///
+/// {@category routing}
+
 @freezed
 abstract class RouteContext extends Model with _$RouteContext {
   /// Contextual information about the current routing state.

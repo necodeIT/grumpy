@@ -21,6 +21,9 @@ import 'package:logging/logging.dart';
 /// - `commit`: the actual network/database mutation.
 /// - `applyConfirmed`: how server response updates confirmed state.
 /// {@endtemplate}
+///
+/// {@category transactions}
+
 abstract class TxOperation<TState, TResult> with LogMixin implements Model {
   /// {@macro tx_operation}
   const TxOperation({

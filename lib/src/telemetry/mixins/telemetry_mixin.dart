@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:grumpy/grumpy.dart';
 
 /// A mixin that provides telemetry tracing capabilities.
+///
+/// {@category telemetry}
+
 mixin TelemetryMixin {
   /// Wraps the given [function] in a Telemetry Span.
   ///

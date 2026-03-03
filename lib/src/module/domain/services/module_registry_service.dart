@@ -12,6 +12,9 @@ import 'package:grumpy/grumpy.dart';
 /// A module is considered:
 /// - mounted after [Module.initialize] completes
 /// - active after [Module.activate] completes
+///
+/// {@category module}
+
 abstract class ModuleRegistryService<T, Config extends Object> extends Service {
   /// Returns the DI-registered implementation of [ModuleRegistryService].
   ///

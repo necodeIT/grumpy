@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Represents the data state of a [Repo].
+///
+/// {@category repo}
+
 abstract class RepoState<T> extends Model {
   /// Creates a new instance of [RepoState].
   const RepoState();

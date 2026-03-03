@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Represents a loading state in a [Repo] indicating that data is being fetched.
+///
+/// {@category repo}
+
 class RepoLoadingState<T> extends RepoState<T> {
   /// Creates a [RepoLoadingState].
   const RepoLoadingState(this.timeStamp);

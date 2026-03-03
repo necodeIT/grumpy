@@ -12,6 +12,9 @@ import 'package:grumpy/grumpy.dart';
 /// - write-through to enabled layers when policy allows
 /// - per-layer TTL application
 /// - optional strict error propagation
+///
+/// {@category cache}
+
 class DefaultCachePipelineService extends CachePipelineService {
   /// Creates a default pipeline with optional memory/file layers.
   DefaultCachePipelineService({

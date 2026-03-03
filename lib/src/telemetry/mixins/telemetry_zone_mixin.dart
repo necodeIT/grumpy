@@ -62,6 +62,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// See also:
 ///  - [AnalyticsService] for user behavior tracking.
+///
+/// {@category telemetry}
+
 mixin TelemetryZoneMixin<T> on TelemetryService {
   /// The unique key used to store telemetry context in a [Zone].
   static final Symbol _zoneKey = #ctx;

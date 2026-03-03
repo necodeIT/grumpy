@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// Durable repo snapshot storage service.
+///
+/// {@category persistence}
+
 abstract class RepoStatePersistenceService extends Service {
   /// Returns the DI-registered persistence service.
   factory RepoStatePersistenceService() =>

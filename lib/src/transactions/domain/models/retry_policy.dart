@@ -4,6 +4,8 @@ import 'package:grumpy/grumpy.dart';
 part 'retry_policy.freezed.dart';
 
 /// Defines the retry behavior for operations that may fail.
+///
+/// {@category transactions}
 
 @freezed
 abstract class RetryPolicy extends Model with _$RetryPolicy {

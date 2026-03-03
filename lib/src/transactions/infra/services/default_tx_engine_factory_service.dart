@@ -5,6 +5,9 @@ import 'package:grumpy/src/transactions/infra/services/default_tx_engine.dart';
 ///
 /// This implementation always returns [DefaultTxEngine] and keeps engine
 /// creation policy centralized in one DI-managed service.
+///
+/// {@category transactions}
+
 class DefaultTxEngineFactoryService extends TxEngineFactoryService {
   /// Creates the default transaction-engine factory service.
   DefaultTxEngineFactoryService() : super.internal();

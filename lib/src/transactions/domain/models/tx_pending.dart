@@ -4,6 +4,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// A [TxPending] stores the minimal metadata needed to replay an operation
 /// deterministically in optimistic projection order.
+///
+/// {@category transactions}
+
 class TxPending<TState> implements Model {
   /// Creates pending operation metadata.
   const TxPending({

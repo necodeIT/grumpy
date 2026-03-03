@@ -6,6 +6,9 @@ import 'package:grumpy/grumpy.dart';
 
 /// A datasource is responsible for providing data from a specific source,
 /// such as a database, API, or local storage.
+///
+/// {@category shared}
+
 @BaseClass(allowedLayers: {.domain, .infra})
 abstract class Datasource
     with LogMixin, Disposable, TelemetryMixin

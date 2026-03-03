@@ -4,6 +4,9 @@ import 'package:routingkit/routingkit.dart';
 import 'package:grumpy/grumpy.dart';
 
 /// [RoutingService] impementation that uses RoutingKit for route parsing and matching.
+///
+/// {@category routing}
+
 class RoutingKitRoutingService<T, Config extends Object>
     extends RoutingService<T, Config>
     with LifecycleMixin {

@@ -32,7 +32,7 @@ import 'package:grumpy/grumpy.dart';
 /// without needing to pass span objects down the call stack.
 ///
 /// The preferred way to manage this logic is through the
-/// [`TelemetryZoneMixin`], which provides reusable helpers such as:
+/// [TelemetryZoneMixin], which provides reusable helpers such as:
 /// - `createContext()` — create a new span context
 /// - `getContext()` — safely access the current context for the same service type
 /// - `runSpan()` — execute a function in a new zone-scoped span
@@ -77,6 +77,9 @@ import 'package:grumpy/grumpy.dart';
 ///
 /// Do **not** use it for business or user analytics — for that, see
 /// [AnalyticsService].
+///
+/// {@category telemetry}
+
 abstract class TelemetryService extends Service {
   /// Returns the DI-registered implementation of [TelemetryService].
   ///

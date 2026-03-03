@@ -18,6 +18,9 @@ import 'package:grumpy/grumpy.dart';
 /// 1. bootstrap service attempts hydrate/sync by policy
 /// 2. `data(...)` emissions are saved as snapshots (debounced) when enabled
 /// 3. deactivation resets bootstrap guard for next activation cycle
+///
+/// {@category persistence}
+
 mixin PersistentRepoStateMixin<T, Serialized extends Object>
     on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   bool _installed = false;

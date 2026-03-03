@@ -45,6 +45,9 @@ import 'package:grumpy/grumpy.dart';
 ///   }
 /// }
 /// ```
+///
+/// {@category transactions}
+
 mixin TransactionalMutationMixin<T>
     on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
   bool _installed = false;

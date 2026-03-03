@@ -5,6 +5,9 @@ import 'package:grumpy/grumpy.dart';
 // this is the base class for views.
 // ignore: views_must_extend_view, views_must_have_view_suffix
 /// The presentation of a route of type [T].
+///
+/// {@category routing}
+
 abstract class Leaf<T> extends Model {
   /// Creates a [Leaf].
   const Leaf();

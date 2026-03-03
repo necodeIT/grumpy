@@ -1,6 +1,9 @@
 import 'package:grumpy/grumpy.dart';
 
 /// L2 persistent cache layer.
+///
+/// {@category cache}
+
 abstract class FileCacheLayerService extends CacheLayerService {
   /// Returns the DI-registered implementation of [FileCacheLayerService].
   ///

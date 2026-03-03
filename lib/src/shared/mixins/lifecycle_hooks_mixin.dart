@@ -4,6 +4,9 @@ import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
 /// Provides lifecycle hooks for classes that mix in [LifecycleMixin].
+///
+/// {@category shared}
+
 mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
   final List<FutureOr<void> Function()> _initializeHooks = [];
   final List<FutureOr<void> Function()> _activateHooks = [];
@@ -109,6 +112,8 @@ mixin LifecycleHooksMixin on LifecycleMixin, LogMixin {
 }
 
 /// Mixin providing hooks for Repo lifecycle events.
+///
+/// {@category shared}
 
 mixin RepoLifecycleHooksMixin<T> on RepoLifecycleMixin<T> {
   final List<FutureOr<void> Function(T data)> _onDataHooks = [];

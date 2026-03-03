@@ -3,6 +3,9 @@ import 'dart:typed_data';
 import 'package:grumpy/grumpy.dart';
 
 /// No-op file cache layer service.
+///
+/// {@category cache}
+
 class NoOpFileCacheLayerService extends FileCacheLayerService {
   /// No-op file cache layer service.
   const NoOpFileCacheLayerService() : super.internal();
