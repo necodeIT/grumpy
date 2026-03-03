@@ -29,3 +29,5 @@ dartdoc:
       markdown: lib/src/shared/README.md
   categoryOrder: [Shared Primitives, Modules,Presentation Layer, Repositories, Routing, Caching, Persistence, Transactions, Telemetry & Analytics]
   showUndocumentedCategories: true
+  errors:
+    - unresolved-doc-reference
