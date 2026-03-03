@@ -1,0 +1,5 @@
+# This file is used for development overrides. Run `dart tool/dev.dart` to apply these overrides.
+# `pubspec_overrides.yaml` is ignored by git, so it won't affect CI or other developers.
+dependency_overrides:
+  grumpy_annotations:
+    path: ../grumpy_annotations
