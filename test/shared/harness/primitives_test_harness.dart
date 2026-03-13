@@ -46,6 +46,7 @@ class TestKey<T> implements StorageKey {
     'compatVersion': compatVersion,
   };
 
+  @override
   String asStorageKey() {
     return StorageKey(
       namespace: namespace,
