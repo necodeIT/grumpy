@@ -31,8 +31,8 @@ abstract class CachePipelineService extends Service {
     required StorageKey key,
     required CachePolicy<Uint8List> policy,
 
-    /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Uint8List>? codec,
+    /// Codec for serialized payload conversion.
+    required SerializationCodec<T, Uint8List> codec,
   });
 
   /// Writes [value] for [key] according to [policy].
@@ -47,8 +47,8 @@ abstract class CachePipelineService extends Service {
     T value, {
     required CachePolicy<Uint8List> policy,
 
-    /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Uint8List>? codec,
+    /// Codec for serialized payload conversion.
+    required SerializationCodec<T, Uint8List> codec,
   });
 
   /// Invalidates [key] across all configured layers.

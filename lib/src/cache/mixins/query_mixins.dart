@@ -152,7 +152,7 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     FutureOr<QueryResult> Function(T data) query, {
     Map<String, dynamic>? queryParams,
     CachePolicy<Uint8List>? cachePolicy,
-    SerializationCodec<QueryResult, Uint8List>? codec,
+    required SerializationCodec<QueryResult, Uint8List> codec,
     Duration? ttl,
     Map<String, String>? telemetryAttributes,
     String? analyticsAction,
@@ -212,7 +212,7 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
     FutureOr<QueryResult> Function(T data) query, {
     required StorageKey key,
     required CachePolicy<Uint8List> cachePolicy,
-    required SerializationCodec<QueryResult, Uint8List>? codec,
+    required SerializationCodec<QueryResult, Uint8List> codec,
     required Map<String, String>? telemetryAttributes,
   }) async {
     final pipeline = _resolvePipeline();
@@ -290,7 +290,7 @@ mixin QueryByIdMixin<T, ID> on Repo<List<T>>, QueryMixin<List<T>> {
     String? analyticsAction,
     Map<String, dynamic>? analyticsProperties,
     CachePolicy<Uint8List>? cachePolicy,
-    SerializationCodec<T, Uint8List>? codec,
+    required SerializationCodec<T, Uint8List> codec,
   }) async {
     return query<T?>(
       'queryById',
@@ -332,7 +332,7 @@ mixin FuzzyFindQueryMixin<T> on Repo<List<T>>, QueryMixin<List<T>> {
     String? analyticsAction,
     Map<String, dynamic>? analyticsProperties,
     CachePolicy<Uint8List>? cachePolicy,
-    SerializationCodec<List<T>, Uint8List>? codec,
+    required SerializationCodec<List<T>, Uint8List> codec,
   }) async {
     final result = await this.query<List<T>>(
       'fuzzyFind',

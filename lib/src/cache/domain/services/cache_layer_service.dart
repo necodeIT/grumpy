@@ -24,8 +24,8 @@ abstract class CacheLayerService extends Service {
   Future<CacheEntry<T>?> read<T>(
     StorageKey key, {
 
-    /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Uint8List>? codec,
+    /// Codec for serialized payload conversion.
+    required SerializationCodec<T, Uint8List> codec,
   });
 
   /// Writes [entry] for [key].
@@ -33,8 +33,8 @@ abstract class CacheLayerService extends Service {
     StorageKey key,
     CacheEntry<T> entry, {
 
-    /// Optional codec for serialized payload conversion.
-    SerializationCodec<T, Uint8List>? codec,
+    /// Codec for serialized payload conversion.
+    required SerializationCodec<T, Uint8List> codec,
   });
 
   /// Invalidates a single key from this layer.

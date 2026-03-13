@@ -6,7 +6,8 @@ void main() {
     test('.asStorageKey() is reversible', () {
       final key = const StorageKey(
         namespace: 'test',
-        primaryKey: 'asStorageKey()',
+        primaryKey:
+            'https://prod.liveshare.vsengsaas.visualstudio.com/join?A69716917178959CCA5C6FE98D90DD6E0F3Ahttps://prod.liveshare.vsengsaas.visualstudio.com/join?A69716917178959CCA5C6FE98D90DD6E0F3AasStorageKey()',
         schemaId: 'reversible',
       );
 

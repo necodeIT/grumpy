@@ -96,7 +96,9 @@ abstract class Module<RouteType, Config extends Object>
   /// Called after [bindDatasources] during module initialization.
   void bindRepos(Bind<Repo, Config> bind) {}
 
-  void _bindInjectable<T extends Injectable>(Builder<T, Config> builder) {
+  void _bindInjectable<T extends Injectable>(
+    InjectableFactory<T, Config> builder,
+  ) {
     final probe = builder(_di.get<Config>(), _di.get);
     final lifecycleManaged = probe is LifecycleMixin;
 
@@ -248,17 +250,19 @@ abstract class Module<RouteType, Config extends Object>
       });
 
       log('Binding services');
-      bindServices(<T extends Service>(Builder<T, Config> builder) {
+      bindServices(<T extends Service>(InjectableFactory<T, Config> builder) {
         _bindInjectable<T>(builder);
       });
 
       log('Binding datasources');
-      bindDatasources(<T extends Datasource>(Builder<T, Config> builder) {
+      bindDatasources(<T extends Datasource>(
+        InjectableFactory<T, Config> builder,
+      ) {
         _bindInjectable<T>(builder);
       });
 
       log('Binding repositories');
-      bindRepos(<T extends Repo>(Builder<Repo, Config> builder) {
+      bindRepos(<T extends Repo>(InjectableFactory<Repo, Config> builder) {
         _repoResolvers.add(() async => await _di.getAsync<T>());
 
         _di.registerLazySingletonAsync<T>(
@@ -306,18 +310,18 @@ abstract class Module<RouteType, Config extends Object>
   String toString() => '$logTag<$RouteType,$Config>';
 }
 
-/// A function that binds a [Builder] for a specific [Base] type with a given [Config].
+/// A function that binds a [InjectableFactory] for a specific [Base] type with a given [Config].
 ///
 /// {@category module}
 
 typedef Bind<Base extends Object, Config extends Object> =
-    void Function<T extends Base>(Builder<T, Config> builder);
+    void Function<T extends Base>(InjectableFactory<T, Config> builder);
 
 /// A function that builds an instance of type [T] using the provided [Config] and [Resolver].
 ///
 /// {@category module}
 
-typedef Builder<T, Config extends Object> =
+typedef InjectableFactory<T, Config extends Object> =
     T Function(Config cfg, Resolver resolve);
 
 /// A function that resolves an instance of type [T].
@@ -346,7 +350,7 @@ abstract class RootModule<RouteType, Config extends Object>
   /// Override this method to enable telemetry.
   ///
   /// By default, it returns a no-op implementation.
-  Builder<TelemetryService, Config> get telemetryServiceBuilder =>
+  InjectableFactory<TelemetryService, Config> get telemetryServiceBuilder =>
       (cfg, _) => NoopTelemetryService();
 
   /// Creates the analytics service instance.
@@ -354,14 +358,14 @@ abstract class RootModule<RouteType, Config extends Object>
   /// Override this method to enable analytics.
   ///
   /// By default, it returns a no-op implementation.
-  Builder<AnalyticsService, Config> get analyticsServiceBuilder =>
+  InjectableFactory<AnalyticsService, Config> get analyticsServiceBuilder =>
       (cfg, _) => NoopAnalyticsService();
 
   /// Creates the module registry service instance.
   ///
   /// Override this method to provide a custom module registry implementation.
   /// By default, it returns [CanonicalModuleRegistryService].
-  Builder<ModuleRegistryService<RouteType, Config>, Config>
+  InjectableFactory<ModuleRegistryService<RouteType, Config>, Config>
   get moduleRegistryServiceBuilder =>
       (cfg, _) => CanonicalModuleRegistryService<RouteType, Config>();
 
@@ -370,7 +374,7 @@ abstract class RootModule<RouteType, Config extends Object>
   /// Override this method to provide a custom routing service implementation.
   /// By default, it returns a [RoutingKitRoutingService] using the root
   /// module's routes and the registered [ModuleRegistryService].
-  Builder<RoutingService<RouteType, Config>, Config>
+  InjectableFactory<RoutingService<RouteType, Config>, Config>
   get routingServiceBuilder =>
       (cfg, resolve) => RoutingKitRoutingService<RouteType, Config>(
         this,
@@ -378,15 +382,18 @@ abstract class RootModule<RouteType, Config extends Object>
       );
 
   /// Creates the in-memory cache layer service instance.
-  Builder<MemoryCacheLayerService, Config> get memoryCacheLayerServiceBuilder =>
+  InjectableFactory<MemoryCacheLayerService, Config>
+  get memoryCacheLayerServiceBuilder =>
       (_, _) => const NoOpMemoryCacheLayerService();
 
   /// Creates the optional file cache layer service instance.
-  Builder<FileCacheLayerService, Config>? get fileCacheLayerServiceBuilder =>
+  InjectableFactory<FileCacheLayerService, Config>?
+  get fileCacheLayerServiceBuilder =>
       (_, _) => const NoOpFileCacheLayerService();
 
   /// Creates the cache pipeline service instance.
-  Builder<CachePipelineService, Config> get cachePipelineServiceBuilder =>
+  InjectableFactory<CachePipelineService, Config>
+  get cachePipelineServiceBuilder =>
       (cfg, resolve) => DefaultCachePipelineService(
         memoryLayer: resolve<MemoryCacheLayerService>(),
         fileLayer: fileCacheLayerServiceBuilder == null
@@ -395,12 +402,13 @@ abstract class RootModule<RouteType, Config extends Object>
       );
 
   /// Creates the repo snapshot persistence service instance.
-  Builder<RepoStatePersistenceService, Config>
+  InjectableFactory<RepoStatePersistenceService, Config>
   get repoStatePersistenceServiceBuilder =>
       (cfg, _) => NoopRepoStatePersistenceService();
 
   /// Creates the repo bootstrap orchestrator service instance.
-  Builder<RepoBootstrapService, Config> get repoBootstrapServiceBuilder =>
+  InjectableFactory<RepoBootstrapService, Config>
+  get repoBootstrapServiceBuilder =>
       (cfg, resolve) => DefaultRepoBootstrapService(
         persistenceService: resolve<RepoStatePersistenceService>(),
       );
@@ -408,7 +416,8 @@ abstract class RootModule<RouteType, Config extends Object>
   /// Creates the transaction-engine factory service instance.
   ///
   /// Override this to customize engine selection/creation strategy.
-  Builder<TxEngineFactoryService, Config> get txEngineFactoryServiceBuilder =>
+  InjectableFactory<TxEngineFactoryService, Config>
+  get txEngineFactoryServiceBuilder =>
       (cfg, _) => DefaultTxEngineFactoryService();
 
   @override

@@ -8,6 +8,7 @@ import 'package:grumpy/grumpy.dart';
 import 'package:grumpy/src/cache/infra/services/default_cache_pipeline_service.dart';
 import 'package:test/test.dart';
 import '../harness/query_mixins_test_harness.dart';
+import '../harness/test_item_codecs.dart';
 
 void main() {
   final di = GetIt.instance;
@@ -71,6 +72,7 @@ void main() {
         'countItems',
         (data) => data.length,
         queryParams: const {'cacheKey': 'count'},
+        codec: const IntegerCodec(),
       );
 
       expect(result, isNull);
@@ -90,12 +92,14 @@ void main() {
         'countItems',
         compute,
         queryParams: const {'cacheKey': 'count'},
+        codec: const IntegerCodec(),
       );
 
       final second = await repo.query<int>(
         'countItems',
         compute,
         queryParams: const {'cacheKey': 'count'},
+        codec: const IntegerCodec(),
       );
 
       repo.setItems([
@@ -111,6 +115,7 @@ void main() {
         'countItems',
         compute,
         queryParams: const {'cacheKey': 'count'},
+        codec: const IntegerCodec(),
       );
 
       expect(first, equals(2));
@@ -133,12 +138,14 @@ void main() {
         'findMissing',
         compute,
         queryParams: const {'cacheKey': 'missing'},
+        codec: const TestItemCodec(),
       );
 
       final second = await repo.query<TestItem?>(
         'findMissing',
         compute,
         queryParams: const {'cacheKey': 'missing'},
+        codec: const TestItemCodec(),
       );
 
       expect(first, isNull);
@@ -159,12 +166,14 @@ void main() {
         'findMissing',
         compute,
         queryParams: const {'cacheKey': 'missing'},
+        codec: const TestItemCodec(),
       );
 
       await repo.query<TestItem?>(
         'findMissing',
         compute,
         queryParams: const {'cacheKey': 'missing'},
+        codec: const TestItemCodec(),
       );
 
       expect(computeCalls, 2);
@@ -175,7 +184,11 @@ void main() {
       final repo = createUninitializedRepo()..setItems(seedItems);
 
       expect(
-        () => repo.query<int>('countItems', (items) => items.length),
+        () => repo.query<int>(
+          'countItems',
+          (items) => items.length,
+          codec: const IntegerCodec(),
+        ),
         throwsA(isA<StateError>()),
       );
     });
@@ -185,8 +198,8 @@ void main() {
     test('returns matching item and caches the result', () async {
       final repo = createRepo()..setItems(seedItems);
 
-      final first = await repo.getById('1');
-      final second = await repo.getById('1');
+      final first = await repo.getById('1', codec: const TestItemCodec());
+      final second = await repo.getById('1', codec: const TestItemCodec());
 
       expect(first, isNotNull);
       expect(first?.name, equals('Red Apple'));
@@ -198,8 +211,11 @@ void main() {
     test('returns null for missing item and caches the lookup', () async {
       final repo = createRepo()..setItems(seedItems);
 
-      final first = await repo.getById('missing');
-      final second = await repo.getById('missing');
+      final first = await repo.getById('missing', codec: const TestItemCodec());
+      final second = await repo.getById(
+        'missing',
+        codec: const TestItemCodec(),
+      );
 
       expect(first, isNull);
       expect(second, isNull);
@@ -212,9 +228,15 @@ void main() {
     test('performs fuzzy search and caches by query params key', () async {
       final repo = createRepo()..setItems(seedItems);
 
-      final first = await repo.fuzzyFind('rd apple');
+      final first = await repo.fuzzyFind(
+        'rd apple',
+        codec: const TestItemListCodec(),
+      );
 
-      final second = await repo.fuzzyFind('rd apple');
+      final second = await repo.fuzzyFind(
+        'rd apple',
+        codec: const TestItemListCodec(),
+      );
 
       expect(first, hasLength(1));
       expect(first.first.name, equals('Red Apple'));
@@ -232,6 +254,7 @@ void main() {
         '1',
         analyticsAction: 'getItemById',
         analyticsProperties: {'source': 'test'},
+        codec: const TestItemCodec(),
       );
       expect(analytics.trackEventCalls, 1);
       expect(analytics.trackedEventNames, contains('getItemById'));
@@ -248,6 +271,7 @@ void main() {
         'blue',
         analyticsAction: 'fuzzySearch',
         analyticsProperties: {'source': 'test'},
+        codec: const TestItemListCodec(),
       );
 
       expect(telemetry.runSpanCalls, 1);

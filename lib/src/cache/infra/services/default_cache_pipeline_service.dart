@@ -34,7 +34,7 @@ class DefaultCachePipelineService extends CachePipelineService {
   Future<CacheResult<T>?> get<T>({
     required StorageKey key,
     required CachePolicy<Uint8List> policy,
-    SerializationCodec<T, Uint8List>? codec,
+    required SerializationCodec<T, Uint8List> codec,
   }) async {
     final layers =
         <
@@ -113,7 +113,7 @@ class DefaultCachePipelineService extends CachePipelineService {
     StorageKey key,
     T value, {
     required CachePolicy<Uint8List> policy,
-    SerializationCodec<T, Uint8List>? codec,
+    required SerializationCodec<T, Uint8List> codec,
   }) async {
     if (!policy.writeThrough) return;
     if (!policy.cacheNullResults && value == null) return;

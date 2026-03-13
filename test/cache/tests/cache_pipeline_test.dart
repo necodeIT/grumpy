@@ -16,7 +16,11 @@ void main() {
     );
     const key = TestKey<String>('ns', 'k1');
     const policy = CachePolicy<Uint8List>(useMemory: true);
-    final result = await pipeline.get<String>(key: key, policy: policy);
+    final result = await pipeline.get<String>(
+      key: key,
+      policy: policy,
+      codec: const StringUtf8Codec(),
+    );
 
     expect(result, isNotNull);
     expect(result!.source, CacheSource.memory);
@@ -39,7 +43,11 @@ void main() {
         backfillHigherLayers: true,
       );
 
-      final result = await pipeline.get<String>(key: key, policy: policy);
+      final result = await pipeline.get<String>(
+        key: key,
+        policy: policy,
+        codec: const StringUtf8Codec(),
+      );
 
       expect(result, isNotNull);
       expect(result!.source, CacheSource.file);
@@ -64,7 +72,11 @@ void main() {
         const key = TestKey<String>('ns', 'k3');
         const policy = CachePolicy<Uint8List>(useMemory: true, useFile: true);
 
-        final result = await pipeline.get<String>(key: key, policy: policy);
+        final result = await pipeline.get<String>(
+          key: key,
+          policy: policy,
+          codec: const StringUtf8Codec(),
+        );
 
         expect(result, isNotNull);
         expect(result!.source, CacheSource.file);

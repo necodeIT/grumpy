@@ -26,6 +26,7 @@ void main() {
       final result = await pipeline.get<String>(
         key: const TestKey<String>('cache', 'hit'),
         policy: const CachePolicy<Uint8List>(useMemory: true, useFile: true),
+        codec: const StringUtf8Codec(),
       );
 
       expect(
@@ -73,6 +74,7 @@ void main() {
           useFile: true,
           backfillHigherLayers: true,
         ),
+        codec: const StringUtf8Codec(),
       );
 
       expect(
@@ -117,6 +119,7 @@ void main() {
       final result = await pipeline.get<String>(
         key: const TestKey<String>('cache', 'stale'),
         policy: const CachePolicy<Uint8List>(useMemory: true, useFile: true),
+        codec: const StringUtf8Codec(),
       );
 
       expect(
@@ -152,6 +155,7 @@ void main() {
           useFile: true,
           strictLayerErrors: false,
         ),
+        codec: const StringUtf8Codec(),
       );
 
       expect(
@@ -179,6 +183,7 @@ void main() {
             useMemory: true,
             strictLayerErrors: true,
           ),
+          codec: const StringUtf8Codec(),
         ),
         throwsA(isA<StateError>()),
         reason:
@@ -202,6 +207,7 @@ void main() {
           useFile: true,
           writeThrough: false,
         ),
+        codec: const StringUtf8Codec(),
       );
 
       expect(
@@ -234,6 +240,7 @@ void main() {
           useFile: true,
           cacheNullResults: false,
         ),
+        codec: const StringUtf8Codec(),
       );
 
       expect(
@@ -267,6 +274,7 @@ void main() {
           memoryTtl: Duration(seconds: 20),
           fileTtl: Duration(seconds: 90),
         ),
+        codec: const StringUtf8Codec(),
       );
 
       final memoryDelta = memory.lastWrittenEntry!.expiresAt!.difference(
