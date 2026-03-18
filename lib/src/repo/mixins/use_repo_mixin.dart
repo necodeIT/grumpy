@@ -5,14 +5,23 @@ import 'package:grumpy_annotations/grumpy_annotations.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
+/// Provides use hooks for watching and accessing data within [UseRepoMixin._onDependenciesReady].
+typedef UseHooks = ({
+  /// A function that allows you to watch a [Repo] of type [R] managing data of type [S] and
+  /// returns a tuple containing the data from the repo and the repo itself.
+  ///
+  /// Throws a [NoRepoDataError] if the repo's state does not contain data.
+  Future<(S, R)> Function<S, R extends Repo<S>>() repo,
+});
+
 /// A mixin that provides functionality to watch and use multiple [Repo] instances.
 ///
 /// {@category repo}
-
 mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   final _subs = <StreamSubscription>[];
   final _watchedRepos = <Type, Repo>{};
   final _pendingRepoResolutions = <Type, Future<Repo<dynamic>>>{};
+  final _watchedStreams = <Stream, StreamSubscription>{};
 
   bool _installed = false;
   int _stateChangeVersion = 0;
@@ -71,7 +80,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         log('All dependencies are ready. Rebuilding data...');
         nextError = null;
         nextLoading = null;
-        nextData = await onDependenciesReady();
+        nextData = await _onDependenciesReady();
         log('Dependencies ready, obtained new data.');
       }
     } on NoRepoDataError catch (e, st) {
@@ -103,7 +112,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   Future<void> _discover() async {
     log('Discovering dependencies...');
     try {
-      final result = await onDependenciesReady();
+      final result = await _onDependenciesReady();
 
       // if we already get data in the discovery phase, store it.
       _lastData = result;
@@ -116,6 +125,11 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       _lastError = await onDependencyError(e, st);
       // Ignore errors during the initial discovery phase.
       // we are just trying to discover repos here.
+    } finally {
+      log(
+        'Dependency discovery complete. Currently watching ${_watchedRepos.length} repos.',
+      );
+      await dependenciesChanged();
     }
   }
 
@@ -150,13 +164,17 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       _subs.clear();
     });
     onDisposed(_watchedRepos.clear);
+    onDisposed(_watchedStreams.clear);
   }
 
   /// Watches a [Repo] of type [R] managing data of type [S] and
   /// returns a tuple containing the data from the repo and the repo itself.
   ///
   /// Throws a [NoRepoDataError] if the repo's state does not contain data.
-  Future<(S, R)> useRepo<S, R extends Repo<S>>() async {
+  @Deprecated('Use the provided use arg in onDependenciesReady instead')
+  Future<(S, R)> useRepo<S, R extends Repo<S>>() => _useRepo<S, R>();
+
+  Future<(S, R)> _useRepo<S, R extends Repo<S>>() async {
     if (!_installed) {
       throw StateError(
         'UseRepoMixin not installed. Call installUseRepoHooks in the constructor.',
@@ -180,7 +198,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         return _watchedRepos[R] as R;
       }
 
-      log('Discovered new dependency. Now watching repo of type $R');
+      log('Discovered new dependency. Now watching ${repo.logTag}');
       _watchedRepos[R] = repo;
 
       var ignoredInitialReplay = false;
@@ -207,17 +225,19 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     return (repo.state.requireData, repo);
   }
 
+  FutureOr<D> _onDependenciesReady() => onDependenciesReady((repo: _useRepo));
+
   /// A callback function that is called when all watched repositories are ready.
-  /// Call [useRepo] within this function to access repositories required to build the value.
+  /// Call [use.useRepo] within this function to access repositories required to build the value.
   ///
-  /// [onDependenciesReady] is called whenever any of the watched repositories emit a new state and *all* watched
+  /// [_onDependenciesReady] is called whenever any of the watched repositories emit a new state and *all* watched
   /// repositories have a state of [RepoDataState].
   ///
   /// If this function throws an exception, the error will be handled by [onDependencyError].
-  FutureOr<D> onDependenciesReady();
+  FutureOr<D> onDependenciesReady(UseHooks use);
 
   /// A callback function that is called when any of the watched repositories emit an error state
-  /// or when an exception is thrown during the execution of [onDependenciesReady].
+  /// or when an exception is thrown during the execution of [_onDependenciesReady].
   ///
   /// Takes precedence over [onDependenciesLoading].
   FutureOr<E> onDependencyError(Object error, StackTrace? stackTrace);
@@ -262,17 +282,6 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   }
 }
 
-/// A typedef for [UseRepoMixin.useRepo].
-///
-/// **Example:**
-/// ```dart
-/// final (user, userRepo) = await useRepo<User, UserRepo>();
-/// ```
-///
-/// {@category repo}
-
-typedef UseRepo = Future<(T, R)> Function<T, R extends Repo<T>>();
-
 /// A mixin that provides a deferred repository implementation using [UseRepoMixin].
 ///
 /// The [DeferredRepoMixin] allows you to create a repository that builds its state
@@ -298,15 +307,15 @@ mixin DeferredRepoMixin<T> on Repo<T>, UseRepoMixin<void, void, void> {
 
   @mustCallSuper
   @override
-  FutureOr<void> onDependenciesReady() async {
-    final data = await build();
+  FutureOr<void> onDependenciesReady(UseHooks use) async {
+    final data = await build(use);
 
     this.data(data);
   }
 
   /// A builder function that constructs the state of this repo of type [T].
   ///
-  /// When implementing this method, you can call [useRepo] to access other repositories
+  /// When implementing this method, you can call [UseHooks.repo] to access other repositories
   /// that this repository depends on.
-  FutureOr<T> build();
+  FutureOr<T> build(UseHooks use);
 }

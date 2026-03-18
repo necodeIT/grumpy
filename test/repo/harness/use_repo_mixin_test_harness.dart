@@ -19,9 +19,9 @@ class UseRepoConsumer
   Object? lastError;
 
   @override
-  FutureOr<String> onDependenciesReady() async {
-    final (count, _) = await useRepo<int, IntRepo>();
-    final (label, _) = await useRepo<String, StringRepo>();
+  FutureOr<String> onDependenciesReady(UseHooks use) async {
+    final (count, _) = await use.repo<int, IntRepo>();
+    final (label, _) = await use.repo<String, StringRepo>();
     return '$count-$label';
   }
 
@@ -59,10 +59,10 @@ class SlowSnapshotUseRepoConsumer
   final Completer<void> firstSnapshotCaptured = Completer<void>();
 
   @override
-  FutureOr<String> onDependenciesReady() async {
+  FutureOr<String> onDependenciesReady(UseHooks use) async {
     readyCalls++;
-    final (count, _) = await useRepo<int, IntRepo>();
-    final (label, _) = await useRepo<String, StringRepo>();
+    final (count, _) = await use.repo<int, IntRepo>();
+    final (label, _) = await use.repo<String, StringRepo>();
     final snapshot = '$count-$label';
     lastSnapshot = snapshot;
     if (!firstSnapshotCaptured.isCompleted) {
@@ -93,7 +93,7 @@ class UninitializedConsumer
         LifecycleHooksMixin,
         UseRepoMixin<void, void, void> {
   @override
-  FutureOr<void> onDependenciesReady() {}
+  FutureOr<void> onDependenciesReady(UseHooks use) {}
 
   @override
   FutureOr<void> onDependencyError(Object _, StackTrace? _) {}
@@ -117,9 +117,9 @@ class DeferredCombinedRepo extends Repo<String>
   }
 
   @override
-  FutureOr<String> build() async {
-    final (count, _) = await useRepo<int, IntRepo>();
-    final (label, _) = await useRepo<String, StringRepo>();
+  FutureOr<String> build(UseHooks use) async {
+    final (count, _) = await use.repo<int, IntRepo>();
+    final (label, _) = await use.repo<String, StringRepo>();
     return '$count-$label';
   }
 

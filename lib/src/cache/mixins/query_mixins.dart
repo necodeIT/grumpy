@@ -5,7 +5,6 @@ import 'dart:typed_data';
 import 'package:fuzzy_bolt/fuzzy_bolt.dart';
 import 'package:get_it/get_it.dart';
 import 'package:grumpy_annotations/grumpy_annotations.dart';
-import 'package:memory_cache/memory_cache.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
@@ -42,8 +41,6 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
 
   int _dataVersion = 0;
 
-  /// Legacy in-memory cache used when pipeline is unavailable.
-  final cache = MemoryCache();
   final Map<StorageKey, Future<Object?>> _inflight =
       <StorageKey, Future<Object?>>{};
 
@@ -106,29 +103,6 @@ mixin QueryMixin<T> on Repo<T>, RepoLifecycleHooksMixin<T>, TelemetryMixin {
 
     onData((_) {
       _dataVersion++;
-      if (invalidateCacheOnNewData) {
-        cache.invalidate();
-        log('Cache cleared due to new data. (v=$_dataVersion)');
-      }
-    });
-
-    onLoading(() {
-      if (invalidateCacheOnLoading) {
-        cache.invalidate();
-        log('Cache cleared due to loading state.');
-      }
-    });
-
-    onError((error, stackTrace) {
-      if (invalidateCacheOnError) {
-        cache.invalidate();
-        log('Cache cleared due to error: $error');
-      }
-    });
-
-    onDisposed(() {
-      cache.invalidate();
-      log('Cache cleared on dispose.');
     });
 
     _installed = true;
