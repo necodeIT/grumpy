@@ -5,14 +5,56 @@ import 'package:grumpy_annotations/grumpy_annotations.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
-/// Provides use hooks for watching and accessing data within [UseRepoMixin._onDependenciesReady].
-typedef UseHooks = ({
+/// Provides use hooks for watching and accessing data within [UseRepoMixin.onDependenciesReady].
+class UseHooks {
+  /// Provides use hooks for watching and accessing data within [UseRepoMixin.onDependenciesReady].
+  const UseHooks({required this.repo, required this.externalStream});
+
+  /// {@template UseHooks.repo}
   /// A function that allows you to watch a [Repo] of type [R] managing data of type [S] and
   /// returns a tuple containing the data from the repo and the repo itself.
   ///
-  /// Throws a [NoRepoDataError] if the repo's state does not contain data.
-  Future<(S, R)> Function<S, R extends Repo<S>>() repo,
-});
+  /// {@endtemplate}
+  final Future<(S, R)> Function<S, R extends Repo<S>>() repo;
+
+  /// {@template UseHooks.externalStream}
+  /// A function that watches an external change signal while reading the current
+  /// value synchronously via [syncSnapshot].
+  ///
+  /// The [changeSignal] is treated as invalidation-only. Emitted values are
+  /// ignored and only used to trigger recomputation.
+  /// {@endtemplate}
+  final T Function<T>(
+    Object key, {
+    required Stream changeSignal,
+    required T Function() syncSnapshot,
+  })
+  externalStream;
+}
+
+final class _WatchedExternalDependency {
+  _WatchedExternalDependency({
+    required this.changeSignal,
+    required this.subscription,
+  });
+
+  Stream changeSignal;
+  StreamSubscription subscription;
+  Object? lastError;
+  StackTrace? lastStackTrace;
+
+  bool get hasError => lastError != null;
+
+  void clearError() {
+    lastError = null;
+    lastStackTrace = null;
+  }
+
+  void setError(Object error, StackTrace stackTrace) {
+    lastError = error;
+    lastStackTrace = stackTrace;
+  }
+}
 
 /// A mixin that provides functionality to watch and use multiple [Repo] instances.
 ///
@@ -21,7 +63,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   final _subs = <StreamSubscription>[];
   final _watchedRepos = <Type, Repo>{};
   final _pendingRepoResolutions = <Type, Future<Repo<dynamic>>>{};
-  final _watchedStreams = <Stream, StreamSubscription>{};
+  final _watchedExternalDependencies = <Object, _WatchedExternalDependency>{};
 
   bool _installed = false;
   int _stateChangeVersion = 0;
@@ -40,7 +82,8 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 
   Future<void> _rebuildDependencyState(int version) async {
     var anyLoading = false;
-    RepoErrorState? firstError;
+    Object? firstError;
+    StackTrace? firstErrorStackTrace;
 
     D? nextData = _lastData;
     E? nextError = _lastError;
@@ -51,7 +94,9 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         log(
           'Dependency of type ${repo.runtimeType} has error. Rebuilding error state...',
         );
-        firstError = repo.state.asError;
+        final repoError = repo.state.asError;
+        firstError = repoError.error;
+        firstErrorStackTrace = repoError.stackTrace;
         break;
       }
       if (repo.state.isLoading) {
@@ -62,14 +107,25 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       }
     }
 
+    if (firstError == null) {
+      for (final entry in _watchedExternalDependencies.entries) {
+        final dependency = entry.value;
+        if (!dependency.hasError) continue;
+
+        log(
+          'External dependency with key ${entry.key.runtimeType} has error. Rebuilding error state...',
+        );
+        firstError = dependency.lastError;
+        firstErrorStackTrace = dependency.lastStackTrace;
+        break;
+      }
+    }
+
     final allDataReady = !anyLoading && firstError == null;
 
     try {
       if (firstError != null) {
-        nextError = await onDependencyError(
-          firstError.error,
-          firstError.stackTrace,
-        );
+        nextError = await onDependencyError(firstError, firstErrorStackTrace);
         nextLoading = null;
         nextData = null;
       } else if (anyLoading) {
@@ -164,7 +220,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       _subs.clear();
     });
     onDisposed(_watchedRepos.clear);
-    onDisposed(_watchedStreams.clear);
+    onDisposed(_watchedExternalDependencies.clear);
   }
 
   /// Watches a [Repo] of type [R] managing data of type [S] and
@@ -172,7 +228,26 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   ///
   /// Throws a [NoRepoDataError] if the repo's state does not contain data.
   @Deprecated('Use the provided use arg in onDependenciesReady instead')
+  @visibleForTesting
   Future<(S, R)> useRepo<S, R extends Repo<S>>() => _useRepo<S, R>();
+
+  /// Watches an external [changeSignal] while reading the latest value
+  /// synchronously from [syncSnapshot].
+  ///
+  /// The [changeSignal] is treated as invalidation-only. Emitted values are
+  /// ignored. Use [key] as the stable identity for this dependency across
+  /// rebuilds.
+  @Deprecated('Use the provided use arg in onDependenciesReady instead')
+  @visibleForTesting
+  T watchExternal<T>(
+    Object key, {
+    required Stream changeSignal,
+    required T Function() syncSnapshot,
+  }) => _watchExternal(
+    key,
+    changeSignal: changeSignal,
+    syncSnapshot: syncSnapshot,
+  );
 
   Future<(S, R)> _useRepo<S, R extends Repo<S>>() async {
     if (!_installed) {
@@ -225,7 +300,83 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     return (repo.state.requireData, repo);
   }
 
-  FutureOr<D> _onDependenciesReady() => onDependenciesReady((repo: _useRepo));
+  T _watchExternal<T>(
+    Object key, {
+    required Stream changeSignal,
+    required T Function() syncSnapshot,
+  }) {
+    if (!_installed) {
+      throw StateError(
+        'UseRepoMixin not installed. Call installUseRepoHooks in the constructor.',
+      );
+    }
+
+    final watchedDependency = _watchedExternalDependencies[key];
+    if (watchedDependency == null) {
+      _watchedExternalDependencies[key] = _subscribeToExternalDependency(
+        key,
+        changeSignal,
+      );
+    } else if (!identical(watchedDependency.changeSignal, changeSignal)) {
+      _replaceExternalDependency(
+        key,
+        watchedDependency: watchedDependency,
+        changeSignal: changeSignal,
+      );
+    }
+
+    return syncSnapshot();
+  }
+
+  _WatchedExternalDependency _subscribeToExternalDependency(
+    Object key,
+    Stream changeSignal,
+  ) {
+    late final _WatchedExternalDependency watchedDependency;
+    final sub = changeSignal.listen(
+      (_) async {
+        if (!identical(_watchedExternalDependencies[key], watchedDependency)) {
+          return;
+        }
+        watchedDependency.clearError();
+        final version = ++_stateChangeVersion;
+        await _rebuildDependencyState(version);
+      },
+      onError: (Object error, StackTrace stackTrace) async {
+        if (!identical(_watchedExternalDependencies[key], watchedDependency)) {
+          return;
+        }
+        watchedDependency.setError(error, stackTrace);
+        final version = ++_stateChangeVersion;
+        await _rebuildDependencyState(version);
+      },
+    );
+
+    watchedDependency = _WatchedExternalDependency(
+      changeSignal: changeSignal,
+      subscription: sub,
+    );
+    _subs.add(sub);
+
+    return watchedDependency;
+  }
+
+  void _replaceExternalDependency(
+    Object key, {
+    required _WatchedExternalDependency watchedDependency,
+    required Stream changeSignal,
+  }) {
+    _subs.remove(watchedDependency.subscription);
+    unawaited(watchedDependency.subscription.cancel());
+    _watchedExternalDependencies[key] = _subscribeToExternalDependency(
+      key,
+      changeSignal,
+    );
+  }
+
+  FutureOr<D> _onDependenciesReady() => onDependenciesReady(
+    UseHooks(repo: _useRepo, externalStream: _watchExternal),
+  );
 
   /// A callback function that is called when all watched repositories are ready.
   /// Call [use.useRepo] within this function to access repositories required to build the value.

@@ -75,6 +75,8 @@ void main() {
       final consumer = UninitializedConsumer();
 
       await expectLater(
+        // still is visible for testing
+        // ignore: deprecated_member_use_from_same_package
         consumer.useRepo<int, IntRepo>(),
         throwsA(isA<StateError>()),
       );
@@ -180,6 +182,260 @@ void main() {
         expect(consumer.readyCalls, greaterThanOrEqualTo(3));
       },
     );
+
+    test(
+      'watchExternal returns sync snapshot without waiting for emission',
+      () async {
+        var listenCount = 0;
+        final controller = StreamController<void>(
+          onListen: () => listenCount++,
+        );
+        final snapshot = 'initial';
+        final consumer = ExternalSignalConsumer(
+          key: Object(),
+          changeSignal: controller.stream,
+          syncSnapshot: () => snapshot,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await controller.close();
+        });
+        await settle();
+
+        final state = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(state, equals('initial'));
+        expect(listenCount, equals(1));
+        expect(consumer.readyCalls, equals(1));
+      },
+    );
+
+    test(
+      'watchExternal rebuilds from latest sync snapshot on signal',
+      () async {
+        final controller = StreamController<void>.broadcast();
+        var snapshot = 'initial';
+        final consumer = ExternalSignalConsumer(
+          key: Object(),
+          changeSignal: controller.stream,
+          syncSnapshot: () => snapshot,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await controller.close();
+        });
+        await settle();
+
+        snapshot = 'updated';
+        controller.add(null);
+        await settle();
+
+        final state = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(state, equals('updated'));
+        expect(consumer.readyCalls, equals(2));
+      },
+    );
+
+    test('watchExternal reuses subscription for same key and signal', () async {
+      var listenCount = 0;
+      final controller = StreamController<void>(onListen: () => listenCount++);
+      var snapshot = 'initial';
+      final consumer = ExternalSignalConsumer(
+        key: Object(),
+        changeSignal: controller.stream,
+        syncSnapshot: () => snapshot,
+      );
+      addTearDown(() async {
+        await consumer.destroy();
+        await controller.close();
+      });
+      await settle();
+
+      snapshot = 'next';
+      controller.add(null);
+      await settle();
+
+      expect(listenCount, equals(1));
+      expect(consumer.readyCalls, equals(2));
+    });
+
+    test(
+      'watchExternal replaces subscription when signal changes for same key',
+      () async {
+        var firstListenCount = 0;
+        var secondListenCount = 0;
+        final firstController = StreamController<void>(
+          onListen: () => firstListenCount++,
+        );
+        final secondController = StreamController<void>(
+          onListen: () => secondListenCount++,
+        );
+        const key = #external;
+        var snapshot = 'first';
+        final consumer = ExternalSignalConsumer(
+          key: key,
+          changeSignal: firstController.stream,
+          syncSnapshot: () => snapshot,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await firstController.close();
+          await secondController.close();
+        });
+        await settle();
+
+        consumer.changeSignal = secondController.stream;
+        snapshot = 'second';
+        firstController.add(null);
+        await settle();
+
+        final stateAfterReplacement = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(stateAfterReplacement, equals('second'));
+        expect(firstListenCount, equals(1));
+        expect(secondListenCount, equals(1));
+
+        snapshot = 'stale';
+        firstController.add(null);
+        await settle();
+
+        final stateAfterOldSignal = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(stateAfterOldSignal, equals('second'));
+        expect(consumer.readyCalls, equals(2));
+
+        snapshot = 'third';
+        secondController.add(null);
+        await settle();
+
+        final stateAfterNewSignal = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(stateAfterNewSignal, equals('third'));
+        expect(consumer.readyCalls, equals(3));
+      },
+    );
+
+    test(
+      'watchExternal routes sync snapshot errors through onDependencyError',
+      () async {
+        final controller = StreamController<void>.broadcast();
+        var shouldThrow = false;
+        final snapshotError = StateError('snapshot failed');
+        final consumer = ExternalSignalConsumer(
+          key: Object(),
+          changeSignal: controller.stream,
+          syncSnapshot: () {
+            if (shouldThrow) throw snapshotError;
+            return 'ready';
+          },
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await controller.close();
+        });
+        await settle();
+
+        shouldThrow = true;
+        controller.add(null);
+        await settle();
+
+        final state = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(state, equals('error:${snapshotError.toString()}'));
+        expect(consumer.lastError, same(snapshotError));
+        expect(consumer.errorCalls, equals(1));
+      },
+    );
+
+    test(
+      'watchExternal routes change signal errors and recovers on next event',
+      () async {
+        final controller = StreamController<void>.broadcast();
+        var snapshot = 'ready';
+        final signalError = Exception('signal failed');
+        final consumer = ExternalSignalConsumer(
+          key: Object(),
+          changeSignal: controller.stream,
+          syncSnapshot: () => snapshot,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await controller.close();
+        });
+        await settle();
+
+        controller.addError(signalError);
+        await settle();
+
+        final errorState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(errorState, equals('error:${signalError.toString()}'));
+        expect(consumer.lastError, same(signalError));
+
+        snapshot = 'recovered';
+        controller.add(null);
+        await settle();
+
+        final recoveredState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(recoveredState, equals('recovered'));
+        expect(consumer.readyCalls, equals(2));
+      },
+    );
+
+    test('watchExternal subscriptions are cancelled on dispose', () async {
+      final controller = StreamController<void>.broadcast();
+      var snapshot = 'initial';
+      final consumer = ExternalSignalConsumer(
+        key: Object(),
+        changeSignal: controller.stream,
+        syncSnapshot: () => snapshot,
+      );
+      await settle();
+
+      final baselineChanges = consumer.dependenciesChangedCalls;
+      await consumer.destroy();
+
+      snapshot = 'after-dispose';
+      controller.add(null);
+      await settle();
+      await controller.close();
+
+      expect(consumer.dependenciesChangedCalls, equals(baselineChanges));
+    });
   });
 
   group('DeferredRepoMixin', () {

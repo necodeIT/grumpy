@@ -83,6 +83,56 @@ class SlowSnapshotUseRepoConsumer
   String get logTag => 'SlowSnapshotUseRepoConsumer';
 }
 
+class ExternalSignalConsumer
+    with
+        Disposable,
+        LogMixin,
+        LifecycleMixin,
+        LifecycleHooksMixin,
+        UseRepoMixin<String, String, String> {
+  ExternalSignalConsumer({
+    required this.key,
+    required this.changeSignal,
+    required this.syncSnapshot,
+  }) {
+    installUseRepoHooks();
+    onDependenciesChanged(() => dependenciesChangedCalls++);
+    initialize();
+  }
+
+  final Object key;
+  Stream changeSignal;
+  String Function() syncSnapshot;
+
+  int dependenciesChangedCalls = 0;
+  int readyCalls = 0;
+  int errorCalls = 0;
+  Object? lastError;
+
+  @override
+  FutureOr<String> onDependenciesReady(UseHooks use) {
+    readyCalls++;
+    return use.externalStream<String>(
+      key,
+      changeSignal: changeSignal,
+      syncSnapshot: syncSnapshot,
+    );
+  }
+
+  @override
+  FutureOr<String> onDependencyError(Object error, StackTrace? _) {
+    errorCalls++;
+    lastError = error;
+    return 'error:${error.toString()}';
+  }
+
+  @override
+  String onDependenciesLoading() => 'loading';
+
+  @override
+  String get logTag => 'ExternalSignalConsumer';
+}
+
 // for testing uninitialized usage
 // ignore: missing_required_constructor_call
 class UninitializedConsumer
@@ -93,7 +143,14 @@ class UninitializedConsumer
         LifecycleHooksMixin,
         UseRepoMixin<void, void, void> {
   @override
-  FutureOr<void> onDependenciesReady(UseHooks use) {}
+  FutureOr<void> onDependenciesReady(UseHooks use) {
+    use.repo<int, IntRepo>();
+    use.externalStream<void>(
+      Object(),
+      changeSignal: const Stream<void>.empty(),
+      syncSnapshot: () {},
+    );
+  }
 
   @override
   FutureOr<void> onDependencyError(Object _, StackTrace? _) {}
