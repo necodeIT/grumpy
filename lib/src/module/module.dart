@@ -117,7 +117,7 @@ abstract class Module<RouteType, Config extends Object>
             !_isInitializing) {
           throw StateError(
             'Lifecycle-managed injectable ${probe.runtimeType} cannot be resolved '
-            'before $runtimeType.activate() completes.',
+            'before $logTag.activate() completes.',
           );
         }
         return builder(_di.get<Config>(), _di.get);

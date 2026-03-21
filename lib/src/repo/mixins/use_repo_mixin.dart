@@ -6,26 +6,47 @@ import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
 /// Provides use hooks for watching and accessing data within [UseRepoMixin.onDependenciesReady].
+///
+/// {@category repo}
 class UseHooks {
   /// Provides use hooks for watching and accessing data within [UseRepoMixin.onDependenciesReady].
   const UseHooks({required this.repo, required this.externalStream});
 
   /// {@template UseHooks.repo}
-  /// A function that allows you to watch a [Repo] of type [R] managing data of type [S] and
+  /// Watches a [Repo] of type `R` managing data of type `S` and
   /// returns a tuple containing the data from the repo and the repo itself.
+  ///
+  /// Example usage:
+  /// ```dart
+  /// final (counter, counterRepo) = use.repo<int, CounterRepo>();
+  /// ```
+  ///
+  /// If the repo does not contain data yet, [UseRepoMixin.onDependenciesReady] is aborted and [UseRepoMixin.onDependenciesLoading] or [UseRepoMixin.onDependencyError] is called instead.
   ///
   /// {@endtemplate}
   final Future<(S, R)> Function<S, R extends Repo<S>>() repo;
 
   /// {@template UseHooks.externalStream}
-  /// A function that watches an external change signal while reading the current
-  /// value synchronously via [syncSnapshot].
+  /// Watches an external change signal while reading the current
+  /// value synchronously via a syncSnapshot callback.
   ///
-  /// The [changeSignal] is treated as invalidation-only. Emitted values are
+  /// Example usage:
+  /// ```dart
+  /// final isOnline = use.externalStream<bool>(
+  ///   'onlineStatus',
+  ///   changeSignal: connectivityService.onConnectivityChanged,
+  ///   syncSnapshot: () => connectivityService.isOnline,
+  /// );
+  /// ```
+  ///
+  /// The changeSignal is treated as invalidation-only. Emitted values are
   /// ignored and only used to trigger recomputation.
+  ///
+  /// If the changeSignal emits an error or syncSnapshot throws, the error will be handled by [UseRepoMixin.onDependencyError].
   /// {@endtemplate}
   final T Function<T>(
     Object key, {
+
     required Stream changeSignal,
     required T Function() syncSnapshot,
   })
@@ -379,9 +400,9 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   );
 
   /// A callback function that is called when all watched repositories are ready.
-  /// Call [use.useRepo] within this function to access repositories required to build the value.
+  /// Call [UseHooks.repo] within this function to access repositories required to build the value.
   ///
-  /// [_onDependenciesReady] is called whenever any of the watched repositories emit a new state and *all* watched
+  /// Called whenever any of the watched repositories emit a new state and *all* watched
   /// repositories have a state of [RepoDataState].
   ///
   /// If this function throws an exception, the error will be handled by [onDependencyError].
