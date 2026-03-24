@@ -3,6 +3,28 @@ import 'package:grumpy/grumpy.dart';
 
 /// Details about a stored payload/schema mismatch.
 ///
+/// Describes the stored payload that failed schema validation or decoding.
+///
+/// Cache and persistence layers need enough context to decide whether a bad
+/// payload can be migrated, ignored, or evicted.
+///
+/// The context captures the storage key, expected schema, discovered schema,
+/// optional payload, compatibility version, and underlying error.
+///
+/// [foundSchemaId] can be `null` when a payload lacks embedded schema metadata.
+///
+/// - `Serialized`: the stored payload type.
+/// - [storageKey], [expectedSchemaId], [foundSchemaId], [serializedPayload].
+///
+/// For example:
+/// ```dart
+/// SchemaMismatchContext<Uint8List>(
+///   storageKey: key.asStorageKey(),
+///   expectedSchemaId: 'settings_v2',
+///   foundSchemaId: 'settings_v1',
+/// );
+/// ```
+///
 /// {@category persistence}
 
 class SchemaMismatchContext<Serialized extends Object> extends Model {
@@ -48,6 +70,29 @@ class SchemaMismatchContext<Serialized extends Object> extends Model {
 
 /// Resolver outcome for mismatched payloads.
 ///
+/// Tells the caller whether to evict, ignore, or attempt to decode a mismatched
+/// payload anyway.
+///
+/// Schema mismatches are not always fatal; some payloads can be migrated or
+/// treated as cache misses safely.
+///
+/// The decision exposes eviction, miss-handling, and optional decode-fallback
+/// flags together with an optional patched payload.
+///
+/// `allowDecodeFallback` only matters when the caller still intends to attempt
+/// a decode after mismatch handling.
+///
+/// - `Serialized`: the stored payload type.
+/// - [evict], [treatAsMiss], [allowDecodeFallback], [patchedSerializedPayload].
+///
+/// For example:
+/// ```dart
+/// const SchemaMismatchDecision<Uint8List>(
+///   evict: true,
+///   treatAsMiss: true,
+/// );
+/// ```
+///
 /// {@category persistence}
 
 class SchemaMismatchDecision<Serialized extends Object> extends Model {
@@ -80,6 +125,25 @@ class SchemaMismatchDecision<Serialized extends Object> extends Model {
 }
 
 /// Async mismatch resolver hook.
+///
+/// Defines the callback type used to resolve schema mismatches.
+///
+/// Repos may need custom migration behavior without hard-coding it into the
+/// storage layer.
+///
+/// The callback receives a [SchemaMismatchContext] and returns a
+/// [SchemaMismatchDecision].
+///
+/// Resolvers may be sync or async.
+///
+/// - `Serialized`: the payload type being inspected.
+///
+/// For example:
+/// ```dart
+/// Future<SchemaMismatchDecision<Uint8List>> resolve(
+///   SchemaMismatchContext<Uint8List> context,
+/// ) async => const SchemaMismatchDecision();
+/// ```
 ///
 /// {@category persistence}
 

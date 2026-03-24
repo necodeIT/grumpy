@@ -1,7 +1,24 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-/// Utility class for converting strings to Base64 and UTF-8 bytes.
+/// Utility class for converting values to Base64, UTF-8 bytes, and strings.
+///
+/// Defines a small conversion interface used by the string and byte helpers.
+///
+/// Common encoding conversions appear in storage and transport code often
+/// enough to justify one shared helper.
+///
+/// Concrete converters implement [toBase64], [toUtf8Bytes], and
+/// [toUtf8String].
+///
+/// This is convenience API, not a replacement for `dart:convert`.
+///
+/// - `T`: the wrapped source value type.
+///
+/// For example:
+/// ```dart
+/// final bytes = 'hello'.convert.toUtf8Bytes();
+/// ```
 ///
 /// {@category shared}
 
@@ -35,7 +52,24 @@ class _StringConverter extends Converter<String> {
   String toUtf8String() => value;
 }
 
-/// Extension to add the `convert` getter to String, allowing easy byte and base64 conversions.
+/// Extension to add the `convert` getter to [String].
+///
+/// Exposes conversion helpers directly from a string value.
+///
+/// String-to-bytes and string-to-base64 conversions are common in codec and
+/// storage code.
+///
+/// The [convert] getter returns a [Converter<String>] backed by
+/// [_StringConverter].
+///
+/// `toBase64()` encodes the string as UTF-8 first.
+///
+/// The receiver string itself is the only input.
+///
+/// For example:
+/// ```dart
+/// final encoded = 'hello'.convert.toBase64();
+/// ```
 ///
 /// {@category shared}
 
@@ -57,7 +91,24 @@ class _BytesConverter extends Converter<Uint8List> {
   String toUtf8String() => utf8.decode(value);
 }
 
-/// Extension to add the `convert` getter to Uint8List, allowing easy byte and base64 conversions.
+/// Extension to add the `convert` getter to [Uint8List].
+///
+/// Exposes conversion helpers directly from a byte array.
+///
+/// Cache and persistence code often needs fast access to byte-to-string and
+/// byte-to-base64 conversions.
+///
+/// The [convert] getter returns a [Converter<Uint8List>] backed by
+/// [_BytesConverter].
+///
+/// `toUtf8String()` assumes the bytes are valid UTF-8.
+///
+/// The receiver byte list itself is the only input.
+///
+/// For example:
+/// ```dart
+/// final text = bytes.convert.toUtf8String();
+/// ```
 ///
 /// {@category shared}
 

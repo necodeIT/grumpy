@@ -2,16 +2,31 @@ import 'package:grumpy/grumpy.dart';
 
 /// Per-query cache behavior.
 ///
-/// [CachePolicy] controls how [CachePipelineService] reads/writes values across
-/// layers for a single query execution.
+/// Describes how one query should interact with the cache pipeline.
 ///
-/// Common profiles:
-/// - Memory-only short-lived reads:
-///   `CachePolicy(useMemory: true, useFile: false, memoryTtl: ...)`
-/// - Durable reads across restarts:
-///   `CachePolicy(useMemory: true, useFile: true, fileTtl: ...)`
-/// - Strict debugging mode:
-///   `CachePolicy(strictLayerErrors: true)`
+/// Different reads need different durability, TTL, backfill, and stale-fallback
+/// behavior.
+///
+/// [CachePolicy] enables or disables layers and controls write-through,
+/// backfill, TTLs, strict errors, null caching, and schema mismatch handling.
+///
+/// This policy is evaluated per query call, not as a global cache setting.
+///
+/// - `Serialized`: the serialized payload type used by mismatch handling.
+/// - [useMemory], [useFile]: enable cache layers.
+/// - [memoryTtl], [fileTtl]: freshness windows per layer.
+/// - [writeThrough], [backfillHigherLayers]: write behavior.
+/// - [allowStaleFileOnQueryError], [strictLayerErrors], [cacheNullResults]:
+///   error and fallback controls.
+///
+/// For example:
+/// ```dart
+/// const CachePolicy<Uint8List>(
+///   useMemory: true,
+///   useFile: true,
+///   fileTtl: Duration(hours: 1),
+/// );
+/// ```
 ///
 /// {@category cache}
 

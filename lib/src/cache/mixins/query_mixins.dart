@@ -10,25 +10,32 @@ import 'package:grumpy/grumpy.dart';
 
 /// Adds query execution with telemetry and optional cache-pipeline support.
 ///
-/// [QueryMixin] keeps read-path logic in repos ergonomic while providing:
-/// - trace spans for each query execution
-/// - optional analytics events
-/// - in-flight deduplication per cache key
-/// - legacy in-memory caching fallback
-/// - optional multi-layer pipeline caching (memory + file)
+/// Gives repos a standard read helper with telemetry, analytics, cache lookup,
+/// stale fallback, and in-flight deduplication.
 ///
-/// Setup:
-/// 1. mix into a repo that includes [RepoLifecycleHooksMixin].
-/// 2. call [installMemoryCacheHooks] in the repo constructor.
-/// 3. call [query] from domain-specific read methods.
+/// Repo read methods often repeat the same orchestration logic around tracing,
+/// cache keys, cache policy, and fallback behavior.
 ///
-/// Example:
+/// [query] builds a [StorageKey], deduplicates concurrent requests, optionally
+/// resolves the cache pipeline, executes the callback on miss, and writes the
+/// result back according to [CachePolicy].
+///
+/// - Call [installMemoryCacheHooks] in the repo constructor.
+/// - Legacy mode still works without a registered [CachePipelineService].
+/// - The `ttl` parameter is legacy and only meaningful for non-pipeline usage.
+///
+/// - `T`: the repo's data type.
+/// - `QueryResult`: the value type returned by one query call.
+/// - [cachePolicy], [codec], [queryParams]: per-call cache behavior.
+///
+/// For example:
 /// ```dart
 /// Future<User?> getById(String id) {
 ///   return query<User?>(
 ///     'getUserById',
 ///     (data) => data.firstWhere((u) => u.id == id),
-///     cacheKey: id,
+///     queryParams: {'id': id},
+///     codec: userCodec,
 ///     ttl: const Duration(minutes: 2),
 ///   );
 /// }

@@ -1,33 +1,19 @@
 # Cache
 
-## What This Feature Owns
+`cache` defines read-path caching contracts, policies, and multi-layer pipeline behavior for repo queries. It exists so repos can stay focused on domain reads while TTLs, stale-data handling, backfill, and multi-layer storage concerns live in one place.
 
-`cache` defines read-path caching contracts, policies, and multi-layer pipeline behavior.
+The feature works through a small set of cooperating types: `CacheLayerService` abstracts one layer, `CachePipelineService` reads and writes layers in priority order, `QueryMixin` builds `StorageKey` instances and deduplicates concurrent reads, and `CachePolicy` controls TTLs, stale fallback, write-through, strict error behavior, and backfill on a per-query basis.
 
-## Responsibilities
+The main thing to keep in mind is that public cache keys are `StorageKey`, not `CacheKey`, and pipeline caching is opt-in through `QueryMixin.enableCachePipeline`. `StorageKey` carries namespace, primary key, and schema identity, `CachePolicy` carries the behavioral switches, and `SerializationCodec<T, Uint8List>` is required whenever cached values cross a byte boundary. If a repo uses `QueryMixin`, it still needs `installMemoryCacheHooks()` in the constructor.
 
-- Define cache domain contracts (`CacheLayerService`, `CachePipelineService`).
-- Define cache data model (`CacheKey`, `CacheEntry`, `CachePolicy`, `CacheResult`).
-- Provide default memory/file implementations behind domain contracts.
-- Provide query mixins for cache-aware repo reads.
+For example:
 
-## Key Concepts
-
-- Multi-layer lookup: memory-first, then optional file layer.
-- Write-through/backfill strategy to keep hot memory cache current.
-- Explicit policy controls (TTL, stale handling, invalidation behavior).
-- In-flight deduplication to avoid duplicate concurrent reads.
-
-## Query Flow (Typical)
-
-1. Validate repo/query setup.
-2. Compute cache key + policy.
-3. Check in-flight map for dedupe.
-4. Read via cache pipeline.
-5. On miss, execute query callback.
-6. Write result according to policy.
-
-## Guardrails
-
-- Keep cache mechanics in this feature, not inside repo core.
-- Infra implementations remain internal; public code targets domain interfaces.
+```dart
+return query<User?>(
+  'userById',
+  (users) => users.firstWhere((user) => user.id == id),
+  queryParams: {'id': id},
+  cachePolicy: const CachePolicy<Uint8List>(useMemory: true, useFile: true),
+  codec: userCodec,
+);
+```

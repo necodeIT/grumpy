@@ -27,7 +27,40 @@ import 'package:grumpy/src/telemetry/infra/services/noop_telemetry_service.dart'
 import 'package:grumpy/src/cache/infra/services/no_op_memory_cache_layer_service.dart';
 import 'package:grumpy/src/cache/infra/services/no_op_file_cache_layer_service.dart';
 
+/// {@template module_route_config_types}
+/// `RouteType` is the presentation type returned by this module's routes, and
+/// `Config` is the configuration object resolved from DI during binding.
+/// {@endtemplate}
+///
+/// {@template module_lifecycle_notes}
+/// Lifecycle-managed injectables must be singletons, repos are registered as
+/// async lazy singletons and initialized before first use, and `destroy()`
+/// tears down the module's DI scope.
+/// {@endtemplate}
+///
 /// A modular unit of functionality within an application.
+///
+/// Defines one feature's DI scope, routes, lifecycle-managed dependencies, and
+/// imported module graph.
+///
+/// Feature composition should live in one runtime boundary instead of being
+/// scattered across app startup code.
+///
+/// [Module] creates a scoped `GetIt` container, binds external dependencies,
+/// services, datasources, and repos, then activates or deactivates them in a
+/// deterministic order.
+///
+/// {@macro module_lifecycle_notes}
+///
+/// {@macro module_route_config_types}
+///
+/// For example:
+/// ```dart
+/// class SettingsModule extends Module<Object, AppConfig> {
+///   @override
+///   List<Route<Object, AppConfig>> get routes => const [];
+/// }
+/// ```
 ///
 /// {@category module}
 
@@ -310,21 +343,75 @@ abstract class Module<RouteType, Config extends Object>
   String toString() => '$logTag<$RouteType,$Config>';
 }
 
-/// A function that binds a [InjectableFactory] for a specific [Base] type with a given [Config].
+/// Function signature used by module binding methods.
+///
+/// Describes how modules register services, datasources, or repos.
+///
+/// A single binding callback shape keeps `bindServices`, `bindDatasources`, and
+/// related methods consistent.
+///
+/// The callback receives a typed [InjectableFactory] for the requested base
+/// class.
+///
+/// The concrete DI lifetime still comes from the resolved type's
+/// [Injectable.singelton] policy or repo-specific module behavior.
+///
+/// `Base` is the kind of thing being registered, and `Config` is the module
+/// configuration available to the factory.
+///
+/// For example:
+/// ```dart
+/// void bindServices(Bind<Service, AppConfig> bind) {}
+/// ```
 ///
 /// {@category module}
 
 typedef Bind<Base extends Object, Config extends Object> =
     void Function<T extends Base>(InjectableFactory<T, Config> builder);
 
-/// A function that builds an instance of type [T] using the provided [Config] and [Resolver].
+/// Factory signature used to build module-managed objects.
+///
+/// Describes how a module constructs one injectable instance.
+///
+/// Builders need access to both the module config and already-registered
+/// dependencies.
+///
+/// The function receives the active [Config] and a [Resolver] callback.
+///
+/// Factories should stay side-effect free except for object construction.
+///
+/// `T` is the type being created, and `Config` is the configuration object
+/// passed to the builder.
+///
+/// For example:
+/// ```dart
+/// (cfg, resolve) => SettingsRepo(resolve<SettingsDatasource>())
+/// ```
 ///
 /// {@category module}
 
 typedef InjectableFactory<T, Config extends Object> =
     T Function(Config cfg, Resolver resolve);
 
-/// A function that resolves an instance of type [T].
+/// Typed dependency resolver passed into binding factories.
+///
+/// Resolves another DI-managed dependency during object construction.
+///
+/// Builders should depend on a narrow resolver abstraction rather than the full
+/// container API.
+///
+/// The callback is generic and returns the requested type from the active DI
+/// scope.
+///
+/// It is intended for use during factory execution, not as a general-purpose
+/// service locator.
+///
+/// `T` is the dependency type to resolve.
+///
+/// For example:
+/// ```dart
+/// final analytics = resolve<AnalyticsService>();
+/// ```
 ///
 /// {@category module}
 
@@ -332,8 +419,27 @@ typedef Resolver = T Function<T extends Object>();
 
 /// The root module of any Grumpy application.
 ///
-/// As the root module, it is responsible for providing the application-wide
-/// configuration ([Config]) as well as setting up core services like telemetry and analytics.
+/// Adds application-wide configuration and default builders for Grumpy's core
+/// runtime services.
+///
+/// Every app needs one place to bind shared infrastructure such as routing,
+/// telemetry, cache, persistence, and transaction support.
+///
+/// [RootModule] extends [Module] and exposes overridable builder getters for
+/// each core service.
+///
+/// The defaults are intentionally safe no-op or baseline implementations. Real
+/// apps usually override at least telemetry, analytics, and file-backed
+/// persistence or cache services.
+///
+/// {@macro module_route_config_types}
+///
+/// For example:
+/// ```dart
+/// class AppModule extends RootModule<Object, AppConfig> {
+///   AppModule(super.cfg);
+/// }
+/// ```
 ///
 /// {@category module}
 

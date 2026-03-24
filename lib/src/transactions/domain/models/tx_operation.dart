@@ -6,20 +6,34 @@ import 'package:logging/logging.dart';
 /// {@template tx_operation}
 /// Describes a single transaction intent for [TransactionalMutationMixin].
 ///
-/// A transaction operation models one user action end-to-end:
-/// 1. optimistic projection (`optimisticApply`)
-/// 2. remote side effect (`commit`)
-/// 3. confirmed reconciliation (`applyConfirmed`)
+/// Models one mutation from optimistic projection through remote commit to
+/// confirmed-state reconciliation.
 ///
-/// Implementations should be deterministic and side-effect free in
-/// [optimisticApply] so the runtime can safely replay pending operations.
+/// Transactional mutation needs a deterministic unit of work that can be queued,
+/// replayed, retried, and settled.
 ///
-/// Typical mapping:
-/// - `name`: telemetry/analytics label.
-/// - `id`: per-enqueue unique identifier (for settlement bookkeeping).
-/// - `touchedKeys`: coarse conflict scope (for newer-wins overlap handling).
-/// - `commit`: the actual network/database mutation.
-/// - `applyConfirmed`: how server response updates confirmed state.
+/// Each operation provides [optimisticApply], [commit], and [applyConfirmed],
+/// plus metadata such as [id], [name], [baseVersion], and [touchedKeys].
+///
+/// [optimisticApply] must stay pure so pending operations can be replayed
+/// safely.
+///
+/// - `TState`: the repo state type being mutated.
+/// - `TResult`: the commit payload type returned by the remote side effect.
+/// - [touchedKeys]: coarse conflict scope for replay policy.
+///
+/// For example:
+/// ```dart
+/// SimpleTxOperation<SettingsState, SettingsState>(
+///   name: 'setTheme',
+///   id: 'tx-1',
+///   baseVersion: 0,
+///   touchedKeys: const {'settings.theme'},
+///   optimisticApply: (state) => state.copyWith(theme: 'dark'),
+///   commit: (_) async => state.copyWith(theme: 'dark'),
+///   applyConfirmed: (_, result) => result,
+/// );
+/// ```
 /// {@endtemplate}
 ///
 /// {@category transactions}

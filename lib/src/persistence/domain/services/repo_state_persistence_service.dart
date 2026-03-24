@@ -2,6 +2,24 @@ import 'package:grumpy/grumpy.dart';
 
 /// Durable repo snapshot storage service.
 ///
+/// Defines the storage API for loading, saving, and deleting repo snapshots.
+///
+/// Repos should depend on a persistence contract, not on one storage backend.
+///
+/// Implementations map [StorageKey] identities to persisted [RepoSnapshot]
+/// payloads using the provided [SerializationCodec].
+///
+/// Missing snapshots should return `null` rather than throwing.
+///
+/// - `T`: the runtime repo data type.
+/// - `Serialized`: the persisted payload type.
+/// - [key], [codec]: the storage identity and serialization boundary.
+///
+/// For example:
+/// ```dart
+/// final persistence = RepoStatePersistenceService();
+/// ```
+///
 /// {@category persistence}
 
 abstract class RepoStatePersistenceService extends Service {

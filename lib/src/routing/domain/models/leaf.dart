@@ -4,7 +4,32 @@ import 'package:grumpy/grumpy.dart';
 
 // this is the base class for views.
 // ignore: views_must_extend_view, views_must_have_view_suffix
-/// The presentation of a route of type [T].
+/// The presentation contract for a route of type [T].
+///
+/// Defines how a route renders a preview and its final content.
+///
+/// Routing needs a framework-neutral rendering abstraction that supports both
+/// placeholder and final presentation phases.
+///
+/// [preview] renders a synchronous placeholder, while [content] builds the
+/// final presentation once routing has completed validation and activation.
+///
+/// [preview] must stay side-effect free because module-scoped dependencies may
+/// not be ready yet.
+///
+/// - `T`: the presentation type returned by the leaf.
+/// - [ctx]: the current routing context.
+///
+/// For example:
+/// ```dart
+/// class SettingsLeaf extends Leaf<Object> {
+///   @override
+///   Object preview(RouteContext ctx) => const Object();
+///
+///   @override
+///   Object content(RouteContext ctx) => const Object();
+/// }
+/// ```
 ///
 /// {@category routing}
 

@@ -5,12 +5,19 @@ part 'telemetry_context.freezed.dart';
 
 /// Represents a telemetry span’s execution context.
 ///
-/// Each [TelemetryContext] holds the active backend-specific span and
-/// associated metadata for the current tracing zone.
+/// Carries the active backend span and related metadata through async work.
 ///
-/// Contexts are stored inside [Zone]s using the [TelemetryZoneMixin].
-/// This allows automatic propagation of telemetry information across
-/// asynchronous boundaries without having to manually pass objects around.
+/// Telemetry backends need one transport object for zone-based context
+/// propagation.
+///
+/// [TelemetryContext] stores the backend-native [span], arbitrary [attributes],
+/// and the [ownerType] of the telemetry service that created it.
+///
+/// This type is mainly for telemetry infrastructure code rather than app-level
+/// feature logic.
+///
+/// - `T`: the backend-native span type.
+/// - [span], [attributes], [ownerType]: active span context metadata.
 ///
 ///
 /// ## Purpose

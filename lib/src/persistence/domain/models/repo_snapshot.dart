@@ -2,6 +2,27 @@ import 'package:grumpy/grumpy.dart';
 
 /// Persisted repo state envelope.
 ///
+/// Wraps repo data together with timestamps and persistence metadata.
+///
+/// Snapshot storage needs more context than the raw repo payload in order to
+/// support expiry, sync tracking, and migrations.
+///
+/// [RepoSnapshot] stores the data plus save time, optional expiry,
+/// optional sync time, and arbitrary metadata.
+///
+/// [isExpired] is evaluated at read time against `DateTime.now()`.
+///
+/// - `T`: the repo data type being persisted.
+/// - [savedAt], [expiresAt], [lastSyncAt], [metadata]: persistence metadata.
+///
+/// For example:
+/// ```dart
+/// final snapshot = RepoSnapshot(
+///   data: state,
+///   savedAt: DateTime.now(),
+/// );
+/// ```
+///
 /// {@category persistence}
 
 class RepoSnapshot<T> extends Model {

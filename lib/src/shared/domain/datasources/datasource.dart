@@ -4,8 +4,30 @@ import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
-/// A datasource is responsible for providing data from a specific source,
-/// such as a database, API, or local storage.
+/// Base contract for data-access objects.
+///
+/// Defines the common runtime shape for objects that talk to a concrete data
+/// source such as an API, database, or local store.
+///
+/// Datasources need shared logging, disposal, telemetry, and DI behavior
+/// without leaking infrastructure details into higher layers.
+///
+/// [Datasource] mixes in logging, disposal, and telemetry helpers and exposes a
+/// `Service.get`-style resolver via [Datasource.get].
+///
+/// Domain code should depend on datasource contracts, not concrete infra
+/// implementations.
+///
+/// None on the type itself. Concrete subclasses define their own dependencies.
+///
+/// For example:
+/// ```dart
+/// abstract class UserDatasource extends Datasource {
+///   const UserDatasource();
+///
+///   Future<User> fetchUser(String id);
+/// }
+/// ```
 ///
 /// {@category shared}
 

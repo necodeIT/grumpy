@@ -1,27 +1,19 @@
 # Repo
 
-## What This Feature Owns
+`repo` defines the reactive state boundary used by higher layers. It owns `Repo<T>`, the `RepoState<T>` family, and the repo-to-repo composition helpers that let one repo derive its state from others without reimplementing dependency tracking each time.
 
-`repo` defines repository state semantics and repo-to-repo composition primitives.
+The point of the feature is to give presentation code a stable contract for state, loading, and errors while keeping cache policy, mutation policy, and persistence concerns in their own features. `Repo<T>` is the core stream-backed holder, `RepoState<T>` makes state transitions explicit instead of nullable, and `UseRepoMixin` and `DeferredRepoMixin` rebuild derived state when upstream repos or external signals change.
 
-## Responsibilities
+The main thing to keep in mind is that a repo can exist before it has data, so consumers should expect `RepoState.loading()` on startup. `T` is the visible data shape owned by the repo, and `D`, `E`, and `L` in `UseRepoMixin` describe the derived data, error, and loading payloads produced from dependencies. If you use `UseRepoMixin`, call `installUseRepoHooks()` in the constructor.
 
-- Define `Repo<T>` as the core reactive data boundary.
-- Define `RepoState` model family (`loading`, `data`, `error`).
-- Provide dependency composition helpers (`UseRepoMixin`).
+For example:
 
-## Key Concepts
+```dart
+class CounterRepo extends Repo<int> {
+  CounterRepo() {
+    data(0);
+  }
 
-- `Repo<T>`: lifecycle-managed, stream-backed state holder used by higher layers.
-- `RepoState<T>`: explicit state machine to avoid nullable/implicit state.
-- `UseRepoMixin`: watch dependent repos and rebuild derived state when upstream changes.
-
-## What Does NOT Belong Here
-
-- Query cache policies: see `cache`.
-- Mutation conflict/retry policy: see `transactions`.
-- Snapshot persistence/bootstrap strategy: see `persistence`.
-
-## Practical Rule
-
-Keep `repo` as the source of state shape and dependency composition; keep behavior policies in dedicated feature folders.
+  void increment() => data(state.requireData + 1);
+}
+```

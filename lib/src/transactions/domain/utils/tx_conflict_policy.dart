@@ -6,8 +6,7 @@ import 'package:grumpy/grumpy.dart';
 /// kept in optimistic projection. Operations that touch only disjoint keys are
 /// preserved and can compose together.
 ///
-/// Example:
-/// - opA touches `profile.name`
+/// For example, - opA touches `profile.name`
 /// - opB touches `profile.name`
 /// - opC touches `profile.avatar`
 ///

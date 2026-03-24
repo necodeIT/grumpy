@@ -5,19 +5,30 @@ import 'package:grumpy/grumpy.dart';
 
 /// Adds repo snapshot persistence + startup bootstrap behavior.
 ///
-/// This mixin coordinates:
-/// - startup hydration + remote sync via [RepoBootstrapService]
-/// - debounced snapshot saves via [RepoStatePersistenceService]
+/// Gives a repo activation-time hydration plus debounced snapshot persistence.
 ///
-/// Opt-in contract:
-/// - implement [snapshotKey], [snapshotCodec], and [syncFromRemote]
-/// - optionally override [persistencePolicy] / [bootstrapPolicy]
-/// - call [installRepoStatePersistenceHooks] in constructor
+/// Persistent repos should not each have to implement their own bootstrap and
+/// snapshot-saving orchestration.
 ///
-/// Typical flow per activation:
-/// 1. bootstrap service attempts hydrate/sync by policy
-/// 2. `data(...)` emissions are saved as snapshots (debounced) when enabled
-/// 3. deactivation resets bootstrap guard for next activation cycle
+/// The mixin triggers [RepoBootstrapService] on activation and forwards repo
+/// `data(...)` emissions into [RepoStatePersistenceService] according to policy.
+///
+/// - Call [installRepoStatePersistenceHooks] in the constructor.
+/// - Bootstrap runs once per activation and resets on `deactivate()`.
+/// - Persistence is disabled until [RepoPersistencePolicy.enabled] is `true`.
+///
+/// - `T`: the repo data type.
+/// - `Serialized`: the persisted payload type used by [snapshotCodec].
+///
+/// For example:
+/// ```dart
+/// class SettingsRepo extends Repo<SettingsState>
+///     with
+///         RepoLifecycleMixin<SettingsState>,
+///         RepoLifecycleHooksMixin<SettingsState>,
+///         TelemetryMixin,
+///         PersistentRepoStateMixin<SettingsState, Uint8List> {}
+/// ```
 ///
 /// {@category persistence}
 

@@ -2,6 +2,28 @@ import 'package:grumpy/grumpy.dart';
 
 /// Represents the data state of a [Repo].
 ///
+/// Models the three visible repo phases: loading, data, and error.
+///
+/// Repos should not communicate state through nullable values or ad-hoc flags.
+///
+/// [RepoState] exposes factory constructors for [RepoDataState],
+/// [RepoLoadingState], and [RepoErrorState], plus convenience accessors and
+/// pattern matching through [when].
+///
+/// Calling [requireData], [asError], or [asLoading] on the wrong variant throws
+/// a typed repo-state error.
+///
+/// - `T`: the repo's data type.
+///
+/// For example:
+/// ```dart
+/// final message = state.when(
+///   data: (data) => data.value.toString(),
+///   loading: (_) => 'Loading',
+///   error: (error) => error.error.toString(),
+/// );
+/// ```
+///
 /// {@category repo}
 
 abstract class RepoState<T> extends Model {

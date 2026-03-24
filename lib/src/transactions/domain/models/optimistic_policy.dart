@@ -5,10 +5,27 @@ part 'optimistic_policy.freezed.dart';
 
 /// Defines the optimistic update strategy for state modifications.
 ///
-/// An [OptimisticPolicy] specifies how to compute optimistic values,
-/// what snapshot to revert to on failure, and when to revert based on errors.
-/// This is useful for implementing optimistic UI updates in applications,
-/// allowing for a responsive user experience while handling potential failures.
+/// Describes how to compute an optimistic value and whether a failure should
+/// revert it.
+///
+/// Legacy mutation flows need a small policy object for optimistic UI behavior.
+///
+/// The policy stores an [optimisticValue] transformer and a [shouldRevert]
+/// predicate.
+///
+/// This policy is mainly used by the deprecated legacy mutation mixin. Prefer
+/// transaction-based mutations for new code.
+///
+/// - `T`: the optimistic state type.
+/// - [optimisticValue]: computes the projected state.
+/// - [shouldRevert]: decides whether an error should roll back.
+///
+/// For example:
+/// ```dart
+/// OptimisticPolicy.alwaysRevert(
+///   optimisticValue: (state) => state.copyWith(enabled: true),
+/// );
+/// ```
 ///
 /// {@category transactions}
 

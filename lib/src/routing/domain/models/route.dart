@@ -3,13 +3,27 @@ import 'package:grumpy/grumpy.dart';
 
 /// A node in the routing tree of a [Module]-based application.
 ///
-/// A [Route] describes:
-/// - the matching [path]
-/// - optional [middleware] that must succeed before activation
-/// - optional [children] that are resolved relative to this route's [path]
+/// Represents one declarative route definition in the route tree.
 ///
-/// The type parameter [T] usually corresponds to the concrete presentation type
-/// produced by the route (e.g. a `Widget` in Flutter).
+/// The routing system needs a framework-neutral model for path matching,
+/// middleware, and nesting.
+///
+/// A [Route] stores the relative [path], its [middleware], and child routes
+/// resolved underneath it.
+///
+/// [Route] is a base model. Use [LeafRoute] or [ModuleRoute] for concrete
+/// runtime behavior.
+///
+/// - `T`: the presentation type produced by the route.
+/// - `Config`: the configuration type shared with modules.
+/// - [path], [middleware], [children]: declarative route metadata.
+///
+/// For example:
+/// ```dart
+/// const Route<Object, AppConfig>(
+///   path: '/settings',
+/// );
+/// ```
 ///
 /// {@category routing}
 

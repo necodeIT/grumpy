@@ -4,12 +4,26 @@ import 'package:grumpy/grumpy.dart';
 
 /// Orchestrates multi-layer cache access.
 ///
-/// The pipeline is responsible for ordered layer reads/writes and for applying
-/// [CachePolicy] semantics (write-through, backfill, strict errors, TTL split,
-/// stale metadata).
+/// Coordinates reads, writes, and invalidation across all configured cache
+/// layers.
 ///
-/// Repos typically do not call this service directly. Prefer [QueryMixin],
-/// which integrates this pipeline automatically when registered.
+/// Query code should not need to manually orchestrate memory cache, file cache,
+/// backfill, stale fallback, and error isolation.
+///
+/// The pipeline reads layers in priority order and applies [CachePolicy]
+/// semantics such as write-through, backfill, strict errors, TTL split, and
+/// stale metadata.
+///
+/// Repos usually reach this service indirectly through [QueryMixin].
+///
+/// - `T` on [get] and [put]: the runtime value type.
+/// - [key], [policy], [codec]: the storage identity, behavior policy, and
+///   serialization boundary for one cache operation.
+///
+/// For example:
+/// ```dart
+/// final pipeline = CachePipelineService();
+/// ```
 ///
 /// {@category cache}
 

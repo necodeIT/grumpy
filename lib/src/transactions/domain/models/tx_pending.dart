@@ -2,8 +2,24 @@ import 'package:grumpy/grumpy.dart';
 
 /// Internal pending operation envelope used by [TxEngine].
 ///
-/// A [TxPending] stores the minimal metadata needed to replay an operation
-/// deterministically in optimistic projection order.
+/// Represents one enqueued optimistic operation inside the transaction engine.
+///
+/// The engine needs a replay-friendly shape that is smaller and more focused
+/// than the full [TxOperation].
+///
+/// [TxPending] stores the enqueue order, touched keys, and projection callback
+/// used to recompute visible state.
+///
+/// This is an engine-facing model. Most repo code works with [TxOperation] and
+/// [TxResult] instead.
+///
+/// - `TState`: the repo state type being projected.
+/// - [id], [enqueueOrder], [touchedKeys], [apply]: replay metadata.
+///
+/// For example:
+/// ```dart
+/// final pending = engine.pending;
+/// ```
 ///
 /// {@category transactions}
 

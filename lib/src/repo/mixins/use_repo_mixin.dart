@@ -5,7 +5,28 @@ import 'package:grumpy_annotations/grumpy_annotations.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
-/// Provides use hooks for watching and accessing data within [UseRepoMixin.onDependenciesReady].
+/// Access helpers passed into [UseRepoMixin.onDependenciesReady].
+///
+/// Exposes helper functions for reading dependent repos and external change
+/// signals while building derived state.
+///
+/// Derived repos need one structured way to declare the dependencies they want
+/// to watch.
+///
+/// [repo] resolves and subscribes to another repo, while [externalStream]
+/// subscribes to an invalidation stream and reads the current value from a
+/// synchronous snapshot callback.
+///
+/// Calling [repo] may throw [NoRepoDataError] until the dependency has emitted
+/// data.
+///
+/// - [repo]: watches another repo and returns its current data plus the repo.
+/// - [externalStream]: watches a non-repo signal keyed by a stable identity.
+///
+/// For example:
+/// ```dart
+/// final (user, repo) = await use.repo<User, UserRepo>();
+/// ```
 ///
 /// {@category repo}
 class UseHooks {
@@ -77,7 +98,30 @@ final class _WatchedExternalDependency {
   }
 }
 
-/// A mixin that provides functionality to watch and use multiple [Repo] instances.
+/// Derived-state mixin for watching other repos and external signals.
+///
+/// Tracks dependent repos and external invalidation sources, then rebuilds a
+/// derived state machine whenever those dependencies change.
+///
+/// Some repos are projections of other repos and should not have to manually
+/// manage subscription, loading, and error fan-in logic.
+///
+/// The mixin discovers dependencies while [onDependenciesReady] runs, subscribes
+/// to them, and routes changes through [onDependenciesReady],
+/// [onDependencyError], and [onDependenciesLoading].
+///
+/// - Call [installUseRepoHooks] in the constructor.
+/// - Dependency discovery is lazy and happens from the first build pass.
+/// - External streams are invalidation-only; emitted payloads are ignored.
+///
+/// - `D`: derived data payload when dependencies are ready.
+/// - `E`: derived error payload.
+/// - `L`: derived loading payload.
+///
+/// For example:
+/// ```dart
+/// class ProfileRepo with UseRepoMixin<UserProfile, Object, void> {}
+/// ```
 ///
 /// {@category repo}
 mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
@@ -454,13 +498,30 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   }
 }
 
-/// A mixin that provides a deferred repository implementation using [UseRepoMixin].
+/// Convenience adapter for repos that fully derive their state from other repos.
 ///
-/// The [DeferredRepoMixin] allows you to create a repository that builds its state
-/// based on the states of other repositories it depends on. It leverages the
-/// [UseRepoMixin] to watch and react to changes in the dependent repositories.
+/// Bridges [UseRepoMixin] into a normal [Repo] by mapping dependency-ready,
+/// dependency-loading, and dependency-error callbacks to repo emissions.
 ///
-/// Dependent repositories are lazyly discovered during the initialization phase.
+/// Many projection repos want the default behavior of "build data when ready,
+/// otherwise emit loading or error" without rewriting the adapter logic.
+///
+/// [DeferredRepoMixin] implements [UseRepoMixin]'s callbacks and forwards the
+/// result of [build] into [data], [loading], or [error].
+///
+/// Dependencies are still discovered lazily through [UseRepoMixin].
+///
+/// - `T`: the repo's derived data type.
+///
+/// For example:
+/// ```dart
+/// class DashboardRepo extends Repo<DashboardState>
+///     with
+///         RepoLifecycleMixin<DashboardState>,
+///         RepoLifecycleHooksMixin<DashboardState>,
+///         UseRepoMixin<void, void, void>,
+///         DeferredRepoMixin<DashboardState> {}
+/// ```
 ///
 /// {@category repo}
 

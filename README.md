@@ -5,16 +5,27 @@ A pragmatic, testable, and highly modular architecture for Flutter apps. It form
 > [!IMPORTANT]  
 > This is a **work in progress**. The architecture is stable, but the API and documentation are still evolving and subject to change. Feedback and contributions are welcome!
 
-## Motivation
+Grumpy is a modular application architecture for Dart and Flutter projects. It gives you one runtime model for modules, repositories, routing, telemetry, caching, persistence, and optimistic mutations, so feature code can lean on consistent primitives instead of inventing local patterns.
 
-Unclear ownership of IO vs UI, repositories doing too much, infra types leaking into presentation, and cross‑module coupling that made refactors painful. Grumpy draws a hard line between concerns so features stay swappable and tests stay fast. It’s inspired by ideas popularized in **flutter_modular** (composition by modules, explicit routing/DI boundaries), adapted to emphasize **contracts-first domain design** and **repository‑driven state**.
+It exists to prevent architecture drift: repositories mixing UI and IO concerns, infra types leaking upward, and feature boundaries getting loose enough that refactors become risky. The package pushes those decisions into explicit boundaries, module-scoped DI, and policy objects such as `CachePolicy`, `RepoBootstrapPolicy`, `RepoPersistencePolicy`, and `RetryPolicy`, while the core generics like `RouteType`, `Config`, and `T` keep each feature's presentation, configuration, and payload types clear.
 
-## Overview
+In practice, features are mounted, activated, deactivated, and destroyed as units; UI-facing state lives in `Repo<T>` and is expressed through `RepoState<T>`; and concerns like caching, persistence, routing, telemetry, and transactions are kept in dedicated packages instead of being reimplemented inside repos. One thing to keep in mind is that the public lifecycle teardown method is `destroy`, not `free`, and several capabilities are opt-in mixins that need to be installed in repo constructors.
 
-* **Predictable boundaries**: Presentation never touches IO; Infra never leaks types outward.
-* **Easy to test**: Contracts and pure models enable stable test surfaces.
-* **Replaceable implementations**: Swap HTTP clients, storage, or crypto without touching UI.
-* **Scalable modules**: Each app feature is a self‑contained module with its own domain/infra/presentation wiring.
+For example:
+
+```dart
+class AppModule extends RootModule<Object, AppConfig> {
+  AppModule(super.cfg);
+
+  @override
+  List<Route<Object, AppConfig>> get routes => [
+    LeafRoute<Object, AppConfig>(
+      path: '/settings',
+      view: SettingsLeaf(),
+    ),
+  ];
+}
+```
 
 ## Folder Layout
 

@@ -4,16 +4,38 @@ import 'package:grumpy_annotations/grumpy_annotations.dart';
 import 'package:meta/meta.dart';
 import 'package:grumpy/grumpy.dart';
 
-/// Mixin that provides lifecycle methods for classes that need to respond
-/// to different stages of their lifecycle.
+/// Lifecycle contract for runtime-managed objects.
 ///
-/// Classes that mix in [LifecycleMixin] should implement the following methods:
-/// - [initialize]: Called when the object is instantiated.
-/// - [activate]: Called when the object is activated (e.g., after creation or
-///   returning from the background).
-/// - [deactivate]: Called when the object is deactivated.
-/// - [dependenciesChanged]: Called when the object's dependencies have changed.
-/// - [destroy]: Called when the object is being disposed of.
+/// Defines the standard lifecycle phases for modules, repos, and other managed
+/// runtime objects.
+///
+/// Grumpy coordinates many objects through DI scopes and module activation, so
+/// they need a predictable lifecycle vocabulary.
+///
+/// Types implement [initialize], [activate], [deactivate],
+/// [dependenciesChanged], and [destroy].
+///
+/// - [initialize] is expected to run during construction for most concrete
+///   types.
+/// - [deactivate] is a warm stop, not final disposal.
+/// - [destroy] is final and may only succeed once.
+///
+/// For example:
+/// ```dart
+/// class Worker with LifecycleMixin {
+///   @override
+///   Future<void> initialize() async {}
+///
+///   @override
+///   Future<void> activate() async {}
+///
+///   @override
+///   Future<void> deactivate() async {}
+///
+///   @override
+///   Future<void> dependenciesChanged() async {}
+/// }
+/// ```
 abstract mixin class LifecycleMixin implements Disposable {
   bool _isDisposed = false;
 
@@ -61,7 +83,27 @@ abstract mixin class LifecycleMixin implements Disposable {
   FutureOr<void> onDispose() => destroy();
 }
 
-/// Mixin that adds lifecycle callbacks to a [Repo].
+/// Repo-specific lifecycle emission hooks.
+///
+/// Adds callbacks around [Repo.data], [Repo.loading], and [Repo.error].
+///
+/// Repo-focused mixins such as cache, persistence, and transactions need to
+/// react to state emissions without overriding core repo behavior repeatedly.
+///
+/// The mixin intercepts repo state emitters and forwards them to overridable
+/// callback methods.
+///
+/// Callbacks run after the repo has already emitted the new state.
+///
+/// - `T`: the repo's data type.
+///
+/// For example:
+/// ```dart
+/// class UserRepo extends Repo<User> with RepoLifecycleMixin<User> {
+///   @override
+///   void onEmitData(User data) {}
+/// }
+/// ```
 ///
 /// {@category shared}
 

@@ -2,6 +2,28 @@ import 'package:grumpy/grumpy.dart';
 
 /// Repo snapshot persistence controls.
 ///
+/// Configures when and how repo snapshots are written or deleted.
+///
+/// Different repos need different durability guarantees and write amplification
+/// tradeoffs.
+///
+/// [RepoPersistencePolicy] controls enablement, debounce, TTL, corruption
+/// handling, null persistence, and schema mismatch resolution.
+///
+/// Persistence is off by default and must be enabled per repo.
+///
+/// - `Serialized`: the serialized snapshot payload type.
+/// - [enabled], [snapshotTtl], [persistDebounce]: write behavior.
+/// - [deleteOnCorruption], [saveNullData], [onSchemaMismatch]: error handling.
+///
+/// For example:
+/// ```dart
+/// const RepoPersistencePolicy<Uint8List>(
+///   enabled: true,
+///   snapshotTtl: Duration(hours: 12),
+/// );
+/// ```
+///
 /// {@category persistence}
 
 class RepoPersistencePolicy<Serialized extends Object> extends Model {

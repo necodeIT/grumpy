@@ -1,6 +1,24 @@
 import 'package:grumpy/grumpy.dart';
 
-/// Represents an error state in a [Repo].
+/// Represents a repo error state.
+///
+/// Carries the failure that prevented the repo from producing usable data.
+///
+/// Error handling should be an explicit repo-state variant rather than an
+/// out-of-band side effect.
+///
+/// [RepoErrorState] stores the [error] and optional [stackTrace].
+///
+/// This variant may still be emitted even if the repo had data previously; the
+/// repo decides its own transition semantics.
+///
+/// - `T`: the repo data type.
+/// - [error], [stackTrace]: failure details.
+///
+/// For example:
+/// ```dart
+/// const RepoErrorState<int>(StateError('boom'));
+/// ```
 ///
 /// {@category repo}
 

@@ -3,12 +3,31 @@ import 'dart:async';
 import 'package:grumpy/grumpy.dart';
 import 'package:meta/meta.dart';
 
-/// A service responsible for managing application routing.
-/// Note: This router is only responsible for marking routes as active and
-/// parsing paths. It does not handle any UI-related logic.
+/// {@template routing_type_params}
+/// The type parameter `T` is the presentation type produced by routing, such
+/// as a `Widget`, and `Config` is the configuration type supplied by modules
+/// and the routing runtime.
+/// {@endtemplate}
 ///
-/// [T] represents the type of the presentation (e.g., Widget).
-/// [Config] represents the configuration type used in modules.
+/// A service responsible for managing application routing.
+///
+/// Resolves navigation requests into active routes and emitted presentations.
+///
+/// Route matching, middleware execution, and module activation should live in
+/// one runtime boundary instead of being spread across application code.
+///
+/// Implementations parse a path, build a [RouteContext], run middleware,
+/// activate required modules, and emit preview/final view changes.
+///
+/// This service handles routing state and activation, not UI framework details.
+///
+/// {@macro routing_type_params}
+///
+/// For example:
+/// ```dart
+/// final router = RoutingService<Object, AppConfig>();
+/// await router.navigate('/settings');
+/// ```
 ///
 /// {@category routing}
 
@@ -87,6 +106,25 @@ abstract class RoutingService<T, Config extends Object> extends Service {
 }
 
 /// An event representing a change in the view rendered by the [RoutingService].
+///
+/// Packages the emitted view together with preview status and active context.
+///
+/// Routing observers need more than just the rendered view in order to react to
+/// preview/final transitions.
+///
+/// The record contains the `view`, `isPreview` flag, optional `context`, and
+/// active `config`.
+///
+/// `context` may be `null` when a preview is emitted before final resolution.
+///
+/// {@macro routing_type_params}
+///
+/// For example:
+/// ```dart
+/// router.onViewChanged((event) {
+///   if (!event.isPreview) {}
+/// });
+/// ```
 ///
 /// {@category routing}
 

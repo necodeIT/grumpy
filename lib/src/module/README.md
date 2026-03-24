@@ -1,36 +1,21 @@
 # Module
 
-## What This Feature Owns
+`module` is the runtime composition layer. It defines how features are wired, scoped in DI, and activated, deactivated, and destroyed as units so that feature code can stay focused on behavior instead of bootstrap details.
 
-`module` is the runtime composition layer. It defines how features are wired, scoped in DI, and activated/deactivated as a unit.
+The feature exists to keep dependency wiring and lifecycle orchestration out of repos and services. `Module<RouteType, Config>` describes bindings and routes for one feature, `RootModule<RouteType, Config>` provides app-wide defaults for routing, telemetry, cache, persistence, and transactions, and `ModuleRegistryService` keeps the active module graph canonical and synchronized. Each module gets its own DI scope, and that scope is removed during `destroy()`.
 
-## Responsibilities
+`RouteType` is the presentation type returned by the module's routes, `Config` is the configuration object passed into binding builders, and helper types like `Bind<Base, Config>` and `InjectableFactory<T, Config>` define how registrations are expressed. The main lifecycle order is `initialize -> activate -> deactivate -> destroy`, lifecycle-managed injectables must be singletons, and modules themselves should stay focused on composition rather than feature logic.
 
-- Define module contracts (`Module`, `RootModule`).
-- Bind services/datasources/repos into scoped DI containers.
-- Orchestrate imported module mount/activation order.
-- Provide canonical module graph management via `ModuleRegistryService`.
+For example:
 
-## Key Concepts
+```dart
+class SettingsModule extends Module<Object, AppConfig> {
+  @override
+  void bindRepos(Bind<Repo, AppConfig> bind) {
+    bind<SettingsRepo>((cfg, resolve) => SettingsRepo(resolve()));
+  }
 
-- `Module<RouteType, Config>`: feature unit with bindings and routes.
-- `RootModule<RouteType, Config>`: app root with core default builders (routing, telemetry, cache, persistence, tx engine).
-- `ModuleRegistryService`: canonicalizes module instances and synchronizes activation state.
-- Scope discipline: each module gets an isolated DI scope; disposal pops back to import boundary.
-
-## Lifecycle Model
-
-1. `initialize`: register dependencies and imported modules.
-2. `activate`: activate lifecycle-managed injectables, then repos.
-3. `deactivate`: reverse order shutdown for warm stop.
-4. `free`: hard teardown and scope cleanup.
-
-## Extension Points
-
-- Override `bindExternalDeps`, `bindServices`, `bindDatasources`, `bindRepos`.
-- In `RootModule`, override service builders to swap default infra implementations.
-
-## Guardrails
-
-- Keep infra implementations internal to feature `infra/` folders.
-- Avoid feature logic in modules; modules orchestrate wiring only.
+  @override
+  List<Route<Object, AppConfig>> get routes => const [];
+}
+```

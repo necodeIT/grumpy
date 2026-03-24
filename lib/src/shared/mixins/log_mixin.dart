@@ -1,7 +1,24 @@
 import 'package:logging/logging.dart';
 import 'package:meta/meta.dart';
 
-/// A mixin that provides logging capabilities to a class.
+/// Shared logging helper for runtime objects.
+///
+/// Provides a consistent logger name and convenience logging methods.
+///
+/// Grumpy types should emit logs that are easy to filter by feature and type.
+///
+/// Logger names are built from [group] and [logTag], and [log] chooses between
+/// [logLevel] and [errorLogLevel] depending on whether an error is present.
+///
+/// Override [logTag] with a hard-coded string if you target minified runtimes.
+///
+/// For example:
+/// ```dart
+/// class Worker with LogMixin {
+///   @override
+///   String get group => 'Worker';
+/// }
+/// ```
 ///
 /// {@category shared}
 

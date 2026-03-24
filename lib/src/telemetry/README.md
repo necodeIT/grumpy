@@ -1,30 +1,15 @@
 # Telemetry
 
-## What This Feature Owns
+`telemetry` provides observability abstractions for tracing and analytics, with no-op defaults when no backend is configured. It exists so instrumentation calls stay backend-agnostic and feature code does not take a direct dependency on a vendor SDK.
 
-`telemetry` provides observability abstractions (tracing + analytics) with safe defaults.
+The feature splits system observability from product analytics on purpose. `TelemetryService` handles spans, events, and exceptions, `AnalyticsService` handles user and product events, `TelemetryZoneMixin` propagates active span context through async work, and `TelemetryMixin` gives repos and services a short `trace(...)` helper instead of forcing them to resolve telemetry manually.
 
-## Responsibilities
+The names, attributes, and properties you pass into these APIs become backend-facing metadata, and `T` on `TelemetryContext<T>` is the backend-native span type used internally by a concrete implementation. Keep in mind that telemetry and analytics are separate concerns, no-op defaults mean instrumentation is safe before a real backend is wired, and telemetry attributes should stay stable and low-cardinality when possible.
 
-- Define tracing contract (`TelemetryService`).
-- Define analytics contract (`AnalyticsService`).
-- Provide context propagation primitives (`TelemetryContext`, zone mixin).
-- Provide mixins for ergonomics in repos/services.
+For example:
 
-## Key Concepts
-
-- Span lifecycle: start -> add attributes -> end (success/error).
-- `TelemetryZoneMixin`: context propagation through async boundaries.
-- `TelemetryMixin.trace(...)`: simple instrumentation wrapper around operations.
-- No-op defaults: production-safe when no backend is configured.
-
-## Extension Strategy
-
-- Implement custom telemetry/analytics infra services.
-- Bind them through `RootModule` builders.
-- Keep call-sites backend-agnostic by using domain contracts and mixins.
-
-## Guardrails
-
-- Do not couple feature logic to specific vendors.
-- Keep telemetry attributes stable and low-cardinality where possible.
+```dart
+await trace('load_settings', () async {
+  return await datasource.fetchSettings();
+});
+```

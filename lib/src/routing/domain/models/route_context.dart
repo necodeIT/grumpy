@@ -6,6 +6,26 @@ part 'route_context.g.dart';
 
 /// Contextual information about the current routing state.
 ///
+/// Carries the parsed path, params, query values, and fragment for one
+/// navigation request.
+///
+/// Middleware, routes, and views all need the same immutable routing input.
+///
+/// [RouteContext] stores the raw [fullPath] plus derived parameter maps and
+/// convenience lookup helpers.
+///
+/// [fromUri] and [parse] do not populate [pathParams]; those are typically
+/// filled in by the routing implementation after pattern matching.
+///
+/// - [fullPath]: the full route string.
+/// - [pathParams], [queryParams], [queryParamsAll], [fragment]: parsed parts of
+///   the request.
+///
+/// For example:
+/// ```dart
+/// final ctx = RouteContext.parse('/settings?tab=profile');
+/// ```
+///
 /// {@category routing}
 
 @freezed

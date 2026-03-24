@@ -4,10 +4,19 @@ import 'package:grumpy/grumpy.dart';
 
 /// A reusable mixin that provides zone-based span management for telemetry services.
 ///
-/// This mixin encapsulates all the logic required to:
-/// - Start new spans in isolated [Zone]s
-/// - Propagate the active span context across async boundaries
-/// - Ensure spans are only resumed by the same telemetry service type
+/// Implements zone-backed span propagation for concrete telemetry services.
+///
+/// Span context should survive async boundaries without every backend rewriting
+/// the same zone-management code.
+///
+/// The mixin creates [TelemetryContext] objects, stores them in [Zone] values,
+/// and wraps callbacks with start/end span hooks.
+///
+/// Context lookup is guarded by [TelemetryContext.ownerType] so different telemetry backends do
+/// not accidentally share spans.
+///
+/// - `T`: the backend-native span type.
+/// - [name], [attributes], [parent]: span-construction inputs.
 ///
 ///
 /// ## Intended usage

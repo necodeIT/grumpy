@@ -3,15 +3,24 @@ import 'package:meta/meta.dart';
 
 /// Per-repo transaction state machine with optimistic replay.
 ///
-/// The engine tracks:
-/// - confirmed state (`confirmed`)
-/// - confirmed version (`confirmedVersion`)
-/// - pending optimistic operations (`pending`)
+/// Tracks confirmed state, pending optimistic operations, and the current
+/// visible state projection for one repo instance.
 ///
-/// Visibility model:
-/// - UI-visible state is computed from `confirmed + projected pending`.
-/// - overlapping pending operations are resolved via newer-wins policy.
-/// - on settle, pending list is updated and visible state can be recomputed.
+/// Optimistic mutation needs a deterministic replay engine that is separate
+/// from the repo itself.
+///
+/// The engine stores confirmed state plus a pending queue, then recomputes
+/// visible state by replaying pending operations according to conflict policy.
+///
+/// Engines are per repo instance and must not be singletons.
+///
+/// - `TState`: the repo state type managed by the engine.
+/// - [seed]: the initial confirmed state passed to the factory constructor.
+///
+/// For example:
+/// ```dart
+/// final engine = TxEngine<SettingsState>(seed);
+/// ```
 ///
 /// {@category transactions}
 

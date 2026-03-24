@@ -1,20 +1,7 @@
 # Utils (Legacy Root)
 
-## Status
+This is a legacy placeholder from the pre-feature layout. It still exists so old paths do not break during migration and so the package can clearly signal that `utils` is no longer the source of truth for new work.
 
-This is a legacy placeholder from the pre-feature layout.
-
-## Why It Exists
-
-It prevents accidental path breakage during migration and signals where old `utils` code used to live.
-
-## Current Source of Truth
-
-- Shared cross-cutting helpers: `shared/`
-- Cache-related mixins/helpers: `cache/`
-- Transaction/mutation helpers: `transactions/`
-- Repo composition helpers: `repo/`
-
-## Rule
+The current homes for that functionality are `shared/` for cross-cutting helpers, `cache/` for cache-related mixins and helpers, `transactions/` for mutation and transaction helpers, and `repo/` for repo-composition helpers.
 
 Do not add new production code here.

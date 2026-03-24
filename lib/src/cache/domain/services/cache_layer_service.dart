@@ -4,6 +4,24 @@ import 'package:grumpy/grumpy.dart';
 
 /// Shared cache layer surface.
 ///
+/// Defines the minimum read/write/invalidation API for one cache layer.
+///
+/// The cache pipeline should be able to coordinate multiple storage backends
+/// without knowing their concrete implementation details.
+///
+/// Implementations expose priority, key-based reads and writes, and namespace
+/// invalidation operations.
+///
+/// Lower [priority] values are read earlier by the default pipeline.
+///
+/// - `T` on [read] and [write]: the runtime value type.
+/// - [codec]: converts between runtime values and the layer's byte payload.
+///
+/// For example:
+/// ```dart
+/// final memory = MemoryCacheLayerService();
+/// ```
+///
 /// {@category cache}
 
 abstract class CacheLayerService extends Service {

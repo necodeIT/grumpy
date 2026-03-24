@@ -4,6 +4,22 @@ import 'package:grumpy/grumpy.dart';
 
 /// A service interface for recording system-level telemetry, traces, and exceptions.
 ///
+/// Defines the vendor-agnostic API for spans, events, exceptions, and span
+/// attributes.
+///
+/// Application code should be able to instrument runtime behavior without
+/// depending on a specific observability SDK.
+///
+/// Implementations translate [recordEvent], [recordException], and [runSpan]
+/// into backend-specific telemetry calls, usually with zone-based context
+/// propagation.
+///
+/// Use this for system observability, not user/product analytics.
+///
+/// - [name]: the event or span name.
+/// - [attributes]: structured telemetry metadata.
+/// - [callback]: the work executed inside the span.
+///
 /// The [TelemetryService] defines a unified abstraction for **observability**
 /// within an application — describing *what the system is doing*, not *what the
 /// user is doing*. It is conceptually based on

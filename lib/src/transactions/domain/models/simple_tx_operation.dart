@@ -4,7 +4,23 @@ import 'package:grumpy/src/transactions/domain/models/tx_operation.dart';
 
 /// Callback-based implementation of [TxOperation].
 ///
-/// Useful for concise repo APIs:
+/// Lets repo code define a transaction inline with callbacks instead of a
+/// dedicated subclass.
+///
+/// Many mutations are small enough that a full custom [TxOperation] class would
+/// add ceremony without adding clarity.
+///
+/// The class stores the three transaction callbacks and forwards them to the
+/// [TxOperation] contract.
+///
+/// The default [touchedKeys] is `{'*'}`, which treats the operation as broadly
+/// overlapping with other mutations unless you narrow it explicitly.
+///
+/// - `TState`: the repo state type.
+/// - `TResult`: the commit payload type.
+/// - [optimisticApply], [commit], [applyConfirmed]: the transaction callbacks.
+///
+/// For example:
 ///
 /// ```dart
 /// Future<TxResult<SettingsState>> setTheme(String theme) {

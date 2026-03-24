@@ -35,16 +35,28 @@ enum SyncFailureBehavior {
 
 /// Repo bootstrap controls.
 ///
-/// This policy defines startup behavior for repos that use
-/// [PersistentRepoStateMixin] and [RepoBootstrapService].
+/// Describes how a persistent repo should hydrate and synchronize during
+/// activation.
 ///
-/// Example:
-/// - fast startup with local snapshot then refresh:
-///   `RepoBootstrapPolicy(mode: BootstrapHydrationMode.hydrateThenSync)`
-/// - network-first:
-///   `RepoBootstrapPolicy(mode: BootstrapHydrationMode.syncThenHydrate)`
-/// - local-only mode:
-///   `RepoBootstrapPolicy(mode: BootstrapHydrationMode.hydrateOnly)`
+/// Different repos need different startup tradeoffs between speed, freshness,
+/// and failure handling.
+///
+/// [RepoBootstrapPolicy] combines hydration mode, optional sync timeout, and
+/// sync failure behavior into one per-repo configuration object.
+///
+/// This policy is consumed by [RepoBootstrapService], usually through
+/// [PersistentRepoStateMixin].
+///
+/// - [mode]: the hydrate/sync order.
+/// - [syncAfterHydration]: whether hydrate-first mode also refreshes remotely.
+/// - [allowExpiredHydration], [syncTimeout], [failureBehavior]: fallback rules.
+///
+/// For example:
+/// ```dart
+/// const RepoBootstrapPolicy(
+///   mode: BootstrapHydrationMode.hydrateThenSync,
+/// );
+/// ```
 ///
 /// {@category persistence}
 

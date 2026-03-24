@@ -5,19 +5,25 @@ import 'package:grumpy/grumpy.dart';
 
 /// Transaction-based mutation adapter for repos.
 ///
-/// This mixin provides `transact(...)` as a higher-level mutation API with:
-/// - optimistic UI projection
-/// - retry around commit phase
-/// - deterministic replay after settle
-/// - telemetry/analytics integration
+/// Adds `transact(...)` to a repo, giving it optimistic projection, retry,
+/// settlement, and replay behavior.
 ///
-/// Usage:
-/// 1. mix this into a repo that also includes `RepoLifecycleHooksMixin`.
-/// 2. call [installTransactionHooks] in the constructor.
-/// 3. seed initial `RepoState.data` before first transaction.
-/// 4. expose domain methods that call [transact] with a [TxOperation].
+/// Repo mutations are hard to keep deterministic once you add retries,
+/// concurrent optimistic updates, and analytics/telemetry.
 ///
-/// Example:
+/// The mixin lazily creates a [TxEngine] from the first repo data emission,
+/// enqueues [TxOperation] instances, emits optimistic state, runs commit logic,
+/// then settles and replays.
+///
+/// - Call [installTransactionHooks] in the constructor.
+/// - The repo must already be in `RepoState.data` before the first transaction.
+/// - `nextTxId()` is repo-scoped, not globally unique.
+///
+/// - `T`: the repo state type.
+/// - `TResult` on [transact]: the remote commit payload type.
+/// - [retryPolicy], [analyticsEvent], [analyticsAttributes]: per-call behavior.
+///
+/// For example:
 /// ```dart
 /// class SettingsRepo extends Repo<SettingsState>
 ///     with RepoLifecycleMixin<SettingsState>,

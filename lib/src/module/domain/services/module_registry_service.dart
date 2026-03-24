@@ -2,16 +2,27 @@ import 'package:grumpy/grumpy.dart';
 
 /// Owns [Module] lifecycle orchestration across the app.
 ///
-/// The registry is responsible for:
-/// - canonicalizing module instances (one instance per module type)
-/// - mounting and unmounting module graphs
-/// - activating and deactivating modules
-/// - tracking currently active modules
-/// - exposing dependency graph state for observability/debugging
+/// Tracks canonical module instances and keeps the mounted/active module graph
+/// in sync with routing or other runtime demands.
 ///
-/// A module is considered:
-/// - mounted after [Module.initialize] completes
-/// - active after [Module.activate] completes
+/// Module activation has graph semantics, so the app needs one coordinator that
+/// understands imports, aliases, and shared dependencies.
+///
+/// The registry canonicalizes modules by runtime type, computes dependency
+/// graphs, and ensures modules are initialized, activated, deactivated, or
+/// destroyed in the right order.
+///
+/// A module is considered mounted after [Module.initialize] and active after
+/// [Module.activate]. Implementations must operate on canonical instances only.
+///
+/// - `T`: the presentation type used by registered modules.
+/// - `Config`: the shared app configuration type.
+///
+/// For example:
+/// ```dart
+/// final registry = ModuleRegistryService<Object, AppConfig>();
+/// await registry.ensureActive(settingsModule);
+/// ```
 ///
 /// {@category module}
 

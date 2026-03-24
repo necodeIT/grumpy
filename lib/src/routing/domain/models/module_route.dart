@@ -2,8 +2,28 @@ import 'package:grumpy/grumpy.dart';
 
 /// A route that activates a [Module] when matched.
 ///
-/// Use [ModuleRoute] for feature- or domain-level entry points that should
-/// mount a dedicated [Module] (and its dependency graph) on navigation.
+/// Declares a route boundary that mounts and activates a module graph.
+///
+/// Feature-level navigation often needs more than a view; it needs scoped DI
+/// and lifecycle-managed dependencies.
+///
+/// [ModuleRoute] extends [Route] with a target [module] and optional module
+/// [root] view.
+///
+/// Use [root] when navigating to the module path should immediately render a
+/// default leaf.
+///
+/// - `T`: the presentation type.
+/// - `Config`: the module configuration type.
+/// - [module], [root], [middleware]: module-routing behavior.
+///
+/// For example:
+/// ```dart
+/// ModuleRoute<Object, AppConfig>(
+///   path: '/settings',
+///   module: SettingsModule(),
+/// );
+/// ```
 ///
 /// {@category routing}
 

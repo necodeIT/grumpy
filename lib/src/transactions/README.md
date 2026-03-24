@@ -1,33 +1,23 @@
 # Transactions
 
-## What This Feature Owns
+`transactions` provides mutation orchestration primitives for retries, optimistic projection, settlement, and conflict handling. It exists so repos can expose optimistic mutations without each repo inventing its own retry, rollback, and replay machinery.
 
-`transactions` provides mutation orchestration primitives: retries, optimistic projection, settlement, and conflict handling.
+The model centers on `TxOperation`, which describes a mutation from optimistic apply through confirmed reconciliation, and `TxEngine`, which keeps confirmed state plus pending optimistic operations and replays them deterministically. Conflict helpers resolve overlapping touched keys, and `TransactionalMutationMixin` ties the whole flow into repo emissions, retries, analytics, and settlement.
 
-## Responsibilities
+The main parameters to keep in mind are `RetryPolicy` for delay and maximum attempts, `TxOperation.touchedKeys` for coarse replay conflict scope, and `TxResult<TState>` for the final visible state and success or failure outcome. `TransactionalMutationMixin` requires `installTransactionHooks()` in the repo constructor, `TxEngine` instances are per repo instance rather than singletons, and `MutationMixins` is legacy and deprecated in favor of the transaction model.
 
-- Define retry/optimistic policy models.
-- Define transaction operation and pending/result models.
-- Define conflict resolution utilities (`newer-wins` by touched keys).
-- Define `TxEngine` as the transaction service object.
-- Provide repo mixins for action/mutation/transaction workflows.
+For example:
 
-## Key Concepts
-
-- `TxOperation`: user intent contract (optimistic apply, commit, confirmed apply).
-- `TxEngine`: confirmed state + pending queue -> computed visible state.
-- Conflict policy: overlapping keys resolve deterministically.
-- Settlement: success applies confirmed state; failure removes/rolls back pending op.
-
-## Transaction Flow (Typical)
-
-1. Enqueue operation with touched keys.
-2. Emit optimistic visible state.
-3. Commit with retry policy.
-4. Settle success/failure.
-5. Recompute visible state.
-
-## Guardrails
-
-- Keep optimistic transforms deterministic and side-effect free.
-- Keep transaction internals here; do not leak infra-specific behavior into repos.
+```dart
+return transact<SettingsResponse>(
+  SimpleTxOperation<SettingsState, SettingsResponse>(
+    name: 'setTheme',
+    id: nextTxId(),
+    baseVersion: 0,
+    touchedKeys: const {'settings.theme'},
+    optimisticApply: (state) => state.copyWith(theme: theme),
+    commit: (_) => datasource.setTheme(theme),
+    applyConfirmed: (confirmed, result) => confirmed.copyWith(theme: result.theme),
+  ),
+);
+```

@@ -7,10 +7,27 @@ import 'package:get_it/get_it.dart' hide Disposable;
 
 /// Base contract for DI-managed types.
 ///
-/// Concrete implementations can control their registration behavior in
-/// [Module.bindServices] and [Module.bindDatasources] through [singelton]:
-/// if `true`, modules register them as lazy singletons; if `false`, modules
-/// register them as factories.
+/// Defines the minimum contract a type must satisfy to participate in module DI.
+///
+/// Modules need one shared way to decide whether a type is registered as a
+/// singleton or as a factory.
+///
+/// Concrete implementations expose [singelton], which [Module] reads while
+/// binding services and datasources.
+///
+/// Repositories are handled separately by module DI and are always treated as
+/// async singletons regardless of this contract.
+///
+/// This type has no generic parameters. The important configuration point is
+/// [singelton].
+///
+/// For example:
+/// ```dart
+/// class ClockService extends Service {
+///   @override
+///   bool get singelton => true;
+/// }
+/// ```
 ///
 /// {@category shared}
 

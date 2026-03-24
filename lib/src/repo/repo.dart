@@ -5,10 +5,30 @@ import 'package:grumpy/grumpy.dart';
 import 'package:rxdart/rxdart.dart';
 
 /// A repository that manages the state of data of type [T].
-/// It's purpose is to expose the data in a presentable way by providing
-/// filter, sorting, and CRUD operations that can be easily bound by consumers.
 ///
-/// See [RepoState] for more details on the possible states.
+/// Exposes UI-facing state as a stream of [RepoState] values and gives feature
+/// code a single place to emit loading, data, and error states.
+///
+/// Presentation code needs a stable reactive boundary that is simpler than
+/// talking directly to datasources or services.
+///
+/// [Repo] stores the latest [RepoState] in a `BehaviorSubject`, exposes
+/// synchronous access through [state], and pushes updates through [stream].
+///
+/// - Repos are lifecycle-managed and DI-managed.
+/// - Repos are always treated as singletons by module DI.
+/// - Consumers should expect `loading` to be the initial state.
+///
+/// - `T`: the visible data shape owned by the repo.
+///
+/// For example:
+/// ```dart
+/// class CounterRepo extends Repo<int> {
+///   CounterRepo() {
+///     data(0);
+///   }
+/// }
+/// ```
 ///
 /// {@category repo}
 

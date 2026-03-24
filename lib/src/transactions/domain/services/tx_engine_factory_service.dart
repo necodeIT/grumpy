@@ -3,24 +3,24 @@ import 'package:meta/meta.dart';
 
 /// Factory contract for constructing transaction engines across all state types.
 ///
-/// Why this exists:
-/// - Dart/DI containers cannot register "all generic specializations" of
-///   `TxEngine<TState>` directly with a single typed binding.
-/// - Repositories still need a simple `TxEngine(seed)` entrypoint.
-/// - Applications may need different engine implementations based on state type
-///   or runtime preferences.
+/// Creates a fresh [TxEngine] for any repo state type.
 ///
-/// This service provides a single DI-resolved abstraction that can build a
-/// `TxEngine<TState>` for any `TState`, while keeping selection logic in one
-/// place (typically root module wiring).
+/// DI cannot register every generic specialization of `TxEngine<TState>`
+/// directly, but repos still need a simple typed entry point.
 ///
-/// Typical usage:
-/// 1. Root module binds a concrete [TxEngineFactoryService].
-/// 2. [TxEngine] factory delegates to this service.
-/// 3. Concrete implementation chooses and returns a fresh engine instance.
+/// [TxEngine] delegates construction to this DI-resolved service, and the
+/// concrete implementation chooses which engine to instantiate.
 ///
-/// Implementations should return non-singleton engines because each repo
-/// instance owns its own transactional timeline.
+/// Implementations should return non-singleton engines because each repo owns
+/// its own transaction timeline.
+///
+/// - `TState`: the repo state type requested by [create].
+/// - [seed]: the initial state that may inform engine selection.
+///
+/// For example:
+/// ```dart
+/// final factory = TxEngineFactoryService();
+/// ```
 ///
 /// {@category transactions}
 

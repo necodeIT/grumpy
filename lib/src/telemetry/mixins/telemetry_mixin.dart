@@ -2,7 +2,26 @@ import 'dart:async';
 
 import 'package:grumpy/grumpy.dart';
 
-/// A mixin that provides telemetry tracing capabilities.
+/// Small convenience mixin for telemetry tracing.
+///
+/// Exposes a `trace(...)` helper that delegates to the configured
+/// [TelemetryService].
+///
+/// Repos and services often want short instrumentation calls without resolving
+/// telemetry manually every time.
+///
+/// [trace] resolves [TelemetryService] from DI and calls [TelemetryService.runSpan].
+///
+/// This mixin does not store any state; it is only a convenience wrapper.
+///
+/// - [name]: the span name.
+/// - [function]: the work to execute inside the span.
+/// - [attributes]: optional telemetry metadata.
+///
+/// For example:
+/// ```dart
+/// await trace('load_user', () async => datasource.fetchUser());
+/// ```
 ///
 /// {@category telemetry}
 

@@ -2,6 +2,21 @@ import 'package:grumpy/grumpy.dart';
 
 /// A service interface for recording product and user analytics events.
 ///
+/// Defines the vendor-agnostic analytics API for user and product events.
+///
+/// Feature code should be able to track analytics without coupling itself to
+/// PostHog, Mixpanel, Segment, or any other backend SDK.
+///
+/// Implementations translate event, user, page-view, and grouping calls into
+/// backend-specific APIs.
+///
+/// All methods return `Future<void>` so call sites can treat analytics as
+/// fire-and-forget when appropriate.
+///
+/// - [name], [pageName], [from], [to], [userId], [groupId]: analytics
+///   identifiers.
+/// - [traits] and [properties]: backend-facing metadata maps.
+///
 /// The [AnalyticsService] defines a unified abstraction for **behavioral and
 /// product analytics**, describing *what users do*, rather than *what the
 /// system does*. It provides a vendor-agnostic API for event tracking,
@@ -71,7 +86,7 @@ import 'package:grumpy/grumpy.dart';
 ///   }
 ///
 ///   @override
-///   Future<void> group(String groupId, {Map<String, dynamic>? traits}) async {
+///   Future<void> groupUser(String groupId, {Map<String, dynamic>? traits}) async {
 ///     posthog.group(groupType: 'organization', groupKey: groupId, groupProperties: traits);
 ///   }
 /// }

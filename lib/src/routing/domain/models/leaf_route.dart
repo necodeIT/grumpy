@@ -2,8 +2,25 @@ import 'package:grumpy/grumpy.dart';
 
 /// A route that directly renders a [Leaf] when matched.
 ///
-/// Use [LeafRoute] for leaf routes that don't require their own [Module]
-/// and can be satisfied by a single [Leaf].
+/// Declares a route whose endpoint is a concrete [Leaf].
+///
+/// Not every route needs its own module boundary; some simply render one view.
+///
+/// [LeafRoute] extends [Route] with a [view] and optional nested children.
+///
+/// [LeafRoute.root] is a convenience for module entry leaves that live at `/`.
+///
+/// - `T`: the presentation type.
+/// - `Config`: the routing/module config type.
+/// - [view], [middleware], [children]: leaf-routing behavior.
+///
+/// For example:
+/// ```dart
+/// const LeafRoute<Object, AppConfig>(
+///   path: '/settings',
+///   view: SettingsLeaf(),
+/// );
+/// ```
 ///
 /// {@category routing}
 

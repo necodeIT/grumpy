@@ -1,29 +1,16 @@
 # Shared
 
-## What This Feature Owns
+`shared` contains the cross-cutting primitives that every other feature depends on: base DI contracts, lifecycle hooks, logging, serialization helpers, and shared errors and models. It exists so features can agree on the same lifecycle and type conventions without duplicating boilerplate or drifting into incompatible abstractions.
 
-`shared` contains cross-cutting primitives that every other feature depends on. This folder should stay small and stable.
+The package does this by defining a small set of stable building blocks. `Injectable` controls DI registration behavior through `singelton`, `LifecycleMixin` and `LifecycleHooksMixin` normalize `initialize`, `activate`, `deactivate`, `dependenciesChanged`, and `destroy`, `LogMixin` gives consistent logger grouping, and `SerializationCodec<Data, Serialized>` keeps storage and wire conversions typed.
 
-## Responsibilities
+Keep this package small: if something belongs to only one feature, it probably does not belong here. `Data` and `Serialized` on `SerializationCodec` describe runtime and persisted shapes, and `T` on models, repos, and helpers represents a feature-specific payload. Also, the teardown lifecycle method is `destroy`, not `free`.
 
-- Define base DI/lifecycle contracts used by services, datasources, repos, and modules.
-- Provide common lifecycle and logging mixins.
-- Provide serialization primitives shared by cache and persistence.
-- Provide shared error and base model contracts.
+For example:
 
-## Key Concepts
-
-- `Injectable`: the DI registration contract (`singelton` policy + lifecycle eligibility).
-- `LifecycleMixin` and `LifecycleHooksMixin`: normalized object lifecycle (`initialize`, `activate`, `deactivate`, `dependenciesChanged`, `free`).
-- `LogMixin`: consistent structured logger naming (`group` + `logTag`).
-- `SerializationCodec<Data, Serialized>`: typed conversion boundary for storage/network surfaces.
-
-## Design Rules
-
-- Put code here only if at least two features need it.
-- Do not put domain behavior here (cache logic, routing rules, transaction policy, etc).
-- Keep abstractions framework-neutral and feature-neutral.
-
-## Typical Dependency Direction
-
-Feature code -> `shared` contracts/mixins -> concrete feature implementations.
+```dart
+const userCodec = SerializationCodec<User, JsonMap>.call(
+  encode: (user) => user.toJson(),
+  decode: User.fromJson,
+);
+```

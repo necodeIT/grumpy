@@ -8,6 +8,32 @@ part 'storage_key.g.dart';
 
 /// Stable storage key contract shared by cache and snapshot persistence layers.
 ///
+/// Represents a deterministic identifier for persisted or cached payloads.
+///
+/// Cache and persistence layers both need a stable key format that survives app
+/// restarts and can encode schema compatibility information.
+///
+/// The key stores a namespace, a primary key, a schema fingerprint, and an
+/// optional compatibility version, and can round-trip to a reversible base64
+/// string via [asStorageKey].
+///
+/// Changing [schemaId] or [compatVersion] changes the logical identity of the
+/// stored payload. Treat those fields as part of the storage contract.
+///
+/// - [namespace]: logical bucket for related entries.
+/// - [primaryKey]: stable identifier inside the namespace.
+/// - [schemaId]: fingerprint for the serialized shape.
+/// - [compatVersion]: optional manual migration channel.
+///
+/// For example:
+/// ```dart
+/// final key = StorageKey(
+///   namespace: 'repo/settings',
+///   primaryKey: 'current-user',
+///   schemaId: 'settings_v2',
+/// );
+/// ```
+///
 /// {@category shared}
 
 @freezed

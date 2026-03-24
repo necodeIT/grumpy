@@ -1,32 +1,16 @@
 # Routing
 
-## What This Feature Owns
+`routing` models routes and navigation behavior, including middleware-driven interception and module activation. It exists so route declarations can stay declarative while the runtime routing engine handles matching, middleware, and lifecycle concerns consistently.
 
-`routing` models routes and navigation behavior, including middleware-driven interception.
+The feature works through `RouteContext`, which stores the parsed navigation request, and the route tree types `Route`, `ModuleRoute`, and `LeafRoute`, which describe how a path should resolve. `RoutingService` is the execution boundary that parses a path, runs middleware, activates required modules, and emits preview and final views, while `Leaf.preview` gives the router a way to show a placeholder before activation completes.
 
-## Responsibilities
+`T` is the presentation type returned to the consumer, `Config` is the configuration object available during route and module activation, and `RouteContext` carries the active path, params, query values, and fragment. The main thing to remember is that `preview()` must stay side-effect free because module-scoped dependencies may not be active yet, middleware should stay orchestration-focused, and runtime routing details belong in `infra/`.
 
-- Define route model types (`Route`, `LeafRoute`, `ModuleRoute`, `RouteContext`).
-- Define the `RoutingService` contract.
-- Coordinate route activation with module lifecycle.
-- Support middleware-based navigation decisions and rewrites.
+For example:
 
-## Key Concepts
-
-- `RouteContext`: immutable navigation input (path/query/fragment/params).
-- Route tree: module routes for composition + leaf routes for concrete views.
-- Middleware pipeline: sequential async interception before final route activation.
-- Preview vs finalized navigation: enables pre-build and guarded transitions.
-
-## Flow (High-Level)
-
-1. Receive navigation request.
-2. Build `RouteContext`.
-3. Run middleware chain.
-4. Resolve route + ensure required modules active.
-5. Emit final view/content callback.
-
-## Guardrails
-
-- Route models should stay declarative.
-- Runtime routing engine details belong in `infra/` only.
+```dart
+const Route<Object, AppConfig> settingsRoute = LeafRoute<Object, AppConfig>(
+  path: '/settings',
+  view: SettingsLeaf(),
+);
+```

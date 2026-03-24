@@ -2,8 +2,26 @@ import 'package:grumpy/grumpy.dart';
 
 /// Public result returned by [TransactionalMutationMixin.transact].
 ///
-/// [success] indicates whether commit eventually succeeded.
-/// [visibleState] is the repo state after settlement + replay.
+/// Describes how a transaction settled and what visible state remained after
+/// replay.
+///
+/// Mutation callers usually need both the remote outcome and the final visible
+/// repo state.
+///
+/// [TxResult] stores the returned value, success flag, visible state, and
+/// failure details when a commit fails.
+///
+/// [value] is typed as `Object?` so the result can carry arbitrary commit
+/// payloads.
+///
+/// - `TState`: the repo state type after settlement.
+/// - [value], [visibleState], [success], [error], [stackTrace].
+///
+/// For example:
+/// ```dart
+/// final result = await transact(operation);
+/// if (!result.success) {}
+/// ```
 ///
 /// {@category transactions}
 

@@ -1,6 +1,23 @@
 import 'package:grumpy/grumpy.dart';
 
-/// Represents a loading state in a [Repo] indicating that data is being fetched.
+/// Represents an in-flight repo loading state.
+///
+/// Marks the repo as currently loading and records when loading began.
+///
+/// Consumers often need an explicit loading phase and sometimes the elapsed
+/// loading duration.
+///
+/// [RepoLoadingState] stores [timeStamp] and derives [elapsed] from it.
+///
+/// [elapsed] is computed against `DateTime.now()`, so it changes over time.
+///
+/// - `T`: the repo data type.
+/// - [timeStamp]: when the loading state was emitted.
+///
+/// For example:
+/// ```dart
+/// RepoLoadingState<int>(DateTime.now());
+/// ```
 ///
 /// {@category repo}
 

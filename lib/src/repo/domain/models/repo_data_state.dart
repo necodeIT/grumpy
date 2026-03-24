@@ -1,6 +1,23 @@
 import 'package:grumpy/grumpy.dart';
 
-/// Represents a data state in a [Repo] indicating successful data retrieval.
+/// Represents a successful repo data state.
+///
+/// Wraps the current loaded repo value.
+///
+/// The repo state machine needs an explicit success variant instead of using a
+/// nullable value.
+///
+/// [RepoDataState] stores the current [value] and satisfies [RepoState.when].
+///
+/// This is the only [RepoState] variant where [RepoState.requireData] succeeds.
+///
+/// - `T`: the repo data type.
+/// - [value]: the loaded data payload.
+///
+/// For example:
+/// ```dart
+/// const RepoDataState<int>(1);
+/// ```
 ///
 /// {@category repo}
 
