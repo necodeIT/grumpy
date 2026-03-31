@@ -38,7 +38,7 @@ mixin class LogMixin {
 
   /// Logs a message with an optional error and stack trace.
   /// If an error is provided, it logs at [errorLogLevel], otherwise at [logLevel].
-  void log(String message, [Object? error, StackTrace? stackTrace]) {
+  void log(Object message, [Object? error, StackTrace? stackTrace]) {
     _logger.log(
       error != null ? errorLogLevel : logLevel,
       message,
@@ -53,7 +53,7 @@ mixin class LogMixin {
   @internal
   void logAtLevel(
     Level level,
-    String message, [
+    Object message, [
     Object? error,
     StackTrace? stackTrace,
   ]) {

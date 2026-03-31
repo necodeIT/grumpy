@@ -556,7 +556,7 @@ abstract class RootModule<RouteType, Config extends Object>
   }
 
   /// The root route of this module.
-  Route<RouteType, Config> get root => Route.root(routes);
+  Route<RouteType, Config> get root => routes.root ?? Route.root(routes);
 
   @nonVirtual
   @override

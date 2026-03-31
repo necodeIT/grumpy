@@ -62,4 +62,19 @@ class Route<T, Config extends Object> extends Model {
   String toString() {
     return 'Route(path: $path, middleware: $middleware, children: $children)';
   }
+
+  /// Returns a string representation of the route tree starting from this route.
+  String tree([String indent = '']) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('$indent├─$path (${runtimeType})');
+    for (final child in children) {
+      // if it's the last child, we want to use '└─' instead of '├─'
+      final isLast = child == children.last;
+      final childIndent = isLast ? '$indent  ' : '$indent│ ';
+      buffer.write(child.tree(childIndent));
+    }
+
+    return buffer.toString();
+  }
 }

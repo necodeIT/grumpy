@@ -100,6 +100,8 @@ class RoutingKitRoutingService<T, Config extends Object>
     _kit = createRouter(caseSensitive: caseSensitive);
 
     _addRoute(root, '/');
+
+    log("Registered routes:\n${root.tree()}");
   }
 
   void _addRoute(Route<T, Config> route, String parentPath) {
@@ -269,6 +271,10 @@ class RoutingKitRoutingService<T, Config extends Object>
       var leaf = match.data;
 
       if (leaf is ModuleRoute<T, Config>) {
+        log(
+          'Detected module route at path: $path, looking for root leaf in module ${leaf.module}...',
+        );
+
         leaf =
             leaf.root ??
             leaf.module.routes.root ??
@@ -277,6 +283,8 @@ class RoutingKitRoutingService<T, Config extends Object>
               'path',
               'Resolved ModuleRoute does not have a root LeafRoute defined!',
             ));
+
+        log('Found module root: $leaf');
       }
 
       // check if leaf (throw if not)
