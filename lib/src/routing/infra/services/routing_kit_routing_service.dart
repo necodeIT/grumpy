@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:routingkit/routingkit.dart';
 import 'package:grumpy/grumpy.dart';
+import 'package:rxdart/rxdart.dart';
 
 /// [RoutingService] impementation that uses RoutingKit for route parsing and matching.
 ///
@@ -38,9 +39,9 @@ class RoutingKitRoutingService<T, Config extends Object>
   /// Whether route matching should be case-sensitive.
   final bool caseSensitive;
   final Map<String, Set<Module<T, Config>>> _moduleCache = {};
+  final Map<Route<T, Config>, List<Route<T, Config>>> _routeLineages = {};
 
-  final StreamController<ViewChangedEvent<T, Config>> _viewChangeController =
-      StreamController<ViewChangedEvent<T, Config>>.broadcast();
+  final _viewChangeController = BehaviorSubject<ViewChangedEvent<T, Config>>();
 
   @override
   RouteContext? get currentContext => _context;
@@ -49,6 +50,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   FutureOr<void> destroy() async {
     await super.destroy();
     _listeners.clear();
+    _routeLineages.clear();
     _pendingNavigations.clear();
     if (!_viewChangeController.isClosed) {
       await _viewChangeController.close();
@@ -98,27 +100,68 @@ class RoutingKitRoutingService<T, Config extends Object>
   @override
   FutureOr<void> initialize() {
     _kit = createRouter(caseSensitive: caseSensitive);
+    _routeLineages.clear();
 
     _addRoute(root, '/');
 
-    log("Registered routes:\n${root.tree()}");
+    log("Registered routes:\n${root.toTree()}");
   }
 
-  void _addRoute(Route<T, Config> route, String parentPath) {
+  void _addRoute(
+    Route<T, Config> route,
+    String parentPath, [
+    List<Route<T, Config>> ancestors = const [],
+  ]) {
     final fullPath = '$parentPath/${route.path}'.replaceAll('//', '/');
+    final lineage = List<Route<T, Config>>.unmodifiable([...ancestors, route]);
 
+    _routeLineages[route] = lineage;
     _kit.add(null, fullPath, route);
 
     if (route is ModuleRoute<T, Config>) {
       for (final child in route.module.routes) {
-        _addRoute(child, fullPath);
+        _addRoute(child, fullPath, lineage);
       }
     }
 
     for (final child in route.children) {
-      _addRoute(child, fullPath);
+      _addRoute(child, fullPath, lineage);
     }
   }
+
+  ({LeafRoute<T, Config> leaf, List<Route<T, Config>> lineage})
+  _resolveLeafRoute(Route<T, Config> matchedRoute, String path) {
+    if (matchedRoute is LeafRoute<T, Config>) {
+      return (
+        leaf: matchedRoute,
+        lineage: _routeLineages[matchedRoute] ?? [matchedRoute],
+      );
+    }
+
+    if (matchedRoute is! ModuleRoute<T, Config>) {
+      throw ArgumentError.value(path, 'path', 'Resolved route is not a leaf!');
+    }
+
+    final rootLeaf =
+        matchedRoute.root ??
+        matchedRoute.module.routes.root ??
+        (throw ArgumentError.value(
+          path,
+          'path',
+          'Resolved ModuleRoute does not have a root LeafRoute defined!',
+        ));
+
+    final lineage = <Route<T, Config>>[
+      ...(_routeLineages[matchedRoute] ?? [matchedRoute]),
+      rootLeaf,
+    ];
+
+    return (leaf: rootLeaf, lineage: lineage);
+  }
+
+  List<Middleware<T, Config>> _collectMiddleware(
+    List<Route<T, Config>> lineage,
+  ) => [for (final route in lineage) ...route.middleware];
 
   /// Returns a list of modules that need to be activated for the given [path].
   ///
@@ -222,7 +265,14 @@ class RoutingKitRoutingService<T, Config extends Object>
     final uri = Uri.parse(path);
 
     if (uri == currentContext?.uri) {
-      log('Already at path: $path, skipping navigation.');
+      log(
+        'Already at path: $path, skipping navigation and emitting current view.',
+      );
+
+      if (_viewChangeController.hasValue) {
+        final current = _viewChangeController.value;
+        callback(current.view, current.isPreview);
+      }
 
       return;
     }
@@ -268,37 +318,20 @@ class RoutingKitRoutingService<T, Config extends Object>
         );
       }
 
-      var leaf = match.data;
+      var matchedRoute = match.data;
 
-      if (leaf is ModuleRoute<T, Config>) {
+      if (matchedRoute is ModuleRoute<T, Config>) {
         log(
-          'Detected module route at path: $path, looking for root leaf in module ${leaf.module}...',
+          'Detected module route at path: $path, looking for root leaf in module ${matchedRoute.module}...',
         );
 
-        leaf =
-            leaf.root ??
-            leaf.module.routes.root ??
-            (throw ArgumentError.value(
-              path,
-              'path',
-              'Resolved ModuleRoute does not have a root LeafRoute defined!',
-            ));
-
-        log('Found module root: $leaf');
+        final rootLeaf = matchedRoute.root ?? matchedRoute.module.routes.root;
+        log('Found module root: $rootLeaf');
       }
 
-      // check if leaf (throw if not)
-      if (leaf is! LeafRoute) {
-        throw ArgumentError.value(
-          path,
-          'path',
-          'Resolved route is not a leaf!',
-        );
-      }
+      final (:leaf, :lineage) = _resolveLeafRoute(matchedRoute, path);
 
-      leaf as LeafRoute<T, Config>;
-
-      final future = _navigate(uri, leaf, skipPreview, handler);
+      final future = _navigate(uri, leaf, lineage, skipPreview, handler);
 
       _pendingNavigations[uri] = (future, leaf);
       _currentNavigation = future;
@@ -314,11 +347,13 @@ class RoutingKitRoutingService<T, Config extends Object>
   Future<bool> _navigate(
     Uri uri,
     LeafRoute<T, Config> leaf,
+    List<Route<T, Config>> lineage,
     bool skipPreview,
     void Function(T, bool) callback,
   ) async {
     var context = RouteContext.fromUri(uri);
     final cleanPath = uri.path;
+    final middleware = _collectMiddleware(lineage);
 
     log('Navigating to $cleanPath with context: $context');
 
@@ -331,15 +366,15 @@ class RoutingKitRoutingService<T, Config extends Object>
 
     // run middlewares (if any)
     try {
-      for (var i = 0; i < leaf.middleware.length; i++) {
-        final middleware = leaf.middleware[i];
+      for (var i = 0; i < middleware.length; i++) {
+        final currentMiddleware = middleware[i];
         log(
-          'Executing middleware ${i + 1}/${leaf.middleware.length}: ${middleware.runtimeType}',
+          'Executing middleware ${i + 1}/${middleware.length}: ${currentMiddleware.runtimeType}',
         );
-        context = await middleware(context);
+        context = await currentMiddleware(context);
       }
       log(
-        'All ${leaf.middleware.length} middlewares executed successfully for $cleanPath',
+        'All ${middleware.length} middlewares executed successfully for $cleanPath',
       );
     } catch (e, s) {
       log(

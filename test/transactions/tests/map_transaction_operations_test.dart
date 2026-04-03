@@ -1006,6 +1006,48 @@ void main() {
             );
           },
         );
+
+        test(
+          'uses the latest externally emitted repo state as the transaction base',
+          () async {
+            repo.data({'u1': const Profile(name: 'Alice', status: 'active')});
+            repo.data({'u1': const Profile(name: 'Remote', status: 'active')});
+
+            late MapEntry<String, Profile> committedEntry;
+            final operation =
+                MapUpdateEntryTxOperation<String, Profile, String>(
+                  name: 'edit-profile-after-refresh',
+                  id: repo.nextTxId(),
+                  baseVersion: 0,
+                  key: 'u1',
+                  touchedValueKeys: const {'status'},
+                  optimisticUpdate: (entry) =>
+                      entry.value.copyWith(status: 'pending'),
+                  updateEntry: (entry) async {
+                    committedEntry = entry;
+                    return 'confirmed';
+                  },
+                  apply: (optimisticEntry, result) => MapEntry(
+                    optimisticEntry.key,
+                    optimisticEntry.value.copyWith(status: result),
+                  ),
+                );
+
+            final result = await repo.transact<String>(operation);
+
+            expect(
+              committedEntry.value,
+              const Profile(name: 'Remote', status: 'active'),
+            );
+            expect(result.success, isTrue);
+            expect(result.visibleState, {
+              'u1': const Profile(name: 'Remote', status: 'confirmed'),
+            });
+            expect(repo.state.requireData, {
+              'u1': const Profile(name: 'Remote', status: 'confirmed'),
+            });
+          },
+        );
       });
     });
   });

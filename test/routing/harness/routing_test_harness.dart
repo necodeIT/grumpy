@@ -78,6 +78,43 @@ class DelayedPassMiddleware extends Middleware<String, Cfg> {
   String get logTag => 'DelayedPassMiddleware';
 }
 
+class OrderedMiddleware extends Middleware<String, Cfg> {
+  OrderedMiddleware(this.label, this.order);
+
+  final String label;
+  final List<String> order;
+  int calls = 0;
+
+  @override
+  Future<RouteContext> call(RouteContext context) async {
+    calls++;
+    order.add(label);
+    return context;
+  }
+
+  @override
+  String toString() => 'OrderedMiddleware(label: $label, calls: $calls)';
+
+  @override
+  String get logTag => 'OrderedMiddleware($label)';
+}
+
+class ThrowingOrderedMiddleware extends OrderedMiddleware {
+  ThrowingOrderedMiddleware(super.label, super.order);
+
+  @override
+  Future<RouteContext> call(RouteContext context) async {
+    await super.call(context);
+    throw StateError('middleware boom: $label');
+  }
+
+  @override
+  String toString() => 'ThrowingOrderedMiddleware(label: $label)';
+
+  @override
+  String get logTag => 'ThrowingOrderedMiddleware($label)';
+}
+
 class DummyModule extends Module<String, Object> {
   @override
   Future<void> activate() async {
@@ -204,6 +241,9 @@ class TestLeaf2 extends Leaf<String> {
 }
 
 class FeatureModule extends Module<String, Cfg> {
+  FeatureModule(this.middlewareOrder);
+
+  final List<String> middlewareOrder;
   int activateCalls = 0;
 
   @override
@@ -232,7 +272,11 @@ class FeatureModule extends Module<String, Cfg> {
 
   @override
   List<Route<String, Cfg>> get routes => [
-    LeafRoute<String, Cfg>(path: 'child', view: TestLeaf2()),
+    LeafRoute<String, Cfg>(
+      path: 'child',
+      view: TestLeaf2(),
+      middleware: [OrderedMiddleware('feature-child', middlewareOrder)],
+    ),
     Route<String, Cfg>(
       path: 'sub',
       children: [LeafRoute<String, Cfg>(path: 'final', view: TestLeaf2())],
@@ -243,24 +287,60 @@ class FeatureModule extends Module<String, Cfg> {
 }
 
 class RootTestModule extends RootModule<String, Cfg> {
-  RootTestModule(super.cfg)
-    : featureModule = FeatureModule(),
-      slowPendingMiddleware = DelayedPassMiddleware();
+  RootTestModule(super.cfg);
 
-  final FeatureModule featureModule;
-  final DelayedPassMiddleware slowPendingMiddleware;
+  final DelayedPassMiddleware slowPendingMiddleware = DelayedPassMiddleware();
+  final List<String> nestedMiddlewareOrder = <String>[];
+  final List<String> featureMiddlewareOrder = <String>[];
+  final List<String> blockedParentMiddlewareOrder = <String>[];
+  late final FeatureModule featureModule = FeatureModule(
+    featureMiddlewareOrder,
+  );
 
   @override
   List<Route<String, Cfg>> get routes => [
     ModuleRoute<String, Cfg>(
       path: 'feature',
       module: featureModule,
-      root: LeafRoute<String, Cfg>.root(TestLeaf2()),
+      middleware: [OrderedMiddleware('feature-module', featureMiddlewareOrder)],
+      root: LeafRoute<String, Cfg>.root(
+        TestLeaf2(),
+        middleware: [OrderedMiddleware('feature-root', featureMiddlewareOrder)],
+      ),
+    ),
+    Route<String, Cfg>(
+      path: 'parent',
+      middleware: [OrderedMiddleware('parent', nestedMiddlewareOrder)],
+      children: [
+        LeafRoute<String, Cfg>(
+          path: 'child',
+          view: TestLeaf2(),
+          middleware: [OrderedMiddleware('child', nestedMiddlewareOrder)],
+        ),
+      ],
     ),
     LeafRoute<String, Cfg>(
       path: 'blocked',
       view: TestLeaf2(),
       middleware: [ThrowingMiddleware()],
+    ),
+    Route<String, Cfg>(
+      path: 'blocked-parent',
+      middleware: [
+        ThrowingOrderedMiddleware(
+          'blocked-parent',
+          blockedParentMiddlewareOrder,
+        ),
+      ],
+      children: [
+        LeafRoute<String, Cfg>(
+          path: 'child',
+          view: TestLeaf2(),
+          middleware: [
+            OrderedMiddleware('blocked-child', blockedParentMiddlewareOrder),
+          ],
+        ),
+      ],
     ),
     LeafRoute<String, Cfg>(
       path: 'rewrite',

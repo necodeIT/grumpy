@@ -63,18 +63,83 @@ class Route<T, Config extends Object> extends Model {
     return 'Route(path: $path, middleware: $middleware, children: $children)';
   }
 
-  /// Returns a string representation of the route tree starting from this route.
-  String tree([String indent = '']) {
+  /// Returns a human-readable tree representation of this route and its children.
+  ///
+  /// Example:
+  /// ```text
+  /// / (Route)
+  /// ├── /home (LeafRoute) [widget: HomePage]
+  /// ├── /settings (ModuleRoute) [module: SettingsModule]
+  /// │   ├── profile (LeafRoute)
+  /// │   └── security (LeafRoute)
+  /// └── /login (LeafRoute) [guarded: 1 middleware]
+  /// ```
+  String toTree() {
     final buffer = StringBuffer();
-
-    buffer.writeln('$indent├─$path (${runtimeType})');
-    for (final child in children) {
-      // if it's the last child, we want to use '└─' instead of '├─'
-      final isLast = child == children.last;
-      final childIndent = isLast ? '$indent  ' : '$indent│ ';
-      buffer.write(child.tree(childIndent));
-    }
-
+    _writeTree(buffer, prefix: '', isLast: true, isRoot: true);
     return buffer.toString();
   }
+
+  void _writeTree(
+    StringBuffer buffer, {
+    required String prefix,
+    required bool isLast,
+    required bool isRoot,
+  }) {
+    final label = treeLabel();
+
+    if (isRoot) {
+      buffer.writeln(label);
+    } else {
+      buffer.writeln('$prefix${isLast ? '└── ' : '├── '}$label');
+    }
+
+    final childPrefix = isRoot ? '' : '$prefix${isLast ? '    ' : '│   '}';
+
+    for (var i = 0; i < children.length; i++) {
+      children[i]._writeTree(
+        buffer,
+        prefix: childPrefix,
+        isLast: i == children.length - 1,
+        isRoot: false,
+      );
+    }
+
+    if (this is ModuleRoute) {
+      final r = this as ModuleRoute;
+      for (var i = 0; i < r.module.routes.length; i++) {
+        r.module.routes[i]._writeTree(
+          buffer,
+          prefix: childPrefix,
+          isLast: i == r.module.routes.length - 1,
+          isRoot: false,
+        );
+      }
+    }
+  }
+
+  /// Generates the label for this route in the tree representation returned by [toTree].
+  @visibleForOverriding
+  String treeLabel() {
+    final info = treeInfo;
+    final suffix = info.isEmpty ? '' : ' [${info.join(', ')}]';
+    return '$path ($runtimeType)$suffix';
+  }
+
+  /// Hook for subclasses to expose extra tree/debug info.
+  ///
+  /// Override this in concrete route types.
+  ///
+  /// Example:
+  /// ```dart
+  /// @override
+  /// List<String> get treeInfo => ['module: $module'];
+  /// ```
+  @protected
+  List<String> get treeInfo => [
+    if (middleware.isNotEmpty) 'middleware: ${middleware.length}',
+    for (var m in middleware) 'guarded by ${m.runtimeType}',
+    if (children.length > 1) 'children: ${children.length}',
+    if (path == '/') 'root',
+  ];
 }

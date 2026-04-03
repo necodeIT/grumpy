@@ -176,6 +176,33 @@ void main() {
     });
 
     test(
+      'executes middleware from parent routes before leaf middleware',
+      () async {
+        final results = <String>[];
+
+        await routing.navigate(
+          '/parent/child',
+          callback: (result, _) => results.add(result),
+        );
+
+        expect(results, ['preview:/parent/child', 'built:/parent/child']);
+        expect(root.nestedMiddlewareOrder, ['parent', 'child']);
+      },
+    );
+
+    test(
+      'executes ModuleRoute middleware before matched module child middleware',
+      () async {
+        await routing.navigate('/feature/child');
+
+        expect(root.featureMiddlewareOrder, [
+          'feature-module',
+          'feature-child',
+        ]);
+      },
+    );
+
+    test(
       'final view waits until required module activation completes',
       () async {
         await di.reset(dispose: false);
@@ -219,6 +246,15 @@ void main() {
       },
     );
 
+    test(
+      'executes ModuleRoute and module root middleware when navigating to module root',
+      () async {
+        await routing.navigate('/feature/');
+
+        expect(root.featureMiddlewareOrder, ['feature-module', 'feature-root']);
+      },
+    );
+
     test('isActive returns false when no route is active', () {
       expect(routing.isActive('/feature/child'), isFalse);
       expect(routing.isActive('/feature', exact: false), isFalse);
@@ -232,6 +268,15 @@ void main() {
       expect(routing.isActive('/feature', exact: false), isTrue);
       expect(routing.isActive('/feature/sub', exact: false), isFalse);
     });
+
+    test(
+      'isActive partial matching does not treat arbitrary prefixes as active',
+      () async {
+        await routing.navigate('/feature/child');
+
+        expect(routing.isActive('/feat', exact: false), isFalse);
+      },
+    );
 
     test('isActive can ignore query params and fragments', () async {
       await routing.navigate('/feature/child?tab=profile#details');
@@ -438,6 +483,25 @@ void main() {
     });
 
     test(
+      'failed parent middleware short-circuits child middleware and keeps active context',
+      () async {
+        final callbackResults = <String>[];
+
+        await routing.navigate('/feature/child');
+        expect(routing.currentContext?.fullPath, '/feature/child');
+
+        await routing.navigate(
+          '/blocked-parent/child',
+          callback: (result, _) => callbackResults.add(result),
+        );
+
+        expect(callbackResults, ['preview:/blocked-parent/child']);
+        expect(root.blockedParentMiddlewareOrder, ['blocked-parent']);
+        expect(routing.currentContext?.fullPath, '/feature/child');
+      },
+    );
+
+    test(
       'concurrent navigation to same path resolves via pending navigation',
       () async {
         final firstResults = <String>[];
@@ -618,5 +682,25 @@ void main() {
 
       expect(results, ['preview:/feature/child', 'built:/feature/child']);
     });
+
+    test(
+      'retains route listeners across warm deactivate/activate cycles',
+      () async {
+        final notifiedRoutes = <String>[];
+
+        void listener(Route<String, Cfg> route) {
+          notifiedRoutes.add(route.path);
+        }
+
+        routing.addListener(listener);
+
+        await (routing as LifecycleMixin).deactivate();
+        await (routing as LifecycleMixin).activate();
+
+        await routing.navigate('/feature/child');
+
+        expect(notifiedRoutes, ['child']);
+      },
+    );
   });
 }

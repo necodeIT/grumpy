@@ -51,4 +51,13 @@ class ModuleRoute<T, Config extends Object> extends Route<T, Config> {
   String toString() {
     return 'ModuleRoute(path: $path, module: $module, middleware: $middleware, root: $root)';
   }
+
+  @override
+  List<String> get treeInfo => [
+    'module: ${module.logTag.replaceAll('Module', '')}',
+    if (root != null && root?.path != '/') 'root: ${root!.path}',
+    ...super.treeInfo,
+    if (module.routes.where((r) => r.path != '/').isNotEmpty)
+      'subroutes: ${module.routes.length}',
+  ];
 }
