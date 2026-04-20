@@ -98,6 +98,10 @@ final class _WatchedExternalDependency {
   }
 }
 
+/// Type alias for a common UseRepoMixin configuration where the derived state is a RepoState.
+typedef UseRepoStateMixin<T> =
+    UseRepoMixin<RepoDataState<T>, RepoErrorState<T>, RepoLoadingState<T>>;
+
 /// Derived-state mixin for watching other repos and external signals.
 ///
 /// Tracks dependent repos and external invalidation sources, then rebuilds a
@@ -525,25 +529,39 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 ///
 /// {@category repo}
 
-mixin DeferredRepoMixin<T> on Repo<T>, UseRepoMixin<void, void, void> {
-  @mustCallSuper
-  @override
-  FutureOr<void> onDependencyError(Object error, StackTrace? stackTrace) {
-    this.error(error, stackTrace);
+mixin DeferredRepoMixin<T>
+    on
+        Repo<T>,
+        UseRepoMixin<RepoDataState<T>, RepoErrorState<T>, RepoLoadingState<T>> {
+  /// Installs the necessary lifecycle hooks for the [DeferredRepoMixin].
+  ///
+  /// Should be called in the constructor of the class using this mixin, after calling [installUseRepoHooks].
+  @mustCallInConstructor
+  void installDeferredRepoHooks() {
+    onDependenciesChanged(() {
+      when(data: setState, error: setState, loading: setState);
+    });
   }
 
   @mustCallSuper
   @override
-  FutureOr<void> onDependenciesLoading() {
-    loading();
+  FutureOr<RepoErrorState<T>> onDependencyError(
+    Object error,
+    StackTrace? stackTrace,
+  ) {
+    return RepoErrorState<T>(error, stackTrace);
   }
 
-  @mustCallSuper
+  @nonVirtual
   @override
-  FutureOr<void> onDependenciesReady(UseHooks use) async {
-    final data = await build(use);
+  RepoLoadingState<T> onDependenciesLoading() {
+    return RepoLoadingState<T>(DateTime.now());
+  }
 
-    this.data(data);
+  @nonVirtual
+  @override
+  FutureOr<RepoDataState<T>> onDependenciesReady(UseHooks use) async {
+    return RepoDataState(await build(use));
   }
 
   /// A builder function that constructs the state of this repo of type [T].

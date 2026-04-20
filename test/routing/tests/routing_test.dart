@@ -406,7 +406,48 @@ void main() {
       },
     );
 
-    test('navigating to current uri is a no-op', () async {
+    test(
+      'route is active while middleware is running and rolls back to none on first-navigation failure',
+      () async {
+        final navigation = routing.navigate('/slow-blocked');
+
+        await root.slowBlockedMiddleware.started;
+
+        expect(routing.currentContext?.fullPath, '/slow-blocked');
+        expect(routing.isActive('/slow-blocked'), isTrue);
+
+        root.slowBlockedMiddleware.release();
+        await navigation;
+
+        expect(routing.currentContext, isNull);
+        expect(routing.isActive('/slow-blocked'), isFalse);
+      },
+    );
+
+    test(
+      'failed middleware rolls back to the previously active route',
+      () async {
+        await routing.navigate('/feature/child');
+        expect(routing.currentContext?.fullPath, '/feature/child');
+
+        final navigation = routing.navigate('/slow-blocked');
+
+        await root.slowBlockedMiddleware.started;
+
+        expect(routing.currentContext?.fullPath, '/slow-blocked');
+        expect(routing.isActive('/slow-blocked'), isTrue);
+        expect(routing.isActive('/feature/child'), isFalse);
+
+        root.slowBlockedMiddleware.release();
+        await navigation;
+
+        expect(routing.currentContext?.fullPath, '/feature/child');
+        expect(routing.isActive('/feature/child'), isTrue);
+        expect(routing.isActive('/slow-blocked'), isFalse);
+      },
+    );
+
+    test('navigating to current uri only emits final view', () async {
       final initialEventsDone = Completer<void>();
       final streamEvents = <ViewChangedEvent<String, Cfg>>[];
       final sub = routing.onViewChanged((event) {
@@ -428,7 +469,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await sub.cancel();
 
-      expect(repeatedCallbackResults, isEmpty);
+      expect(repeatedCallbackResults, ['built:/feature/child']);
       expect(streamEvents.length, 2);
       expect(root.featureModule.activateCalls, 1);
     });

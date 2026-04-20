@@ -42,6 +42,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   final Map<Route<T, Config>, List<Route<T, Config>>> _routeLineages = {};
 
   final _viewChangeController = BehaviorSubject<ViewChangedEvent<T, Config>>();
+  ViewChangedEvent<T, Config>? _activeViewChange;
 
   @override
   RouteContext? get currentContext => _context;
@@ -68,7 +69,17 @@ class RoutingKitRoutingService<T, Config extends Object>
     final current = ignoreParams ? currentUri.path : currentUri.toString();
     final target = ignoreParams ? targetUri.path : targetUri.toString();
 
-    return exact ? current == target : current.startsWith(target);
+    return exact ? current == target : _isPartialActiveMatch(current, target);
+  }
+
+  bool _isPartialActiveMatch(String current, String target) {
+    if (current == target) return true;
+
+    final boundaryTarget = target.endsWith('/') ? target : '$target/';
+
+    return current.startsWith(boundaryTarget) ||
+        current.startsWith('$target?') ||
+        current.startsWith('$target#');
   }
 
   @override
@@ -88,8 +99,7 @@ class RoutingKitRoutingService<T, Config extends Object>
   @override
   FutureOr<void> deactivate() async {
     _context = null;
-    _listeners.clear();
-    _moduleCache.clear();
+    _activeViewChange = null;
     _pendingNavigations.clear();
     await moduleRegistry.sync(<Module<T, Config>>[]);
   }
@@ -104,7 +114,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
     _addRoute(root, '/');
 
-    log("Registered routes:\n${root.toTree()}");
+    log('Registered routes:\n${root.toTree()}');
   }
 
   void _addRoute(
@@ -249,12 +259,18 @@ class RoutingKitRoutingService<T, Config extends Object>
     void emitToStream(T view, bool isPreview) {
       log('View changed: isPreview=$isPreview, view=$view for path: $path');
 
-      _viewChangeController.add((
+      final event = (
         view: view,
         isPreview: isPreview,
         context: currentContext,
         config: RootModule.getConfig<Config>(),
-      ));
+      );
+
+      if (!isPreview) {
+        _activeViewChange = event;
+      }
+
+      _viewChangeController.add(event);
     }
 
     void handler(T view, bool isPreview) {
@@ -263,19 +279,6 @@ class RoutingKitRoutingService<T, Config extends Object>
     }
 
     final uri = Uri.parse(path);
-
-    if (uri == currentContext?.uri) {
-      log(
-        'Already at path: $path, skipping navigation and emitting current view.',
-      );
-
-      if (_viewChangeController.hasValue) {
-        final current = _viewChangeController.value;
-        callback(current.view, current.isPreview);
-      }
-
-      return;
-    }
 
     if (_pendingNavigations.containsKey(uri)) {
       log('Navigation to $path is already in progress, forwarding callback.');
@@ -304,6 +307,19 @@ class RoutingKitRoutingService<T, Config extends Object>
       return;
     }
 
+    if (uri == currentContext?.uri) {
+      log(
+        'Already at path: $path, skipping navigation and emitting current view.',
+      );
+
+      final current = _activeViewChange;
+      if (current != null) {
+        callback(current.view, current.isPreview);
+      }
+
+      return;
+    }
+
     try {
       final cleanPath = uri.path;
 
@@ -318,7 +334,7 @@ class RoutingKitRoutingService<T, Config extends Object>
         );
       }
 
-      var matchedRoute = match.data;
+      final matchedRoute = match.data;
 
       if (matchedRoute is ModuleRoute<T, Config>) {
         log(
@@ -352,12 +368,15 @@ class RoutingKitRoutingService<T, Config extends Object>
     void Function(T, bool) callback,
   ) async {
     var context = RouteContext.fromUri(uri);
+    final previousContext = _context;
     final cleanPath = uri.path;
     final middleware = _collectMiddleware(lineage);
 
     log('Navigating to $cleanPath with context: $context');
 
     if (!skipPreview) callback(leaf.view.preview(context), true);
+
+    _context = context;
 
     // activate required modules
     final dependencies = getDependencies(cleanPath);
@@ -372,11 +391,13 @@ class RoutingKitRoutingService<T, Config extends Object>
           'Executing middleware ${i + 1}/${middleware.length}: ${currentMiddleware.runtimeType}',
         );
         context = await currentMiddleware(context);
+        _context = context;
       }
       log(
         'All ${middleware.length} middlewares executed successfully for $cleanPath',
       );
     } catch (e, s) {
+      _context = previousContext;
       log(
         'A middleware threw an exception during navigation to $cleanPath',
         e,

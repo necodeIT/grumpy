@@ -78,6 +78,37 @@ class DelayedPassMiddleware extends Middleware<String, Cfg> {
   String get logTag => 'DelayedPassMiddleware';
 }
 
+class DelayedThrowingMiddleware extends Middleware<String, Cfg> {
+  int calls = 0;
+
+  final Completer<void> _started = Completer<void>();
+  final Completer<void> _release = Completer<void>();
+
+  Future<void> get started => _started.future;
+
+  void release() {
+    if (!_release.isCompleted) {
+      _release.complete();
+    }
+  }
+
+  @override
+  Future<RouteContext> call(RouteContext context) async {
+    calls++;
+    if (!_started.isCompleted) {
+      _started.complete();
+    }
+    await _release.future;
+    throw StateError('delayed middleware boom');
+  }
+
+  @override
+  String toString() => 'DelayedThrowingMiddleware(calls: $calls)';
+
+  @override
+  String get logTag => 'DelayedThrowingMiddleware';
+}
+
 class OrderedMiddleware extends Middleware<String, Cfg> {
   OrderedMiddleware(this.label, this.order);
 
@@ -290,6 +321,8 @@ class RootTestModule extends RootModule<String, Cfg> {
   RootTestModule(super.cfg);
 
   final DelayedPassMiddleware slowPendingMiddleware = DelayedPassMiddleware();
+  final DelayedThrowingMiddleware slowBlockedMiddleware =
+      DelayedThrowingMiddleware();
   final List<String> nestedMiddlewareOrder = <String>[];
   final List<String> featureMiddlewareOrder = <String>[];
   final List<String> blockedParentMiddlewareOrder = <String>[];
@@ -351,6 +384,11 @@ class RootTestModule extends RootModule<String, Cfg> {
       path: 'slow-pending',
       view: TestLeaf2(),
       middleware: [slowPendingMiddleware],
+    ),
+    LeafRoute<String, Cfg>(
+      path: 'slow-blocked',
+      view: TestLeaf2(),
+      middleware: [slowBlockedMiddleware],
     ),
     ModuleRoute<String, Cfg>(path: 'module', module: featureModule),
     ModuleRoute<String, Cfg>(path: 'dependent', module: DependentModule()),

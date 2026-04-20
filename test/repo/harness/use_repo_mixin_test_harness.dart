@@ -168,9 +168,10 @@ class IntRepo extends Repo<int> {
 }
 
 class DeferredCombinedRepo extends Repo<String>
-    with UseRepoMixin, DeferredRepoMixin<String> {
+    with UseRepoStateMixin<String>, DeferredRepoMixin<String> {
   DeferredCombinedRepo() {
     installUseRepoHooks();
+    installDeferredRepoHooks();
   }
 
   @override

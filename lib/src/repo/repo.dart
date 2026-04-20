@@ -66,6 +66,11 @@ abstract class Repo<T>
     _stream.add(RepoState.error(error, stackTrace));
   }
 
+  /// Sets the current state to [newState].
+  void setState(RepoState<T> newState) {
+    _stream.add(newState);
+  }
+
   @nonVirtual
   @override
   Level get logLevel => Level.INFO;
