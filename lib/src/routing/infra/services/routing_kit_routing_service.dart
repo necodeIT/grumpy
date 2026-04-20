@@ -26,7 +26,8 @@ class RoutingKitRoutingService<T, Config extends Object>
 
   RouteContext? _context;
 
-  final Map<Uri, (Future<bool>, LeafRoute<T, Config>)> _pendingNavigations = {};
+  final Map<Uri, (Future<bool>, LeafRoute<T, Config>, RouteContext)>
+  _pendingNavigations = {};
 
   /// The root module of the application.
   final RootModule<T, Config> rootModule;
@@ -250,6 +251,16 @@ class RoutingKitRoutingService<T, Config extends Object>
     return Uri.parse(normalized).pathSegments;
   }
 
+  RouteContext _createContext(Uri uri, Map<String, String> pathParams) {
+    return RouteContext(
+      fullPath: uri.toString(),
+      pathParams: pathParams,
+      queryParams: uri.queryParameters,
+      queryParamsAll: uri.queryParametersAll,
+      fragment: uri.fragment,
+    );
+  }
+
   @override
   Future<void> navigate(
     String path, {
@@ -283,10 +294,10 @@ class RoutingKitRoutingService<T, Config extends Object>
     if (_pendingNavigations.containsKey(uri)) {
       log('Navigation to $path is already in progress, forwarding callback.');
 
-      final (future, leaf) = _pendingNavigations[uri]!;
+      final (future, leaf, context) = _pendingNavigations[uri]!;
 
       if (!skipPreview) {
-        callback(leaf.view.preview(RouteContext.fromUri(uri)), true);
+        callback(leaf.view.preview(context), true);
       }
 
       log('Waiting for pending navigation to $path to complete.');
@@ -302,7 +313,7 @@ class RoutingKitRoutingService<T, Config extends Object>
 
       log('Pending navigation to $path completed, invoking content callback.');
 
-      callback(await leaf.view.content(RouteContext.fromUri(uri)), false);
+      callback(await leaf.view.content(context), false);
 
       return;
     }
@@ -346,10 +357,11 @@ class RoutingKitRoutingService<T, Config extends Object>
       }
 
       final (:leaf, :lineage) = _resolveLeafRoute(matchedRoute, path);
+      final context = _createContext(uri, match.params);
 
-      final future = _navigate(uri, leaf, lineage, skipPreview, handler);
+      final future = _navigate(context, leaf, lineage, skipPreview, handler);
 
-      _pendingNavigations[uri] = (future, leaf);
+      _pendingNavigations[uri] = (future, leaf, context);
       _currentNavigation = future;
       await future;
     } catch (e, s) {
@@ -361,15 +373,15 @@ class RoutingKitRoutingService<T, Config extends Object>
   }
 
   Future<bool> _navigate(
-    Uri uri,
+    RouteContext initialContext,
     LeafRoute<T, Config> leaf,
     List<Route<T, Config>> lineage,
     bool skipPreview,
     void Function(T, bool) callback,
   ) async {
-    var context = RouteContext.fromUri(uri);
+    var context = initialContext;
     final previousContext = _context;
-    final cleanPath = uri.path;
+    final cleanPath = context.uri.path;
     final middleware = _collectMiddleware(lineage);
 
     log('Navigating to $cleanPath with context: $context');

@@ -271,6 +271,20 @@ class TestLeaf2 extends Leaf<String> {
   Future<String> content(RouteContext ctx) async => 'built:${ctx.fullPath}';
 }
 
+class ParamLeaf extends Leaf<String> {
+  @override
+  String preview(RouteContext ctx) {
+    final id = ctx.pathParams['id'];
+    return 'preview:$id:${ctx.getPathParam('id')}:${ctx.get('id')}';
+  }
+
+  @override
+  Future<String> content(RouteContext ctx) async {
+    final id = ctx.pathParams['id'];
+    return 'built:$id:${ctx.getPathParam('id')}:${ctx.get('id')}';
+  }
+}
+
 class FeatureModule extends Module<String, Cfg> {
   FeatureModule(this.middlewareOrder);
 
@@ -390,6 +404,7 @@ class RootTestModule extends RootModule<String, Cfg> {
       view: TestLeaf2(),
       middleware: [slowBlockedMiddleware],
     ),
+    LeafRoute<String, Cfg>(path: 'courses/:id', view: ParamLeaf()),
     ModuleRoute<String, Cfg>(path: 'module', module: featureModule),
     ModuleRoute<String, Cfg>(path: 'dependent', module: DependentModule()),
     const Route<String, Cfg>(path: 'idk'),

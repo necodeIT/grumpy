@@ -79,7 +79,7 @@ abstract class RouteContext extends Model with _$RouteContext {
   /// Retrieves a query parameter by its [key].
   String? getQueryParam(String key) => queryParams[key];
 
-  /// Retrieves a parameter by checkings [pathParams] first, then [queryParams].
+  /// Retrieves a parameter by checking [pathParams] first, then [queryParams].
   String? get(String key) => pathParams[key] ?? queryParams[key];
 
   /// Retrieves a parameter by checking [pathParams] first, then [queryParams].

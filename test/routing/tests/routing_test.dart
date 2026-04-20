@@ -255,6 +255,31 @@ void main() {
       },
     );
 
+    test('passes matched path params into leaf route contexts', () async {
+      final callbackResults = <String>[];
+      final streamEvents = <ViewChangedEvent<String, Cfg>>[];
+      final streamDone = Completer<void>();
+      final sub = routing.onViewChanged((event) {
+        streamEvents.add(event);
+        if (streamEvents.length == 2 && !streamDone.isCompleted) {
+          streamDone.complete();
+        }
+      });
+
+      await routing.navigate(
+        '/courses/42?id=query#lesson',
+        callback: (result, _) => callbackResults.add(result),
+      );
+      await streamDone.future;
+      await sub.cancel();
+
+      expect(callbackResults, ['preview:42:42:42', 'built:42:42:42']);
+      expect(routing.currentContext?.pathParams, {'id': '42'});
+      expect(routing.currentContext?.queryParams, {'id': 'query'});
+      expect(routing.currentContext?.fragment, 'lesson');
+      expect(streamEvents.last.context?.pathParams, {'id': '42'});
+    });
+
     test('isActive returns false when no route is active', () {
       expect(routing.isActive('/feature/child'), isFalse);
       expect(routing.isActive('/feature', exact: false), isFalse);
