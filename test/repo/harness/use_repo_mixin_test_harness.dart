@@ -133,6 +133,60 @@ class ExternalSignalConsumer
   String get logTag => 'ExternalSignalConsumer';
 }
 
+class PayloadStreamConsumer
+    with
+        Disposable,
+        LogMixin,
+        LifecycleMixin,
+        LifecycleHooksMixin,
+        UseRepoMixin<String, String, String> {
+  PayloadStreamConsumer({
+    required this.key,
+    required this.sourceKey,
+    required this.stream,
+  }) {
+    installUseRepoHooks();
+    onDependenciesChanged(() => dependenciesChangedCalls++);
+    initialize();
+  }
+
+  final Object key;
+  Object sourceKey;
+  Stream<String> stream;
+
+  int dependenciesChangedCalls = 0;
+  int streamFactoryCalls = 0;
+  int readyCalls = 0;
+  int errorCalls = 0;
+  Object? lastError;
+
+  @override
+  FutureOr<String> onDependenciesReady(UseHooks use) {
+    readyCalls++;
+    return use.payloadStream<String>(
+      key,
+      sourceKey: sourceKey,
+      createStream: () {
+        streamFactoryCalls++;
+        return stream;
+      },
+    );
+  }
+
+  @override
+  FutureOr<String> onDependencyError(Object error, StackTrace? _) {
+    errorCalls++;
+    lastError = error;
+    return 'error:${error.toString()}';
+  }
+
+  @override
+  String onDependenciesLoading() => 'loading';
+
+  @override
+  String get logTag => 'PayloadStreamConsumer';
+}
+
 // for testing uninitialized usage
 // ignore: missing_required_constructor_call
 class UninitializedConsumer
@@ -183,6 +237,57 @@ class DeferredCombinedRepo extends Repo<String>
 
   @override
   String get logTag => 'DeferredCombinedRepo';
+}
+
+class ExternalSignalDeferredRepo extends Repo<String>
+    with UseRepoStateMixin<String>, DeferredRepoMixin<String> {
+  ExternalSignalDeferredRepo({
+    required this.key,
+    required this.changeSignal,
+    required this.syncSnapshot,
+  }) {
+    installUseRepoHooks();
+    installDeferredRepoHooks();
+  }
+
+  final Object key;
+  Stream changeSignal;
+  String Function() syncSnapshot;
+
+  @override
+  FutureOr<String> build(UseHooks use) {
+    return use.externalStream<String>(
+      key,
+      changeSignal: changeSignal,
+      syncSnapshot: syncSnapshot,
+    );
+  }
+
+  @override
+  String get logTag => 'ExternalSignalDeferredRepo';
+}
+
+class PayloadStreamDeferredRepo extends Repo<String>
+    with UseRepoStateMixin<String>, DeferredRepoMixin<String> {
+  PayloadStreamDeferredRepo({required this.key, required this.payloads}) {
+    installUseRepoHooks();
+    installDeferredRepoHooks();
+  }
+
+  final Object key;
+  Stream<String> payloads;
+
+  @override
+  FutureOr<String> build(UseHooks use) {
+    return use.payloadStream<String>(
+      key,
+      sourceKey: key,
+      createStream: () => payloads,
+    );
+  }
+
+  @override
+  String get logTag => 'PayloadStreamDeferredRepo';
 }
 
 class StringRepo extends Repo<String> {

@@ -13,15 +13,17 @@ import 'package:grumpy/grumpy.dart';
 /// Derived repos need one structured way to declare the dependencies they want
 /// to watch.
 ///
-/// [repo] resolves and subscribes to another repo, while [externalStream]
-/// subscribes to an invalidation stream and reads the current value from a
-/// synchronous snapshot callback.
+/// [repo] resolves and subscribes to another repo, [externalStream] subscribes
+/// to an invalidation stream and reads the current value from a synchronous
+/// snapshot callback, and [payloadStream] subscribes to a stream whose emitted
+/// payloads are the current value.
 ///
 /// Calling [repo] may throw [NoRepoDataError] until the dependency has emitted
 /// data.
 ///
 /// - [repo]: watches another repo and returns its current data plus the repo.
 /// - [externalStream]: watches a non-repo signal keyed by a stable identity.
+/// - [payloadStream]: watches a non-repo payload stream keyed by a stable identity.
 ///
 /// For example:
 /// ```dart
@@ -31,7 +33,11 @@ import 'package:grumpy/grumpy.dart';
 /// {@category repo}
 class UseHooks {
   /// Provides use hooks for watching and accessing data within [UseRepoMixin.onDependenciesReady].
-  const UseHooks({required this.repo, required this.externalStream});
+  const UseHooks({
+    required this.repo,
+    required this.externalStream,
+    required this.payloadStream,
+  });
 
   /// {@template UseHooks.repo}
   /// Watches a [Repo] of type `R` managing data of type `S` and
@@ -72,6 +78,35 @@ class UseHooks {
     required T Function() syncSnapshot,
   })
   externalStream;
+
+  /// Watches a payload-bearing stream and returns its latest emitted value.
+  ///
+  /// [key] identifies the dependency slot across rebuilds. [sourceKey]
+  /// identifies the stream source within that slot. The [createStream] factory
+  /// runs only when the slot is first used or its source key changes, so callers
+  /// do not need to cache stream instances themselves.
+  ///
+  /// ```dart
+  /// final profile = use.payloadStream<UserProfile>(
+  ///   'profile',
+  ///   sourceKey: userId,
+  ///   createStream: api.watchProfile,
+  /// );
+  /// ```
+  ///
+  /// The hook reports loading until the active stream emits its first payload.
+  /// Later payloads trigger recomputation and are returned synchronously. When
+  /// [sourceKey] changes, the previous subscription and payload are discarded.
+  ///
+  /// If the stream emits an error, the error will be handled by
+  /// [UseRepoMixin.onDependencyError]. The dependency recovers when the stream
+  /// emits another payload.
+  final T Function<T>(
+    Object key, {
+    required Object sourceKey,
+    required Stream<T> Function() createStream,
+  })
+  payloadStream;
 }
 
 final class _WatchedExternalDependency {
@@ -95,6 +130,39 @@ final class _WatchedExternalDependency {
   void setError(Object error, StackTrace stackTrace) {
     lastError = error;
     lastStackTrace = stackTrace;
+  }
+}
+
+final Object _missingPayload = Object();
+
+final class _WatchedPayloadStreamDependency<T> {
+  _WatchedPayloadStreamDependency({required this.sourceKey});
+
+  final Object sourceKey;
+  late StreamSubscription<T> subscription;
+  Object? _latestValue = _missingPayload;
+  Object? lastError;
+  StackTrace? lastStackTrace;
+
+  bool get hasValue => !identical(_latestValue, _missingPayload);
+
+  T get value => _latestValue as T;
+
+  bool get hasError => lastError != null;
+
+  void clearError() {
+    lastError = null;
+    lastStackTrace = null;
+  }
+
+  void setError(Object error, StackTrace stackTrace) {
+    lastError = error;
+    lastStackTrace = stackTrace;
+  }
+
+  void setValue(T value) {
+    _latestValue = value;
+    clearError();
   }
 }
 
@@ -133,6 +201,8 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   final _watchedRepos = <Type, Repo>{};
   final _pendingRepoResolutions = <Type, Future<Repo<dynamic>>>{};
   final _watchedExternalDependencies = <Object, _WatchedExternalDependency>{};
+  final _watchedPayloadStreamDependencies =
+      <Object, _WatchedPayloadStreamDependency<dynamic>>{};
 
   bool _installed = false;
   int _stateChangeVersion = 0;
@@ -290,6 +360,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     });
     onDisposed(_watchedRepos.clear);
     onDisposed(_watchedExternalDependencies.clear);
+    onDisposed(_watchedPayloadStreamDependencies.clear);
   }
 
   /// Watches a [Repo] of type [R] managing data of type [S] and
@@ -397,6 +468,47 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     return syncSnapshot();
   }
 
+  T _watchPayloadStream<T>(
+    Object key, {
+    required Object sourceKey,
+    required Stream<T> Function() createStream,
+  }) {
+    if (!_installed) {
+      throw StateError(
+        'UseRepoMixin not installed. Call installUseRepoHooks in the constructor.',
+      );
+    }
+
+    final watchedDependency = _watchedPayloadStreamDependencies[key];
+    if (watchedDependency == null) {
+      _subscribeToPayloadStreamDependency<T>(
+        key,
+        sourceKey: sourceKey,
+        stream: createStream(),
+      );
+    } else if (watchedDependency.sourceKey != sourceKey) {
+      _replacePayloadStreamDependency<T>(
+        key,
+        watchedDependency: watchedDependency,
+        sourceKey: sourceKey,
+        stream: createStream(),
+      );
+    }
+
+    final dependency = _watchedPayloadStreamDependencies[key]!;
+    if (dependency.hasError) {
+      Error.throwWithStackTrace(
+        dependency.lastError!,
+        dependency.lastStackTrace ?? StackTrace.current,
+      );
+    }
+    if (!dependency.hasValue) {
+      throw NoRepoDataError(RepoState<T>.loading());
+    }
+
+    return dependency.value as T;
+  }
+
   _WatchedExternalDependency _subscribeToExternalDependency(
     Object key,
     Stream changeSignal,
@@ -443,8 +555,67 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     );
   }
 
+  void _subscribeToPayloadStreamDependency<T>(
+    Object key, {
+    required Object sourceKey,
+    required Stream<T> stream,
+  }) {
+    final watchedDependency = _WatchedPayloadStreamDependency<T>(
+      sourceKey: sourceKey,
+    );
+
+    _watchedPayloadStreamDependencies[key] = watchedDependency;
+
+    final sub = stream.listen(
+      (value) async {
+        if (!identical(
+          _watchedPayloadStreamDependencies[key],
+          watchedDependency,
+        )) {
+          return;
+        }
+        watchedDependency.setValue(value);
+        final version = ++_stateChangeVersion;
+        await _rebuildDependencyState(version);
+      },
+      onError: (Object error, StackTrace stackTrace) async {
+        if (!identical(
+          _watchedPayloadStreamDependencies[key],
+          watchedDependency,
+        )) {
+          return;
+        }
+        watchedDependency.setError(error, stackTrace);
+        final version = ++_stateChangeVersion;
+        await _rebuildDependencyState(version);
+      },
+    );
+
+    watchedDependency.subscription = sub;
+    _subs.add(sub);
+  }
+
+  void _replacePayloadStreamDependency<T>(
+    Object key, {
+    required _WatchedPayloadStreamDependency<dynamic> watchedDependency,
+    required Object sourceKey,
+    required Stream<T> stream,
+  }) {
+    _subs.remove(watchedDependency.subscription);
+    unawaited(watchedDependency.subscription.cancel());
+    _subscribeToPayloadStreamDependency<T>(
+      key,
+      sourceKey: sourceKey,
+      stream: stream,
+    );
+  }
+
   FutureOr<D> _onDependenciesReady() => onDependenciesReady(
-    UseHooks(repo: _useRepo, externalStream: _watchExternal),
+    UseHooks(
+      repo: _useRepo,
+      externalStream: _watchExternal,
+      payloadStream: _watchPayloadStream,
+    ),
   );
 
   /// A callback function that is called when all watched repositories are ready.

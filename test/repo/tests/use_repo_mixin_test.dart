@@ -436,6 +436,169 @@ void main() {
 
       expect(consumer.dependenciesChangedCalls, equals(baselineChanges));
     });
+
+    test('payloadStream loads until the first payload is emitted', () async {
+      var listenCount = 0;
+      final controller = StreamController<String>.broadcast(
+        onListen: () => listenCount++,
+      );
+      final consumer = PayloadStreamConsumer(
+        key: Object(),
+        sourceKey: 'profile',
+        stream: controller.stream,
+      );
+      addTearDown(() async {
+        await consumer.destroy();
+        await controller.close();
+      });
+      await settle();
+
+      final loadingState = consumer.when(
+        data: (value) => value,
+        error: (value) => value,
+        loading: (value) => value,
+      );
+
+      expect(loadingState, equals('loading'));
+      expect(listenCount, equals(1));
+      expect(consumer.streamFactoryCalls, equals(1));
+
+      controller.add('initial');
+      await settle();
+
+      final dataState = consumer.when(
+        data: (value) => value,
+        error: (value) => value,
+        loading: (value) => value,
+      );
+
+      expect(dataState, equals('initial'));
+      expect(consumer.streamFactoryCalls, equals(1));
+    });
+
+    test('payloadStream rebuilds from each emitted payload', () async {
+      final controller = StreamController<String>.broadcast();
+      final consumer = PayloadStreamConsumer(
+        key: Object(),
+        sourceKey: 'profile',
+        stream: controller.stream,
+      );
+      addTearDown(() async {
+        await consumer.destroy();
+        await controller.close();
+      });
+      await settle();
+
+      controller.add('initial');
+      await settle();
+      controller.add('updated');
+      await settle();
+
+      final state = consumer.when(
+        data: (value) => value,
+        error: (value) => value,
+        loading: (value) => value,
+      );
+
+      expect(state, equals('updated'));
+      expect(consumer.readyCalls, greaterThanOrEqualTo(3));
+    });
+
+    test(
+      'payloadStream replaces its subscription when sourceKey changes',
+      () async {
+        var firstCancelCount = 0;
+        final firstController = StreamController<String>.broadcast(
+          onCancel: () => firstCancelCount++,
+        );
+        final secondController = StreamController<String>.broadcast();
+        final consumer = PayloadStreamConsumer(
+          key: 'profile',
+          sourceKey: 'first-user',
+          stream: firstController.stream,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await firstController.close();
+          await secondController.close();
+        });
+        await settle();
+
+        firstController.add('first-profile');
+        await settle();
+        expect(consumer.streamFactoryCalls, equals(1));
+
+        firstController.addError(Exception('first source failed'));
+        await settle();
+
+        consumer
+          ..sourceKey = 'second-user'
+          ..stream = secondController.stream;
+        firstController.addError(Exception('source changed'));
+        await settle();
+
+        final loadingState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+        expect(loadingState, equals('loading'));
+        expect(consumer.streamFactoryCalls, equals(2));
+        expect(firstCancelCount, equals(1));
+
+        secondController.add('second-profile');
+        await settle();
+
+        final dataState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+        expect(dataState, equals('second-profile'));
+        expect(consumer.streamFactoryCalls, equals(2));
+      },
+    );
+
+    test(
+      'payloadStream routes stream errors and recovers on payload',
+      () async {
+        final controller = StreamController<String>.broadcast();
+        final error = Exception('payload failed');
+        final consumer = PayloadStreamConsumer(
+          key: Object(),
+          sourceKey: 'profile',
+          stream: controller.stream,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await controller.close();
+        });
+        await settle();
+
+        controller.addError(error);
+        await settle();
+
+        final errorState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(errorState, equals('error:${error.toString()}'));
+        expect(consumer.lastError, same(error));
+
+        controller.add('recovered');
+        await settle();
+
+        final recoveredState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+
+        expect(recoveredState, equals('recovered'));
+      },
+    );
   });
 
   group('DeferredRepoMixin', () {
@@ -483,6 +646,65 @@ void main() {
       await settle();
 
       expect(setup.repo.state.data, equals('1-back'));
+    });
+
+    test(
+      'rebuilds data from latest external sync snapshot on signal',
+      () async {
+        final controller = StreamController<void>.broadcast();
+        var snapshot = 'initial';
+        final repo = ExternalSignalDeferredRepo(
+          key: Object(),
+          changeSignal: controller.stream,
+          syncSnapshot: () => snapshot,
+        );
+        addTearDown(() async {
+          await repo.destroy();
+          await controller.close();
+        });
+
+        await repo.initialize();
+        await settle();
+
+        expect(repo.state.hasData, isTrue);
+        expect(repo.state.data, equals('initial'));
+
+        snapshot = 'updated';
+        controller.add(null);
+        await settle();
+
+        expect(repo.state.hasData, isTrue);
+        expect(repo.state.data, equals('updated'));
+      },
+    );
+
+    test('rebuilds data from latest payload stream value', () async {
+      final controller = StreamController<String>.broadcast();
+      final repo = PayloadStreamDeferredRepo(
+        key: Object(),
+        payloads: controller.stream,
+      );
+      addTearDown(() async {
+        await repo.destroy();
+        await controller.close();
+      });
+
+      await repo.initialize();
+      await settle();
+
+      expect(repo.state.isLoading, isTrue);
+
+      controller.add('initial');
+      await settle();
+
+      expect(repo.state.hasData, isTrue);
+      expect(repo.state.data, equals('initial'));
+
+      controller.add('updated');
+      await settle();
+
+      expect(repo.state.hasData, isTrue);
+      expect(repo.state.data, equals('updated'));
     });
   });
 }
