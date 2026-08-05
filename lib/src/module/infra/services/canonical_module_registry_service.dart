@@ -22,7 +22,8 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   final Map<Module<T, Config>, Set<Module<T, Config>>> _dependencyGraph = {};
   final Set<Module<T, Config>> _mountedModules = {};
   final Set<Module<T, Config>> _activeModules = {};
-  final Set<Module<T, Config>> _requiredRootModules = {};
+  final Set<Module<T, Config>> _pinnedModules = {};
+  final Set<Module<T, Config>> _syncedModules = {};
 
   Future<void> _pending = Future<void>.value();
   GetIt get _di => GetIt.instance;
@@ -123,14 +124,14 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   @override
   Future<void> ensureActive(Module<T, Config> module) {
     final canonical = canonicalize(module);
-    _requiredRootModules.add(canonical);
+    _pinnedModules.add(canonical);
     return _enqueueSync();
   }
 
   @override
   Future<void> ensureInactive(Module<T, Config> module) {
     final canonical = canonicalize(module);
-    _requiredRootModules.remove(canonical);
+    _pinnedModules.remove(canonical);
     return _enqueueSync();
   }
 
@@ -139,7 +140,8 @@ class CanonicalModuleRegistryService<T, Config extends Object>
     final canonical = canonicalize(module);
     return _pending = _pending.then(
       (_) async {
-        _requiredRootModules.remove(canonical);
+        _pinnedModules.remove(canonical);
+        _syncedModules.remove(canonical);
         _activeModules.remove(canonical);
         _mountedModules.remove(canonical);
         _modulesByType.remove(canonical.runtimeType);
@@ -160,13 +162,14 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   Future<void> sync(Iterable<Module<T, Config>> requiredModules) {
     log('Syncing modules: $requiredModules');
     if (requiredModules.isEmpty &&
-        _requiredRootModules.isEmpty &&
+        _pinnedModules.isEmpty &&
+        _syncedModules.isEmpty &&
         _activeModules.isEmpty) {
       log('No modules to sync.');
       return Future<void>.value();
     }
 
-    _requiredRootModules
+    _syncedModules
       ..clear()
       ..addAll(requiredModules.map(canonicalize));
     return _enqueueSync();
@@ -182,7 +185,10 @@ class CanonicalModuleRegistryService<T, Config extends Object>
   }
 
   Future<void> _reconcile() async {
-    final required = resolveDependencies(_requiredRootModules);
+    final required = resolveDependencies({
+      ..._pinnedModules,
+      ..._syncedModules,
+    });
     final toActivate = required.difference(_activeModules);
     final toDeactivate = _activeModules.difference(required);
 
@@ -273,6 +279,8 @@ class CanonicalModuleRegistryService<T, Config extends Object>
 
   @override
   FutureOr<void> destroy() async {
+    _pinnedModules.clear();
+    _syncedModules.clear();
     await deactivate();
     await super.destroy();
   }

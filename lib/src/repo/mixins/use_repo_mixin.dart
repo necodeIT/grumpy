@@ -135,6 +135,10 @@ final class _WatchedExternalDependency {
 
 final Object _missingPayload = Object();
 
+final class _UseRepoDisposed implements Exception {
+  const _UseRepoDisposed();
+}
+
 final class _WatchedPayloadStreamDependency<T> {
   _WatchedPayloadStreamDependency({required this.sourceKey});
 
@@ -184,6 +188,9 @@ typedef UseRepoStateMixin<T> =
 ///
 /// - Call [installUseRepoHooks] in the constructor.
 /// - Dependency discovery is lazy and happens from the first build pass.
+/// - Non-repo consumers wait for [DependencyReadiness] before first resolving
+///   each repo. Derived repos wait only for missing registrations to avoid
+///   waiting on the runtime that is initializing them.
 /// - External streams are invalidation-only; emitted payloads are ignored.
 ///
 /// - `D`: derived data payload when dependencies are ready.
@@ -205,6 +212,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       <Object, _WatchedPayloadStreamDependency<dynamic>>{};
 
   bool _installed = false;
+  bool _useRepoDisposed = false;
   int _stateChangeVersion = 0;
 
   D? _lastData;
@@ -212,6 +220,8 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   L? _lastLoading;
 
   Future<void> _onWatchedRepoStateChange(Repo changedRepo) async {
+    if (_useRepoDisposed) return;
+
     log(
       'Detected state change in dependencies (${changedRepo.runtimeType}). Re-evaluating...',
     );
@@ -220,6 +230,8 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
   }
 
   Future<void> _rebuildDependencyState(int version) async {
+    if (_useRepoDisposed) return;
+
     var anyLoading = false;
     Object? firstError;
     StackTrace? firstErrorStackTrace;
@@ -278,6 +290,8 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         nextData = await _onDependenciesReady();
         log('Dependencies ready, obtained new data.');
       }
+    } on _UseRepoDisposed {
+      return;
     } on NoRepoDataError catch (e, st) {
       if (e.state.isLoading) {
         nextError = null;
@@ -294,7 +308,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       nextData = null;
     }
 
-    if (version != _stateChangeVersion) return;
+    if (_useRepoDisposed || version != _stateChangeVersion) return;
 
     _lastData = nextData;
     _lastError = nextError;
@@ -306,26 +320,11 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 
   Future<void> _discover() async {
     log('Discovering dependencies...');
-    try {
-      final result = await _onDependenciesReady();
-
-      // if we already get data in the discovery phase, store it.
-      _lastData = result;
-      _lastError = null;
-      _lastLoading = null;
-    } on NoRepoDataError catch (_) {
-      log('At least one dependency is not ready, waiting for updates...');
-    } catch (e, st) {
-      log('Error during dependency discovery: $e');
-      _lastError = await onDependencyError(e, st);
-      // Ignore errors during the initial discovery phase.
-      // we are just trying to discover repos here.
-    } finally {
-      log(
-        'Dependency discovery complete. Currently watching ${_watchedRepos.length} repos.',
-      );
-      await dependenciesChanged();
-    }
+    final version = ++_stateChangeVersion;
+    await _rebuildDependencyState(version);
+    log(
+      'Dependency discovery complete. Currently watching ${_watchedRepos.length} repos.',
+    );
   }
 
   /// Installs the necessary lifecycle hooks for the [UseRepoMixin].
@@ -352,6 +351,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       }
     });
 
+    onDisposed(() => _useRepoDisposed = true);
     onDisposed(() async {
       for (final sub in _subs) {
         await sub.cancel();
@@ -359,6 +359,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       _subs.clear();
     });
     onDisposed(_watchedRepos.clear);
+    onDisposed(_pendingRepoResolutions.clear);
     onDisposed(_watchedExternalDependencies.clear);
     onDisposed(_watchedPayloadStreamDependencies.clear);
   }
@@ -395,6 +396,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         'UseRepoMixin not installed. Call installUseRepoHooks in the constructor.',
       );
     }
+    if (_useRepoDisposed) throw const _UseRepoDisposed();
 
     if (_watchedRepos.containsKey(R)) {
       final repo = _watchedRepos[R] as R;
@@ -408,7 +410,17 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
     }
 
     final resolveAndWatch = (() async {
+      final repoIsRegistered = GetIt.I.isRegistered<R>();
+      final shouldWaitForRuntime = this is! Repo || !repoIsRegistered;
+      if (shouldWaitForRuntime && GetIt.I.isRegistered<DependencyReadiness>()) {
+        log('Waiting for pending runtime work before resolving $R...');
+        await GetIt.I<DependencyReadiness>().waitForPendingDependencies();
+      }
+
+      if (_useRepoDisposed) throw const _UseRepoDisposed();
+
       final repo = await GetIt.I.getAsync<R>();
+      if (_useRepoDisposed) throw const _UseRepoDisposed();
       if (_watchedRepos.containsKey(R)) {
         return _watchedRepos[R] as R;
       }
@@ -416,12 +428,14 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
       log('Discovered new dependency. Now watching ${repo.logTag}');
       _watchedRepos[R] = repo;
 
-      var ignoredInitialReplay = false;
-      final sub = repo.stream.listen((_) async {
-        if (!ignoredInitialReplay) {
-          ignoredInitialReplay = true;
+      final stateAtSubscription = repo.state;
+      var awaitingInitialReplay = true;
+      final sub = repo.stream.listen((state) async {
+        if (awaitingInitialReplay && identical(state, stateAtSubscription)) {
+          awaitingInitialReplay = false;
           return;
         }
+        awaitingInitialReplay = false;
         await _onWatchedRepoStateChange(repo);
       });
 
@@ -450,6 +464,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         'UseRepoMixin not installed. Call installUseRepoHooks in the constructor.',
       );
     }
+    if (_useRepoDisposed) throw const _UseRepoDisposed();
 
     final watchedDependency = _watchedExternalDependencies[key];
     if (watchedDependency == null) {
@@ -478,6 +493,7 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         'UseRepoMixin not installed. Call installUseRepoHooks in the constructor.',
       );
     }
+    if (_useRepoDisposed) throw const _UseRepoDisposed();
 
     final watchedDependency = _watchedPayloadStreamDependencies[key];
     if (watchedDependency == null) {

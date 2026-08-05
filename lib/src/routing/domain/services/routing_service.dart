@@ -31,7 +31,8 @@ import 'package:meta/meta.dart';
 ///
 /// {@category routing}
 
-abstract class RoutingService<T, Config extends Object> extends Service {
+abstract class RoutingService<T, Config extends Object> extends Service
+    implements DependencyReadiness {
   /// Returns the DI-registered implementation of [RoutingService].
   ///
   /// Shorthand for [Service.get].
@@ -98,8 +99,16 @@ abstract class RoutingService<T, Config extends Object> extends Service {
   Stream<ViewChangedEvent<T, Config>> get viewStream;
 
   /// Waits until the current route is ready and the view has been rendered.
-  @visibleForTesting
   Future<void> get currentNavigation;
+
+  @override
+  Future<void> waitForPendingDependencies() async {
+    while (true) {
+      final navigation = currentNavigation;
+      await navigation;
+      if (identical(navigation, currentNavigation)) return;
+    }
+  }
 
   @override
   bool get singelton => true;

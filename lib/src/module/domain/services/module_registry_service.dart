@@ -64,16 +64,18 @@ abstract class ModuleRegistryService<T, Config extends Object> extends Service {
   /// directly depends on (its direct imports).
   Map<Module<T, Config>, Set<Module<T, Config>>> get dependencyGraph;
 
-  /// Ensures [module] and all of its dependencies are mounted and active.
+  /// Pins [module] and all of its dependencies as mounted and active.
   ///
-  /// Implementations must be idempotent and must operate on canonical module
-  /// instances only.
+  /// Pinned modules remain required across [sync] calls until explicitly
+  /// released with [ensureInactive]. Implementations must be idempotent and
+  /// must operate on canonical module instances only.
   Future<void> ensureActive(Module<T, Config> module);
 
-  /// Ensures [module] is no longer active and unmounts it when possible.
+  /// Releases the pin held for [module].
   ///
-  /// Implementations may keep shared dependencies mounted while still in use
-  /// and must reconcile aliases to canonical instances first.
+  /// The module remains active when it is still required by [sync], another
+  /// pinned module, or a shared dependency. Implementations must reconcile
+  /// aliases to canonical instances first.
   Future<void> ensureInactive(Module<T, Config> module);
 
   /// Forcefully disposes [module], bypassing warm deactivation.
@@ -90,10 +92,11 @@ abstract class ModuleRegistryService<T, Config extends Object> extends Service {
     Iterable<Module<T, Config>> modules,
   );
 
-  /// Reconciles module state with [requiredModules].
+  /// Replaces the synchronized module set with [requiredModules].
   ///
-  /// After completion, all required modules (plus their dependencies) should be
-  /// active, and no extra modules should remain active.
+  /// After completion, synchronized modules, pinned modules from [ensureActive],
+  /// and all of their dependencies are active. Modules outside that combined
+  /// graph are deactivated.
   Future<void> sync(Iterable<Module<T, Config>> requiredModules);
 
   @override

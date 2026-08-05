@@ -119,6 +119,35 @@ void main() {
       },
     );
 
+    test('sync preserves modules pinned by ensureActive', () async {
+      final events = <String>[];
+      final registry = CanonicalModuleRegistryService<int, Cfg>();
+      final appDependency = DependencyModule('app-dependency', events: events);
+      final app = FeatureModule('app', events: events, deps: [appDependency]);
+      final dashboard = SettingsModule('dashboard', events: events);
+
+      await registry.ensureActive(app);
+      await registry.sync([dashboard]);
+
+      expect(
+        registry.activeModules,
+        containsAll([appDependency, app, dashboard]),
+      );
+
+      await registry.sync(const <Module<int, Cfg>>[]);
+
+      expect(registry.activeModules, equals({appDependency, app}));
+      expect(app.deactivateCalls, 0);
+      expect(appDependency.deactivateCalls, 0);
+      expect(dashboard.deactivateCalls, 1);
+
+      await registry.ensureInactive(app);
+
+      expect(registry.activeModules, isEmpty);
+      expect(app.deactivateCalls, 1);
+      expect(appDependency.deactivateCalls, 1);
+    });
+
     test('isActive resolves aliases via canonical instance', () async {
       final events = <String>[];
       final registry = CanonicalModuleRegistryService<int, Cfg>();

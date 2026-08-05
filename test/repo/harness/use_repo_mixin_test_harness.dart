@@ -1,6 +1,22 @@
 import 'dart:async';
 import 'package:grumpy/grumpy.dart';
 
+class ControlledDependencyReadiness implements DependencyReadiness {
+  final Completer<void> _ready = Completer<void>();
+
+  int waitCalls = 0;
+
+  void complete() {
+    if (!_ready.isCompleted) _ready.complete();
+  }
+
+  @override
+  Future<void> waitForPendingDependencies() {
+    waitCalls++;
+    return _ready.future;
+  }
+}
+
 class UseRepoConsumer
     with
         Disposable,
@@ -81,6 +97,43 @@ class SlowSnapshotUseRepoConsumer
 
   @override
   String get logTag => 'SlowSnapshotUseRepoConsumer';
+}
+
+class ControlledInitialBuildConsumer
+    with
+        Disposable,
+        LogMixin,
+        LifecycleMixin,
+        LifecycleHooksMixin,
+        UseRepoMixin<int, Object, void> {
+  ControlledInitialBuildConsumer() {
+    installUseRepoHooks();
+    initialize();
+  }
+
+  final firstSnapshotCaptured = Completer<void>();
+  final releaseFirstBuild = Completer<void>();
+  int readyCalls = 0;
+
+  @override
+  Future<int> onDependenciesReady(UseHooks use) async {
+    final (value, _) = await use.repo<int, IntRepo>();
+    readyCalls++;
+    if (readyCalls == 1) {
+      firstSnapshotCaptured.complete();
+      await releaseFirstBuild.future;
+    }
+    return value;
+  }
+
+  @override
+  Object onDependencyError(Object error, StackTrace? _) => error;
+
+  @override
+  void onDependenciesLoading() {}
+
+  @override
+  String get logTag => 'ControlledInitialBuildConsumer';
 }
 
 class ExternalSignalConsumer

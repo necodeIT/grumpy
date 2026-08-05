@@ -3,6 +3,7 @@
 import 'dart:async';
 
 import 'package:get_it/get_it.dart' hide Disposable;
+import 'package:grumpy/grumpy.dart';
 import 'package:logging/logging.dart';
 import 'package:test/test.dart';
 import '../harness/use_repo_mixin_test_harness.dart';
@@ -82,6 +83,98 @@ void main() {
       );
 
       await consumer.destroy();
+    });
+
+    test(
+      'waits for pending runtime work before resolving a missing repo',
+      () async {
+        final readiness = ControlledDependencyReadiness();
+        di.registerSingleton<DependencyReadiness>(readiness);
+
+        final consumer = UseRepoConsumer();
+        addTearDown(consumer.destroy);
+        await settle();
+
+        expect(readiness.waitCalls, equals(1));
+        expect(consumer.errorCalls, isZero);
+
+        final intRepo = IntRepo();
+        final stringRepo = StringRepo();
+        di.registerSingletonAsync<IntRepo>(() async => intRepo);
+        di.registerSingletonAsync<StringRepo>(() async => stringRepo);
+        readiness.complete();
+        await settle();
+
+        intRepo.setData(3);
+        await settle();
+        stringRepo.setData('ready');
+        await settle();
+
+        final state = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+        expect(state, equals('3-ready'));
+        expect(consumer.errorCalls, isZero);
+      },
+    );
+
+    test(
+      'waits for pending runtime work before resolving a registered repo',
+      () async {
+        final readiness = ControlledDependencyReadiness();
+        di.registerSingleton<DependencyReadiness>(readiness);
+
+        final intRepo = IntRepo()..setData(3);
+        final stringRepo = StringRepo()..setData('ready');
+        di.registerSingletonAsync<IntRepo>(() async => intRepo);
+        di.registerSingletonAsync<StringRepo>(() async => stringRepo);
+
+        final consumer = UseRepoConsumer();
+        addTearDown(consumer.destroy);
+        await settle();
+
+        expect(readiness.waitCalls, equals(1));
+        expect(
+          consumer.when(
+            data: (value) => value,
+            error: (value) => value,
+            loading: (value) => value,
+          ),
+          equals('loading'),
+        );
+
+        readiness.complete();
+        await settle();
+
+        expect(
+          consumer.when(
+            data: (value) => value,
+            error: (value) => value,
+            loading: (value) => value,
+          ),
+          equals('3-ready'),
+        );
+      },
+    );
+
+    test('abandons pending repo resolution when disposed', () async {
+      final readiness = ControlledDependencyReadiness();
+      di.registerSingleton<DependencyReadiness>(readiness);
+      final consumer = UseRepoConsumer();
+      await settle();
+
+      expect(readiness.waitCalls, equals(1));
+      final baselineChanges = consumer.dependenciesChangedCalls;
+      await consumer.destroy();
+
+      di.registerSingletonAsync<IntRepo>(() async => IntRepo());
+      readiness.complete();
+      await settle();
+
+      expect(consumer.dependenciesChangedCalls, equals(baselineChanges));
+      expect(consumer.errorCalls, isZero);
     });
 
     test('rebuilds data when dependencies become ready', () async {
@@ -182,6 +275,29 @@ void main() {
         expect(consumer.readyCalls, greaterThanOrEqualTo(3));
       },
     );
+
+    test('does not let initial discovery overwrite a newer rebuild', () async {
+      final intRepo = IntRepo()..setData(1);
+      di.registerSingletonAsync<IntRepo>(() async => intRepo);
+
+      final consumer = ControlledInitialBuildConsumer();
+      addTearDown(consumer.destroy);
+
+      await consumer.firstSnapshotCaptured.future;
+      intRepo.setData(2);
+      await settle();
+      consumer.releaseFirstBuild.complete();
+      await settle();
+
+      final state = consumer.when(
+        data: (value) => value,
+        error: (error) => throw error,
+        loading: (_) => fail('Expected dependency data.'),
+      );
+
+      expect(state, equals(2));
+      expect(consumer.readyCalls, equals(2));
+    });
 
     test(
       'watchExternal returns sync snapshot without waiting for emission',
@@ -602,6 +718,28 @@ void main() {
   });
 
   group('DeferredRepoMixin', () {
+    test(
+      'does not wait on the runtime that is initializing the repo itself',
+      () async {
+        final readiness = ControlledDependencyReadiness();
+        di.registerSingleton<DependencyReadiness>(readiness);
+
+        final intRepo = IntRepo()..setData(7);
+        final stringRepo = StringRepo()..setData('ready');
+        di.registerSingletonAsync<IntRepo>(() async => intRepo);
+        di.registerSingletonAsync<StringRepo>(() async => stringRepo);
+
+        final repo = DeferredCombinedRepo();
+        addTearDown(repo.destroy);
+        await repo.initialize();
+        await settle();
+
+        expect(repo.state.hasData, isTrue);
+        expect(repo.state.data, equals('7-ready'));
+        expect(readiness.waitCalls, isZero);
+      },
+    );
+
     test('builds data when dependencies are ready', () async {
       final setup = await setupDeferredRepo();
       addTearDown(() async => setup.repo.destroy());
@@ -706,5 +844,29 @@ void main() {
       expect(repo.state.hasData, isTrue);
       expect(repo.state.data, equals('updated'));
     });
+
+    test(
+      'publishes a payload emitted while dependency discovery is completing',
+      () async {
+        late final StreamController<String> controller;
+        controller = StreamController<String>.broadcast(
+          onListen: () => controller.add('initial'),
+        );
+        final repo = PayloadStreamDeferredRepo(
+          key: Object(),
+          payloads: controller.stream,
+        );
+        addTearDown(() async {
+          await repo.destroy();
+          await controller.close();
+        });
+
+        await repo.initialize();
+        await settle();
+
+        expect(repo.state.hasData, isTrue);
+        expect(repo.state.data, equals('initial'));
+      },
+    );
   });
 }

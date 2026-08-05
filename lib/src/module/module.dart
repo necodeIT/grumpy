@@ -538,6 +538,9 @@ abstract class RootModule<RouteType, Config extends Object>
         moduleRegistryServiceBuilder,
       );
       _bindInjectable<RoutingService<RouteType, Config>>(routingServiceBuilder);
+      _di.registerLazySingleton<DependencyReadiness>(
+        () => _di.get<RoutingService<RouteType, Config>>(),
+      );
       _bindInjectable<MemoryCacheLayerService>(memoryCacheLayerServiceBuilder);
       if (fileCacheLayerServiceBuilder != null) {
         _bindInjectable<FileCacheLayerService>(fileCacheLayerServiceBuilder!);
@@ -548,6 +551,8 @@ abstract class RootModule<RouteType, Config extends Object>
       );
       _bindInjectable<RepoBootstrapService>(repoBootstrapServiceBuilder);
       _bindInjectable<TxEngineFactoryService>(txEngineFactoryServiceBuilder);
+    } catch (e, s) {
+      log('Failed to initialize $logTag', e, s);
     } finally {
       _isInitializing = false;
     }
@@ -574,5 +579,21 @@ abstract class RootModule<RouteType, Config extends Object>
   /// Retrieves the module configuration from the dependency injector.
   static T getConfig<T extends Object>() {
     return GetIt.instance.get<T>();
+  }
+
+  Future<void>? _bootstrapFuture;
+
+  /// Initializes and activates the root module and its imported module graph.
+  ///
+  /// Use this once during application startup instead of calling [initialize]
+  /// and [activate] directly. Concurrent and repeated calls share the same
+  /// bootstrap operation.
+  Future<void> bootstrap() {
+    return _bootstrapFuture ??= _bootstrap();
+  }
+
+  Future<void> _bootstrap() async {
+    await initialize();
+    await ModuleRegistryService<RouteType, Config>().ensureActive(this);
   }
 }

@@ -138,6 +138,29 @@ void main() {
       await di.reset(dispose: false);
     });
 
+    test('registers routing as the dependency readiness boundary', () {
+      expect(di.get<DependencyReadiness>(), same(routing));
+    });
+
+    test('dependency readiness waits for pending navigation', () async {
+      final navigation = routing.navigate('/slow-pending');
+      await root.slowPendingMiddleware.started;
+
+      var dependenciesReady = false;
+      final readiness = di
+          .get<DependencyReadiness>()
+          .waitForPendingDependencies()
+          .then((_) => dependenciesReady = true);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(dependenciesReady, isFalse);
+
+      root.slowPendingMiddleware.release();
+      await Future.wait([navigation, readiness]);
+
+      expect(dependenciesReady, isTrue);
+    });
+
     test('navigation fails when route is not a leaf', () async {
       final results = <String>[];
 
