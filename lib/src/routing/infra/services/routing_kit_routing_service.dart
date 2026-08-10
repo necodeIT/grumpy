@@ -400,7 +400,7 @@ class RoutingKitRoutingService<T, Config extends Object>
       for (var i = 0; i < middleware.length; i++) {
         final currentMiddleware = middleware[i];
         log(
-          'Executing middleware ${i + 1}/${middleware.length}: ${currentMiddleware.runtimeType}',
+          'Executing middleware ${i + 1}/${middleware.length}: ${currentMiddleware.logTag}',
         );
         context = await currentMiddleware(context);
         _context = context;

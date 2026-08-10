@@ -715,6 +715,101 @@ void main() {
         expect(recoveredState, equals('recovered'));
       },
     );
+
+    test(
+      'payloadStream recreates its subscription when the stream closes',
+      () async {
+        final firstController = StreamController<String>.broadcast();
+        final secondController = StreamController<String>.broadcast();
+        final consumer = PayloadStreamConsumer(
+          key: Object(),
+          sourceKey: 'profile',
+          stream: firstController.stream,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await firstController.close();
+          await secondController.close();
+        });
+        await settle();
+
+        firstController.add('initial');
+        await settle();
+        expect(consumer.streamFactoryCalls, equals(1));
+
+        consumer.stream = secondController.stream;
+        await firstController.close();
+        await settle();
+
+        final loadingState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+        expect(loadingState, equals('loading'));
+        expect(consumer.streamFactoryCalls, equals(2));
+
+        secondController.add('reconnected');
+        await settle();
+
+        final dataState = consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        );
+        expect(dataState, equals('reconnected'));
+        expect(consumer.streamFactoryCalls, equals(2));
+      },
+    );
+
+    test(
+      'payloadStream recreates its subscription after an error closes the stream',
+      () async {
+        final firstController = StreamController<String>.broadcast();
+        final secondController = StreamController<String>.broadcast();
+        final consumer = PayloadStreamConsumer(
+          key: Object(),
+          sourceKey: 'profile',
+          stream: firstController.stream,
+        );
+        addTearDown(() async {
+          await consumer.destroy();
+          await firstController.close();
+          await secondController.close();
+        });
+        await settle();
+
+        firstController.add('initial');
+        await settle();
+
+        consumer.stream = secondController.stream;
+        firstController.addError(Exception('connection closed'));
+        await firstController.close();
+        await settle();
+
+        expect(consumer.streamFactoryCalls, equals(2));
+        expect(
+          consumer.when(
+            data: (value) => value,
+            error: (value) => value,
+            loading: (value) => value,
+          ),
+          equals('loading'),
+        );
+
+        secondController.add('recovered');
+        await settle();
+
+        expect(
+          consumer.when(
+            data: (value) => value,
+            error: (value) => value,
+            loading: (value) => value,
+          ),
+          equals('recovered'),
+        );
+      },
+    );
   });
 
   group('DeferredRepoMixin', () {

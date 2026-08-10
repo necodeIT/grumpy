@@ -83,8 +83,9 @@ class UseHooks {
   ///
   /// [key] identifies the dependency slot across rebuilds. [sourceKey]
   /// identifies the stream source within that slot. The [createStream] factory
-  /// runs only when the slot is first used or its source key changes, so callers
-  /// do not need to cache stream instances themselves.
+  /// runs when the slot is first used, its source key changes, or the active
+  /// stream closes, so callers do not need to cache stream instances
+  /// themselves.
   ///
   /// ```dart
   /// final profile = use.payloadStream<UserProfile>(
@@ -97,6 +98,8 @@ class UseHooks {
   /// The hook reports loading until the active stream emits its first payload.
   /// Later payloads trigger recomputation and are returned synchronously. When
   /// [sourceKey] changes, the previous subscription and payload are discarded.
+  /// If the active stream closes, the subscription is recreated and the hook
+  /// reports loading until the replacement stream emits.
   ///
   /// If the stream emits an error, the error will be handled by
   /// [UseRepoMixin.onDependencyError]. The dependency recovers when the stream
@@ -147,6 +150,7 @@ final class _WatchedPayloadStreamDependency<T> {
   Object? _latestValue = _missingPayload;
   Object? lastError;
   StackTrace? lastStackTrace;
+  bool isClosed = false;
 
   bool get hasValue => !identical(_latestValue, _missingPayload);
 
@@ -502,7 +506,8 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         sourceKey: sourceKey,
         stream: createStream(),
       );
-    } else if (watchedDependency.sourceKey != sourceKey) {
+    } else if (watchedDependency.sourceKey != sourceKey ||
+        watchedDependency.isClosed) {
       _replacePayloadStreamDependency<T>(
         key,
         watchedDependency: watchedDependency,
@@ -604,6 +609,29 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
         watchedDependency.setError(error, stackTrace);
         final version = ++_stateChangeVersion;
         await _rebuildDependencyState(version);
+      },
+      onDone: () {
+        if (_useRepoDisposed ||
+            !identical(
+              _watchedPayloadStreamDependencies[key],
+              watchedDependency,
+            )) {
+          return;
+        }
+        watchedDependency.isClosed = true;
+
+        scheduleMicrotask(() {
+          if (_useRepoDisposed ||
+              !identical(
+                _watchedPayloadStreamDependencies[key],
+                watchedDependency,
+              )) {
+            return;
+          }
+
+          final version = ++_stateChangeVersion;
+          unawaited(_rebuildDependencyState(version));
+        });
       },
     );
 

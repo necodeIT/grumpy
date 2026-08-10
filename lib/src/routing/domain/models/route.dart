@@ -138,7 +138,7 @@ class Route<T, Config extends Object> extends Model {
   @protected
   List<String> get treeInfo => [
     if (middleware.isNotEmpty) 'middleware: ${middleware.length}',
-    for (var m in middleware) 'guarded by ${m.runtimeType}',
+    for (var m in middleware) 'guarded by ${m.logTag}',
     if (children.length > 1) 'children: ${children.length}',
     if (path == '/') 'root',
   ];
