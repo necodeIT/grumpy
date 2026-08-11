@@ -34,6 +34,9 @@ class UseRepoConsumer
   int errorCalls = 0;
   Object? lastError;
 
+  /// Forces the consumer to recompute its derived dependency state.
+  Future<void> refresh() => refreshDependencies();
+
   @override
   FutureOr<String> onDependenciesReady(UseHooks use) async {
     final (count, _) = await use.repo<int, IntRepo>();

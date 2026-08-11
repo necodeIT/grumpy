@@ -324,11 +324,32 @@ mixin UseRepoMixin<D, E, L> on LifecycleMixin, LifecycleHooksMixin {
 
   Future<void> _discover() async {
     log('Discovering dependencies...');
-    final version = ++_stateChangeVersion;
-    await _rebuildDependencyState(version);
+    await refreshDependencies();
     log(
       'Dependency discovery complete. Currently watching ${_watchedRepos.length} repos.',
     );
+  }
+
+  /// Re-evaluates the derived state from the current dependencies.
+  ///
+  /// Use this when an external lifecycle event invalidates the computation
+  /// performed by [onDependenciesReady] without emitting a dependency change.
+  /// For example, Flutter consumers can call this during hot reload so edits to
+  /// query logic take effect while preserving the surrounding widget state.
+  ///
+  /// The latest refresh wins when multiple refreshes overlap. Dependency
+  /// subscriptions are reused and any newly accessed dependencies are
+  /// discovered in the normal way.
+  @protected
+  Future<void> refreshDependencies() async {
+    if (!_installed) {
+      throw StateError(
+        'UseRepoMixin not installed. Call installUseRepoHooks in the constructor.',
+      );
+    }
+
+    final version = ++_stateChangeVersion;
+    await _rebuildDependencyState(version);
   }
 
   /// Installs the necessary lifecycle hooks for the [UseRepoMixin].

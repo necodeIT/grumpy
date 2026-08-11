@@ -85,6 +85,28 @@ void main() {
       await consumer.destroy();
     });
 
+    test('refreshes derived state without a dependency emission', () async {
+      final setup = await setupConsumer();
+      addTearDown(setup.consumer.destroy);
+
+      setup.intRepo.setData(1);
+      setup.stringRepo.setData('before');
+      await settle();
+
+      final callsBeforeRefresh = setup.consumer.dependenciesChangedCalls;
+      await setup.consumer.refresh();
+
+      expect(setup.consumer.dependenciesChangedCalls, callsBeforeRefresh + 1);
+      expect(
+        setup.consumer.when(
+          data: (value) => value,
+          error: (value) => value,
+          loading: (value) => value,
+        ),
+        equals('1-before'),
+      );
+    });
+
     test(
       'waits for pending runtime work before resolving a missing repo',
       () async {
